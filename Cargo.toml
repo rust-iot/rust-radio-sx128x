@@ -14,3 +14,6 @@ libc = "0.2.42"
 [build-dependencies]
 bindgen = "0.26.3"
 cc = "1.0"
+
+[dev-dependencies]
+embedded-hal-mock = "0.5.0"

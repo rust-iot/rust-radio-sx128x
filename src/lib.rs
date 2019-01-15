@@ -36,7 +36,7 @@ pub struct Sx128x<SPI, OUTPUT, INPUT, DELAY> {
 }
 
 pub struct Settings {
-    
+
 }
 
 extern fn DelayMs(ms: u32) {
@@ -202,8 +202,19 @@ where
 
 #[cfg(test)]
 mod tests {
+    extern crate embedded_hal_mock;
+
+    use embedded_hal_mock::spi::{Mock as SpiMock, Transaction as SpiTransaction};
+
     #[test]
-    fn it_works() {
+    fn mock_test() {
+        let expectations = [
+            SpiTransaction::send(0x09),
+        ];
+
+        let mut spi = SpiMock::new(&expectations);
+
+
         assert_eq!(2 + 2, 4);
     }
 }
