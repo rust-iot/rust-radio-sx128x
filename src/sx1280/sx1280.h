@@ -25,10 +25,30 @@ Maintainer: Miguel Luis, Gregory Cristian and Matthieu Verdy
  */
 #define SX1280_DEBUG                                0
 
+typedef void Reset( void* ctx );
+typedef void DelayMs( void* ctx, uint32_t ms );
+typedef void WriteBuffer( void* ctx, uint8_t addr, uint8_t *buffer, uint8_t size );
+typedef void ReadBuffer( void* ctx, uint8_t addr, uint8_t *buffer, uint8_t size );
+
+/*!
+ * \brief Radio device object
+ * 
+ * \remark This contains bindings to the functions required to interact with a given device instance
+ */
+struct SX1280_s {
+    void* ctx;
+    Reset *reset;
+    DelayMs *delay_ms;
+    WriteBuffer *write_buffer;
+    ReadBuffer *read_buffer;
+};
+
+typedef struct SX1280_s SX1280_t;
+
 /*!
  * \brief Hardware IO IRQ callback function definition
  */
-typedef void ( DioIrqHandler )( void );
+typedef void ( DioIrqHandler )( SX1280_t *sx1280 );
 
 /*!
  * \brief Provides the frequency of the chip running on the radio and the frequency step
@@ -846,15 +866,15 @@ typedef enum
  */
 typedef struct
 {
-    void ( *txDone )( void );                       //!< Pointer to a function run on successful transmission
-    void ( *rxDone )( void );                       //!< Pointer to a function run on successful reception
-    void ( *rxSyncWordDone )( void );               //!< Pointer to a function run on successful SyncWord reception
-    void ( *rxHeaderDone )( void );                 //!< Pointer to a function run on successful Header reception
-    void ( *txTimeout )( void );                    //!< Pointer to a function run on transmission timeout
-    void ( *rxTimeout )( void );                    //!< Pointer to a function run on reception timeout
-    void ( *rxError )( IrqErrorCode_t errCode );    //!< Pointer to a function run on reception error
-    void ( *rangingDone )( IrqRangingCode_t val );  //!< Pointer to a function run on ranging terminated
-    void ( *cadDone )( bool cadFlag );              //!< Pointer to a function run on channel activity detected
+    void ( *txDone )( SX1280_t *sx1280 );                       //!< Pointer to a function run on successful transmission
+    void ( *rxDone )( SX1280_t *sx1280 );                       //!< Pointer to a function run on successful reception
+    void ( *rxSyncWordDone )( SX1280_t *sx1280 );               //!< Pointer to a function run on successful SyncWord reception
+    void ( *rxHeaderDone )( SX1280_t *sx1280 );                 //!< Pointer to a function run on successful Header reception
+    void ( *txTimeout )( SX1280_t *sx1280 );                    //!< Pointer to a function run on transmission timeout
+    void ( *rxTimeout )( SX1280_t *sx1280 );                    //!< Pointer to a function run on reception timeout
+    void ( *rxError )( SX1280_t *sx1280, IrqErrorCode_t errCode );    //!< Pointer to a function run on reception error
+    void ( *rangingDone )( SX1280_t *sx1280, IrqRangingCode_t val );  //!< Pointer to a function run on ranging terminated
+    void ( *cadDone )( SX1280_t *sx1280, bool cadFlag );              //!< Pointer to a function run on channel activity detected
 }RadioCallbacks_t;
 
 /*!
@@ -1078,40 +1098,40 @@ static int32_t SX1280complement2( const uint32_t num, const uint8_t bitCnt );
  *
  * \retval loRaBw              The value of the current bandwidth in Hz
  */
-int32_t SX1280GetLoRaBandwidth( void );
+int32_t SX1280GetLoRaBandwidth( SX1280_t *sx1280 );
 
 /*!
  * \brief Returns the corrected raw value of ranging 
  *
  * \retval correction              Corrected ranging raw value 
  */
-double SX1280GetRangingCorrectionPerSfBwGain( const RadioLoRaSpreadingFactors_t sf, const RadioLoRaBandwidths_t bw, const int8_t gain);
+double SX1280GetRangingCorrectionPerSfBwGain( SX1280_t *sx1280, const RadioLoRaSpreadingFactors_t sf, const RadioLoRaBandwidths_t bw, const int8_t gain );
 
 /*!
  * \brief Returns the short range corrected distance
  *
  * \retval Corrected Distance              corrected ditance
  */
-double SX1280ComputeRangingCorrectionPolynome(const RadioLoRaSpreadingFactors_t sf, const RadioLoRaBandwidths_t bw, const double median);
+double SX1280ComputeRangingCorrectionPolynome( const RadioLoRaSpreadingFactors_t sf, const RadioLoRaBandwidths_t bw, const double median );
 
 /*!
  * \brief DIOs interrupt callback
  *
  * \remark Called to handle all 3 DIOs pins
  */
-void SX1280OnDioIrq( void );
+void SX1280OnDioIrq( SX1280_t *sx1280 );
 
 /*!
  * \brief Set the role of the radio during ranging operations
  *
  * \param [in]  role          Role of the radio
  */
-void SX1280SetRangingRole( RadioRangingRoles_t role );
+void SX1280SetRangingRole( SX1280_t *sx1280, RadioRangingRoles_t role );
 
 /*!
  * \brief Initializes the radio driver
  */
-void SX1280Init( RadioCallbacks_t *callbacks );
+void SX1280Init( SX1280_t *sx1280, RadioCallbacks_t *callbacks );
 
 /*!
  * \brief Set the driver in polling mode.
@@ -1136,7 +1156,7 @@ void SX1280Init( RadioCallbacks_t *callbacks );
  *
  * \see SX1280SetInterruptMode
  */
-void SX1280SetPollingMode( void );
+void SX1280SetPollingMode( SX1280_t *sx1280 );
 
 /*!
  * \brief Set the driver in interrupt mode.
@@ -1159,33 +1179,33 @@ void SX1280SetPollingMode( void );
  *
  * \see SX1280SetPollingMode
  */
-void SX1280SetInterruptMode( void );
+void SX1280SetInterruptMode( SX1280_t *sx1280 );
 
 /*!
  * \brief Initializes the radio registers to the recommended default values
  */
-void SX1280SetRegistersDefault( void );
+void SX1280SetRegistersDefault( SX1280_t *sx1280 );
 
 /*!
  * \brief Returns the current device firmware version
  *
  * \retval      version       Firmware version
  */
-uint16_t SX1280GetFirmwareVersion( void );
+uint16_t SX1280GetFirmwareVersion( SX1280_t *sx1280 );
 
 /*!
  * \brief Gets the current Operation Mode of the Radio
  *
  * \retval      RadioOperatingModes_t last operating mode
  */
-RadioOperatingModes_t SX1280GetOpMode( void );
+RadioOperatingModes_t SX1280GetOpMode( SX1280_t *sx1280 );
 
 /*!
  * \brief Gets the current radio status
  *
  * \retval      status        Radio status
  */
-RadioStatus_t SX1280GetStatus( void );
+RadioStatus_t SX1280GetStatus( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the radio in sleep mode
@@ -1193,33 +1213,33 @@ RadioStatus_t SX1280GetStatus( void );
  * \param [in]  sleepConfig   The sleep configuration describing data
  *                            retention and RTC wake-up
  */
-void SX1280SetSleep( SleepParams_t sleepConfig );
+void SX1280SetSleep( SX1280_t *sx1280, SleepParams_t sleepConfig );
 
 /*!
  * \brief Sets the radio in configuration mode
  *
  * \param [in]  mode          The standby mode to put the radio into
  */
-void SX1280SetStandby( RadioStandbyModes_t mode );
+void SX1280SetStandby( SX1280_t *sx1280, RadioStandbyModes_t mode );
 
 /*!
  * \brief Sets the radio in FS mode
  */
-void SX1280SetFs( void );
+void SX1280SetFs( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the radio in transmission mode
  *
  * \param [in]  timeout       Structure describing the transmission timeout value
  */
-void SX1280SetTx( TickTime_t timeout );
+void SX1280SetTx( SX1280_t *sx1280, TickTime_t timeout );
 
 /*!
  * \brief Sets the radio in reception mode
  *
  * \param [in]  timeout       Structure describing the reception timeout value
  */
-void SX1280SetRx( TickTime_t timeout );
+void SX1280SetRx( SX1280_t *sx1280, TickTime_t timeout );
 
 /*!
  * \brief Sets the Rx duty cycle management parameters
@@ -1227,24 +1247,24 @@ void SX1280SetRx( TickTime_t timeout );
  * \param [in]  rxTime        Structure describing reception timeout value
  * \param [in]  sleepTime     Structure describing sleep timeout value
  */
-void SX1280SetRxDutyCycle( RadioTickSizes_t Step, uint16_t NbStepRx, uint16_t RxNbStepSleep );
+void SX1280SetRxDutyCycle( SX1280_t *sx1280, RadioTickSizes_t Step, uint16_t NbStepRx, uint16_t RxNbStepSleep );
 
 /*!
  * \brief Sets the radio in CAD mode
  *
  * \see SX1280::SetCadParams
  */
-void SX1280SetCad( void );
+void SX1280SetCad( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the radio in continuous wave transmission mode
  */
-void SX1280SetTxContinuousWave( void );
+void SX1280SetTxContinuousWave( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the radio in continuous preamble transmission mode
  */
-void SX1280SetTxContinuousPreamble( void );
+void SX1280SetTxContinuousPreamble( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the radio for the given protocol
@@ -1256,7 +1276,7 @@ void SX1280SetTxContinuousPreamble( void );
  * \remark This method has to be called before SetRfFrequency,
  *         SetModulationParams and SetPacketParams
  */
-void SX1280SetPacketType( RadioPacketTypes_t packetType );
+void SX1280SetPacketType( SX1280_t *sx1280, RadioPacketTypes_t packetType );
 
 /*!
  * \brief Gets the current radio protocol
@@ -1265,14 +1285,14 @@ void SX1280SetPacketType( RadioPacketTypes_t packetType );
  *                             PACKET_TYPE_RANGING, PACKET_TYPE_FLRC,
  *                             PACKET_TYPE_BLE, PACKET_TYPE_NONE]
  */
-RadioPacketTypes_t SX1280GetPacketType( void );
+RadioPacketTypes_t SX1280GetPacketType( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the RF frequency
  *
  * \param [in]  frequency     RF frequency [Hz]
  */
-void SX1280SetRfFrequency( uint32_t frequency );
+void SX1280SetRfFrequency( SX1280_t *sx1280, uint32_t frequency );
 
 /*!
  * \brief Sets the transmission parameters
@@ -1280,7 +1300,7 @@ void SX1280SetRfFrequency( uint32_t frequency );
  * \param [in]  power         RF output power [-18..13] dBm
  * \param [in]  rampTime      Transmission ramp up time
  */
-void SX1280SetTxParams( int8_t power, RadioRampTimes_t rampTime );
+void SX1280SetTxParams( SX1280_t *sx1280, int8_t power, RadioRampTimes_t rampTime );
 
 /*!
  * \brief Sets the number of symbols to be used for Channel Activity
@@ -1290,7 +1310,7 @@ void SX1280SetTxParams( int8_t power, RadioRampTimes_t rampTime );
  *                            Detection operations [LORA_CAD_01_SYMBOL, LORA_CAD_02_SYMBOL,
  *                            LORA_CAD_04_SYMBOL, LORA_CAD_08_SYMBOL, LORA_CAD_16_SYMBOL]
  */
-void SX1280SetCadParams( RadioLoRaCadSymbols_t cadSymbolNum );
+void SX1280SetCadParams( SX1280_t *sx1280, RadioLoRaCadSymbols_t cadSymbolNum );
 
 /*!
  * \brief Sets the data buffer base address for transmission and reception
@@ -1298,21 +1318,21 @@ void SX1280SetCadParams( RadioLoRaCadSymbols_t cadSymbolNum );
  * \param [in]  txBaseAddress Transmission base address
  * \param [in]  rxBaseAddress Reception base address
  */
-void SX1280SetBufferBaseAddresses( uint8_t txBaseAddress, uint8_t rxBaseAddress );
+void SX1280SetBufferBaseAddresses( SX1280_t *sx1280, uint8_t txBaseAddress, uint8_t rxBaseAddress );
 
 /*!
  * \brief Set the modulation parameters
  *
  * \param [in]  modParams     A structure describing the modulation parameters
  */
-void SX1280SetModulationParams( ModulationParams_t *modParams );
+void SX1280SetModulationParams( SX1280_t *sx1280, ModulationParams_t *modParams );
 
 /*!
  * \brief Sets the packet parameters
  *
  * \param [in]  packetParams  A structure describing the packet parameters
  */
-void SX1280SetPacketParams( PacketParams_t *packetParams );
+void SX1280SetPacketParams( SX1280_t *sx1280, PacketParams_t *packetParams );
 
 /*!
  * \brief Gets the last received packet buffer status
@@ -1320,21 +1340,21 @@ void SX1280SetPacketParams( PacketParams_t *packetParams );
  * \param [out] payloadLength Last received packet payload length
  * \param [out] rxStartBuffer Last received packet buffer address pointer
  */
-void SX1280GetRxBufferStatus( uint8_t *payloadLength, uint8_t *rxStartBuffer );
+void SX1280GetRxBufferStatus( SX1280_t *sx1280, uint8_t *payloadLength, uint8_t *rxStartBuffer );
 
 /*!
  * \brief Gets the last received packet payload length
  *
  * \param [out] pktStatus     A structure of packet status
  */
-void SX1280GetPacketStatus( PacketStatus_t *pktStatus );
+void SX1280GetPacketStatus( SX1280_t *sx1280, PacketStatus_t *pktStatus );
 
 /*!
  * \brief Returns the instantaneous RSSI value for the last packet received
  *
  * \retval      rssiInst      Instantaneous RSSI
  */
-int8_t SX1280GetRssiInst( void );
+int8_t SX1280GetRssiInst( SX1280_t *sx1280 );
 
 /*!
  * \brief   Sets the IRQ mask and DIO masks
@@ -1344,40 +1364,40 @@ int8_t SX1280GetRssiInst( void );
  * \param [in]  dio2Mask      DIO2 mask
  * \param [in]  dio3Mask      DIO3 mask
  */
-void SX1280SetDioIrqParams( uint16_t irqMask, uint16_t dio1Mask, uint16_t dio2Mask, uint16_t dio3Mask );
+void SX1280SetDioIrqParams( SX1280_t *sx1280, uint16_t irqMask, uint16_t dio1Mask, uint16_t dio2Mask, uint16_t dio3Mask );
 
 /*!
  * \brief Returns the current IRQ status
  *
  * \retval      irqStatus     IRQ status
  */
-uint16_t SX1280GetIrqStatus( void );
+uint16_t SX1280GetIrqStatus( SX1280_t *sx1280 );
 
 /*!
  * \brief Clears the IRQs
  *
  * \param [in]  irq           IRQ(s) to be cleared
  */
-void SX1280ClearIrqStatus( uint16_t irq );
+void SX1280ClearIrqStatus( SX1280_t *sx1280, uint16_t irq );
 
 /*!
  * \brief Calibrates the given radio block
  *
  * \param [in]  calibParam    The description of blocks to be calibrated
  */
-void SX1280Calibrate( CalibrationParams_t calibParam );
+void SX1280Calibrate( SX1280_t *sx1280, CalibrationParams_t calibParam );
 
 /*!
  * \brief Sets the power regulators operating mode
  *
  * \param [in]  mode          [0: LDO, 1:DC_DC]
  */
-void SX1280SetRegulatorMode( RadioRegulatorModes_t mode );
+void SX1280SetRegulatorMode( SX1280_t *sx1280, RadioRegulatorModes_t mode );
 
 /*!
  * \brief Saves the current selected modem configuration into data RAM
  */
-void SX1280SetSaveContext( void );
+void SX1280SetSaveContext( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the chip to automatically send a packet after the end of a packet reception
@@ -1386,7 +1406,7 @@ void SX1280SetSaveContext( void );
  *
  * \param [in]  time          The delay in us after which a Tx is done
  */
-void SX1280SetAutoTx( uint16_t time );
+void SX1280SetAutoTx(SX1280_t *sx1280,  uint16_t time );
 
 /*!
  * \brief Stop the chip from automatically sending a packet after the end of a packet reception
@@ -1394,7 +1414,7 @@ void SX1280SetAutoTx( uint16_t time );
  *
  * \see SX1280SetAutoTx
  */
-void SX1280StopAutoTx( void );
+void SX1280StopAutoTx( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the chip to automatically receive a packet after the end of a packet transmission
@@ -1403,14 +1423,14 @@ void SX1280StopAutoTx( void );
  *
  * \param [in]  time          The delay in us after which a Rx is done
  */
-void SX1280SetAutoFS( uint8_t enable );
+void SX1280SetAutoFS( SX1280_t *sx1280, uint8_t enable );
 
 /*!
  * \brief Enables or disables long preamble detection mode
  *
  * \param [in]  enable        [0: Disable, 1: Enable]
  */
-void SX1280SetLongPreamble( uint8_t enable );
+void SX1280SetLongPreamble( SX1280_t *sx1280, uint8_t enable );
 
 /*!
  * \brief Saves the payload to be send in the radio buffer
@@ -1418,7 +1438,7 @@ void SX1280SetLongPreamble( uint8_t enable );
  * \param [in]  payload       A pointer to the payload
  * \param [in]  size          The size of the payload
  */
-void SX1280SetPayload( uint8_t *payload, uint8_t size );
+void SX1280SetPayload( SX1280_t *sx1280, uint8_t *payload, uint8_t size );
 
 /*!
  * \brief Reads the payload received. If the received payload is longer
@@ -1428,7 +1448,7 @@ void SX1280SetPayload( uint8_t *payload, uint8_t size );
  * \param [out] size          A pointer to the size of the payload received
  * \param [in]  maxSize       The maximal size allowed to copy into the buffer
  */
-uint8_t SX1280GetPayload( uint8_t *payload, uint8_t *size, uint8_t maxSize );
+uint8_t SX1280GetPayload( SX1280_t *sx1280, uint8_t *payload, uint8_t *size, uint8_t maxSize );
 
 /*!
  * \brief Sends a payload
@@ -1437,7 +1457,7 @@ uint8_t SX1280GetPayload( uint8_t *payload, uint8_t *size, uint8_t maxSize );
  * \param [in]  size          The size of the payload to send
  * \param [in]  timeout       The timeout for Tx operation
  */
-void SX1280SendPayload( uint8_t *payload, uint8_t size, TickTime_t timeout );
+void SX1280SendPayload( SX1280_t *sx1280, uint8_t *payload, uint8_t size, TickTime_t timeout );
 
 /*!
  * \brief Sets the Sync Word given by index used in GFSK, FLRC and BLE protocols
@@ -1449,7 +1469,7 @@ void SX1280SendPayload( uint8_t *payload, uint8_t size, TickTime_t timeout );
  *
  * \retval      status        [0: OK, 1: NOK]
  */
-uint8_t SX1280SetSyncWord( uint8_t syncWordIdx, uint8_t *syncWord );
+uint8_t SX1280SetSyncWord( SX1280_t *sx1280, uint8_t syncWordIdx, uint8_t *syncWord );
 
 /*!
  * \brief Defines how many error bits are tolerated in sync word detection
@@ -1457,7 +1477,7 @@ uint8_t SX1280SetSyncWord( uint8_t syncWordIdx, uint8_t *syncWord );
  * \param [in]  errorBits     Number of error bits supported to validate the Sync word detection
  *                            ( default is 4 bit, minimum is 1 bit )
  */
-void SX1280SetSyncWordErrorTolerance( uint8_t errorBits );
+void SX1280SetSyncWordErrorTolerance( SX1280_t *sx1280, uint8_t errorBits );
 
 /*!
  * \brief Sets the Initial value for the LFSR used for the CRC calculation
@@ -1465,14 +1485,14 @@ void SX1280SetSyncWordErrorTolerance( uint8_t errorBits );
  * \param [in]  seed          Initial LFSR value ( 4 bytes )
  *
  */
-void SX1280SetCrcSeed( uint16_t seed );
+void SX1280SetCrcSeed( SX1280_t *sx1280, uint16_t seed );
 
 /*!
  * \brief Set the Access Address field of BLE packet
  *
  * \param [in]  accessAddress The access address to be used for next BLE packet sent
  */
-void SX1280SetBleAccessAddress( uint32_t accessAddress );
+void SX1280SetBleAccessAddress( SX1280_t *sx1280, uint32_t accessAddress );
 
 /*!
  * \brief Set the Access Address for Advertizer BLE packets
@@ -1482,7 +1502,7 @@ void SX1280SetBleAccessAddress( uint32_t accessAddress );
  *
  * \see SX1280::SetBleAccessAddress
  */
-void SX1280SetBleAdvertizerAccessAddress( void );
+void SX1280SetBleAdvertizerAccessAddress( SX1280_t *sx1280 );
 
 /*!
  * \brief Sets the seed used for the CRC calculation
@@ -1490,28 +1510,28 @@ void SX1280SetBleAdvertizerAccessAddress( void );
  * \param [in]  seed          The seed value
  *
  */
-void SX1280SetCrcPolynomial( uint16_t seed );
+void SX1280SetCrcPolynomial( SX1280_t *sx1280, uint16_t seed );
 
 /*!
  * \brief Sets the Initial value of the LFSR used for the whitening in GFSK, FLRC and BLE protocols
  *
  * \param [in]  seed          Initial LFSR value
  */
-void SX1280SetWhiteningSeed( uint8_t seed );
+void SX1280SetWhiteningSeed( SX1280_t *sx1280, uint8_t seed );
 
 /*!
  * \brief Enable manual gain and disable AGC
  *
  * \see SX1280SetManualGainValue, SX1280DisableManualGain
  */
-void SX1280EnableManualGain( void );
+void SX1280EnableManualGain( SX1280_t *sx1280 );
 
 /*!
  * \brief Disable the manual gain control and enable AGC
  *
  * \see SX1280EnableManualGain
  */
-void SX1280DisableManualGain( void );
+void SX1280DisableManualGain( SX1280_t *sx1280 );
 
 /*!
  * \brief Set the gain for LNA
@@ -1522,7 +1542,7 @@ void SX1280DisableManualGain( void );
  *
  * \see SX1280EnableManualGain, SX1280DisableManualGain
  */
-void SX1280SetManualGainValue( uint8_t gain );
+void SX1280SetManualGainValue( SX1280_t *sx1280, uint8_t gain );
 
 /*!
  * \brief Configure the LNA regime of operation
@@ -1531,7 +1551,7 @@ void SX1280SetManualGainValue( uint8_t gain );
  *                            LNA_LOW_POWER_MODE and
  *                            LNA_HIGH_SENSITIVITY_MODE
  */
-void SX1280SetLNAGainSetting( const RadioLnaSettings_t lnaSetting );
+void SX1280SetLNAGainSetting( SX1280_t *sx1280, const RadioLnaSettings_t lnaSetting );
 
 /*!
  * \brief Sets the number of bits used to check that ranging request match ranging ID
@@ -1539,21 +1559,21 @@ void SX1280SetLNAGainSetting( const RadioLnaSettings_t lnaSetting );
  * \param [in]  length        [0: 8 bits, 1: 16 bits,
  *                             2: 24 bits, 3: 32 bits]
  */
-void SX1280SetRangingIdLength( RadioRangingIdCheckLengths_t length );
+void SX1280SetRangingIdLength( SX1280_t *sx1280, RadioRangingIdCheckLengths_t length );
 
 /*!
  * \brief Sets ranging device id
  *
  * \param [in]  address       Device address
  */
-void SX1280SetDeviceRangingAddress( uint32_t address );
+void SX1280SetDeviceRangingAddress( SX1280_t *sx1280, uint32_t address );
 
 /*!
  * \brief Sets the device id to ping in a ranging request
  *
  * \param [in]  address       Address of the device to ping
  */
-void SX1280SetRangingRequestAddress( uint32_t address );
+void SX1280SetRangingRequestAddress( SX1280_t *sx1280, uint32_t address );
 
 /*!
  * \brief Return the ranging result value
@@ -1564,7 +1584,7 @@ void SX1280SetRangingRequestAddress( uint32_t address );
  *
  * \retval      ranging       The ranging measure filtered according to resultType [m]
  */
-double SX1280GetRangingResult( RadioRangingResultTypes_t resultType );
+double SX1280GetRangingResult( SX1280_t *sx1280, RadioRangingResultTypes_t resultType );
 
 /*!
  * \brief Sets the standard processing delay between Master and Slave
@@ -1595,7 +1615,7 @@ double SX1280GetRangingResult( RadioRangingResultTypes_t resultType );
  *   SF11           |  13060
  *   SF12           |  13120
  */
-void SX1280SetRangingCalibration( uint16_t cal );
+void SX1280SetRangingCalibration( SX1280_t *sx1280, uint16_t cal );
 
 /*!
  * \brief Return the last ranging result power indicator
@@ -1605,12 +1625,12 @@ void SX1280SetRangingCalibration( uint16_t cal );
  *
  * \retval      deltaThreshold  A relative power indicator
  */
-uint8_t SX1280GetRangingPowerDeltaThresholdIndicator( void );
+uint8_t SX1280GetRangingPowerDeltaThresholdIndicator( SX1280_t *sx1280 );
 
 /*!
  * \brief Clears the ranging filter
  */
-void SX1280RangingClearFilterResult( void );
+void SX1280RangingClearFilterResult( SX1280_t *sx1280 );
 
 /*!
  * \brief Set the number of samples considered in the built-in filter
@@ -1620,25 +1640,25 @@ void SX1280RangingClearFilterResult( void );
  *
  * \remark Value inferior to 8 will be silently set to 8
  */
-void SX1280RangingSetFilterNumSamples( uint8_t numSample );
+void SX1280RangingSetFilterNumSamples( SX1280_t *sx1280, uint8_t numSample );
 
 /*!
  * \brief Return the Estimated Frequency Error in LORA and RANGING operations
  *
  * \retval efe                The estimated frequency error [Hz]
  */
-double SX1280GetFrequencyError( void );
+double SX1280GetFrequencyError( SX1280_t *sx1280 );
 
 /*!
  * \brief Process the analysis of radio IRQs and calls callback functions
  *        depending on radio state
  */
-void SX1280ProcessIrqs( void );
+void SX1280ProcessIrqs( SX1280_t *sx1280 );
 
 /*!
  * \brief Clears the instruction RAM
  */
-void SX1280ClearInstructionRam( void );
+void SX1280ClearInstructionRam( SX1280_t *sx1280 );
 
 /*!
  * \brief Parses 1 HEX file line and writes the content to the instruction memory
@@ -1647,7 +1667,7 @@ void SX1280ClearInstructionRam( void );
  *
  * \retval      status        [0: ERROR, 1:OK]
  */
-int8_t SX1280ParseHexFileLine( char* line );
+int8_t SX1280ParseHexFileLine( SX1280_t *sx1280, char* line );
 
 /*!
  * \brief Gets individual fields for the given HEX file line
@@ -1660,6 +1680,6 @@ int8_t SX1280ParseHexFileLine( char* line );
  *
  * \retval      status        [0: ERROR, 1:OK]
  */
-int8_t SX1280GetHexFileLineFields( char* line, uint8_t *bytes, uint16_t *addr, uint16_t *num, uint8_t *code );
+int8_t SX1280GetHexFileLineFields( SX1280_t *sx1280, char* line, uint8_t *bytes, uint16_t *addr, uint16_t *num, uint8_t *code );
 
 #endif // __SX1280_H__

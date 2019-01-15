@@ -1660,7 +1660,66 @@ fn bindgen_test_layout_exception() {
 impl Clone for exception {
     fn clone(&self) -> Self { *self }
 }
-pub type DioIrqHandler = ::core::option::Option<unsafe extern "C" fn()>;
+pub type Reset =
+    ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void)>;
+pub type DelayMs =
+    ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void,
+                                                ms: u32)>;
+pub type WriteBuffer =
+    ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void,
+                                                addr: u8, buffer: *mut u8,
+                                                size: u8)>;
+pub type ReadBuffer =
+    ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void,
+                                                addr: u8, buffer: *mut u8,
+                                                size: u8)>;
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct SX1280_s {
+    pub ctx: *mut libc::c_void,
+    pub reset: Reset,
+    pub delay_ms: DelayMs,
+    pub write_buffer: WriteBuffer,
+    pub read_buffer: ReadBuffer,
+}
+#[test]
+fn bindgen_test_layout_SX1280_s() {
+    assert_eq!(::core::mem::size_of::<SX1280_s>() , 40usize , concat ! (
+               "Size of: " , stringify ! ( SX1280_s ) ));
+    assert_eq! (::core::mem::align_of::<SX1280_s>() , 8usize , concat ! (
+                "Alignment of " , stringify ! ( SX1280_s ) ));
+    assert_eq! (unsafe {
+                & ( * ( 0 as * const SX1280_s ) ) . ctx as * const _ as usize
+                } , 0usize , concat ! (
+                "Alignment of field: " , stringify ! ( SX1280_s ) , "::" ,
+                stringify ! ( ctx ) ));
+    assert_eq! (unsafe {
+                & ( * ( 0 as * const SX1280_s ) ) . reset as * const _ as
+                usize } , 8usize , concat ! (
+                "Alignment of field: " , stringify ! ( SX1280_s ) , "::" ,
+                stringify ! ( reset ) ));
+    assert_eq! (unsafe {
+                & ( * ( 0 as * const SX1280_s ) ) . delay_ms as * const _ as
+                usize } , 16usize , concat ! (
+                "Alignment of field: " , stringify ! ( SX1280_s ) , "::" ,
+                stringify ! ( delay_ms ) ));
+    assert_eq! (unsafe {
+                & ( * ( 0 as * const SX1280_s ) ) . write_buffer as * const _
+                as usize } , 24usize , concat ! (
+                "Alignment of field: " , stringify ! ( SX1280_s ) , "::" ,
+                stringify ! ( write_buffer ) ));
+    assert_eq! (unsafe {
+                & ( * ( 0 as * const SX1280_s ) ) . read_buffer as * const _
+                as usize } , 32usize , concat ! (
+                "Alignment of field: " , stringify ! ( SX1280_s ) , "::" ,
+                stringify ! ( read_buffer ) ));
+}
+impl Clone for SX1280_s {
+    fn clone(&self) -> Self { *self }
+}
+pub type SX1280_t = SX1280_s;
+pub type DioIrqHandler =
+    ::core::option::Option<unsafe extern "C" fn(sx1280: *mut SX1280_t)>;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum RadioLnaSettings_t {
@@ -2525,17 +2584,29 @@ pub enum IrqRangingCode_t {
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct RadioCallbacks_t {
-    pub txDone: ::core::option::Option<unsafe extern "C" fn()>,
-    pub rxDone: ::core::option::Option<unsafe extern "C" fn()>,
-    pub rxSyncWordDone: ::core::option::Option<unsafe extern "C" fn()>,
-    pub rxHeaderDone: ::core::option::Option<unsafe extern "C" fn()>,
-    pub txTimeout: ::core::option::Option<unsafe extern "C" fn()>,
-    pub rxTimeout: ::core::option::Option<unsafe extern "C" fn()>,
-    pub rxError: ::core::option::Option<unsafe extern "C" fn(errCode:
+    pub txDone: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                *mut SX1280_t)>,
+    pub rxDone: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                *mut SX1280_t)>,
+    pub rxSyncWordDone: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                        *mut SX1280_t)>,
+    pub rxHeaderDone: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                      *mut SX1280_t)>,
+    pub txTimeout: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                   *mut SX1280_t)>,
+    pub rxTimeout: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                   *mut SX1280_t)>,
+    pub rxError: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                 *mut SX1280_t,
+                                                             errCode:
                                                                  IrqErrorCode_t)>,
-    pub rangingDone: ::core::option::Option<unsafe extern "C" fn(val:
+    pub rangingDone: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                     *mut SX1280_t,
+                                                                 val:
                                                                      IrqRangingCode_t)>,
-    pub cadDone: ::core::option::Option<unsafe extern "C" fn(cadFlag: bool)>,
+    pub cadDone: ::core::option::Option<unsafe extern "C" fn(sx1280:
+                                                                 *mut SX1280_t,
+                                                             cadFlag: bool)>,
 }
 #[test]
 fn bindgen_test_layout_RadioCallbacks_t() {
@@ -5610,11 +5681,12 @@ impl SleepParams_t {
 }
 extern "C" {
     #[link_name = "_Z22SX1280GetLoRaBandwidth"]
-    pub fn SX1280GetLoRaBandwidth() -> i32;
+    pub fn SX1280GetLoRaBandwidth(sx1280: *mut SX1280_t) -> i32;
 }
 extern "C" {
     #[link_name = "_Z37SX1280GetRangingCorrectionPerSfBwGain"]
-    pub fn SX1280GetRangingCorrectionPerSfBwGain(sf:
+    pub fn SX1280GetRangingCorrectionPerSfBwGain(sx1280: *mut SX1280_t,
+                                                 sf:
                                                      RadioLoRaSpreadingFactors_t,
                                                  bw: RadioLoRaBandwidths_t,
                                                  gain: i8) -> f64;
@@ -5628,272 +5700,297 @@ extern "C" {
 }
 extern "C" {
     #[link_name = "_Z14SX1280OnDioIrq"]
-    pub fn SX1280OnDioIrq();
+    pub fn SX1280OnDioIrq(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z20SX1280SetRangingRole"]
-    pub fn SX1280SetRangingRole(role: RadioRangingRoles_t);
+    pub fn SX1280SetRangingRole(sx1280: *mut SX1280_t,
+                                role: RadioRangingRoles_t);
 }
 extern "C" {
     #[link_name = "_Z10SX1280Init"]
-    pub fn SX1280Init(callbacks: *mut RadioCallbacks_t);
+    pub fn SX1280Init(sx1280: *mut SX1280_t,
+                      callbacks: *mut RadioCallbacks_t);
 }
 extern "C" {
     #[link_name = "_Z20SX1280SetPollingMode"]
-    pub fn SX1280SetPollingMode();
+    pub fn SX1280SetPollingMode(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z22SX1280SetInterruptMode"]
-    pub fn SX1280SetInterruptMode();
+    pub fn SX1280SetInterruptMode(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z25SX1280SetRegistersDefault"]
-    pub fn SX1280SetRegistersDefault();
+    pub fn SX1280SetRegistersDefault(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z24SX1280GetFirmwareVersion"]
-    pub fn SX1280GetFirmwareVersion() -> u16;
+    pub fn SX1280GetFirmwareVersion(sx1280: *mut SX1280_t) -> u16;
 }
 extern "C" {
     #[link_name = "_Z15SX1280GetOpMode"]
-    pub fn SX1280GetOpMode() -> RadioOperatingModes_t;
+    pub fn SX1280GetOpMode(sx1280: *mut SX1280_t) -> RadioOperatingModes_t;
 }
 extern "C" {
     #[link_name = "_Z15SX1280GetStatus"]
-    pub fn SX1280GetStatus() -> RadioStatus_t;
+    pub fn SX1280GetStatus(sx1280: *mut SX1280_t) -> RadioStatus_t;
 }
 extern "C" {
     #[link_name = "_Z14SX1280SetSleep"]
-    pub fn SX1280SetSleep(sleepConfig: SleepParams_t);
+    pub fn SX1280SetSleep(sx1280: *mut SX1280_t, sleepConfig: SleepParams_t);
 }
 extern "C" {
     #[link_name = "_Z16SX1280SetStandby"]
-    pub fn SX1280SetStandby(mode: RadioStandbyModes_t);
+    pub fn SX1280SetStandby(sx1280: *mut SX1280_t, mode: RadioStandbyModes_t);
 }
 extern "C" {
     #[link_name = "_Z11SX1280SetFs"]
-    pub fn SX1280SetFs();
+    pub fn SX1280SetFs(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z11SX1280SetTx"]
-    pub fn SX1280SetTx(timeout: TickTime_t);
+    pub fn SX1280SetTx(sx1280: *mut SX1280_t, timeout: TickTime_t);
 }
 extern "C" {
     #[link_name = "_Z11SX1280SetRx"]
-    pub fn SX1280SetRx(timeout: TickTime_t);
+    pub fn SX1280SetRx(sx1280: *mut SX1280_t, timeout: TickTime_t);
 }
 extern "C" {
     #[link_name = "_Z20SX1280SetRxDutyCycle"]
-    pub fn SX1280SetRxDutyCycle(Step: RadioTickSizes_t, NbStepRx: u16,
-                                RxNbStepSleep: u16);
+    pub fn SX1280SetRxDutyCycle(sx1280: *mut SX1280_t, Step: RadioTickSizes_t,
+                                NbStepRx: u16, RxNbStepSleep: u16);
 }
 extern "C" {
     #[link_name = "_Z12SX1280SetCad"]
-    pub fn SX1280SetCad();
+    pub fn SX1280SetCad(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z25SX1280SetTxContinuousWave"]
-    pub fn SX1280SetTxContinuousWave();
+    pub fn SX1280SetTxContinuousWave(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z29SX1280SetTxContinuousPreamble"]
-    pub fn SX1280SetTxContinuousPreamble();
+    pub fn SX1280SetTxContinuousPreamble(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z19SX1280SetPacketType"]
-    pub fn SX1280SetPacketType(packetType: RadioPacketTypes_t);
+    pub fn SX1280SetPacketType(sx1280: *mut SX1280_t,
+                               packetType: RadioPacketTypes_t);
 }
 extern "C" {
     #[link_name = "_Z19SX1280GetPacketType"]
-    pub fn SX1280GetPacketType() -> RadioPacketTypes_t;
+    pub fn SX1280GetPacketType(sx1280: *mut SX1280_t) -> RadioPacketTypes_t;
 }
 extern "C" {
     #[link_name = "_Z20SX1280SetRfFrequency"]
-    pub fn SX1280SetRfFrequency(frequency: u32);
+    pub fn SX1280SetRfFrequency(sx1280: *mut SX1280_t, frequency: u32);
 }
 extern "C" {
     #[link_name = "_Z17SX1280SetTxParams"]
-    pub fn SX1280SetTxParams(power: i8, rampTime: RadioRampTimes_t);
+    pub fn SX1280SetTxParams(sx1280: *mut SX1280_t, power: i8,
+                             rampTime: RadioRampTimes_t);
 }
 extern "C" {
     #[link_name = "_Z18SX1280SetCadParams"]
-    pub fn SX1280SetCadParams(cadSymbolNum: RadioLoRaCadSymbols_t);
+    pub fn SX1280SetCadParams(sx1280: *mut SX1280_t,
+                              cadSymbolNum: RadioLoRaCadSymbols_t);
 }
 extern "C" {
     #[link_name = "_Z28SX1280SetBufferBaseAddresses"]
-    pub fn SX1280SetBufferBaseAddresses(txBaseAddress: u8, rxBaseAddress: u8);
+    pub fn SX1280SetBufferBaseAddresses(sx1280: *mut SX1280_t,
+                                        txBaseAddress: u8, rxBaseAddress: u8);
 }
 extern "C" {
     #[link_name = "_Z25SX1280SetModulationParams"]
-    pub fn SX1280SetModulationParams(modParams: *mut ModulationParams_t);
+    pub fn SX1280SetModulationParams(sx1280: *mut SX1280_t,
+                                     modParams: *mut ModulationParams_t);
 }
 extern "C" {
     #[link_name = "_Z21SX1280SetPacketParams"]
-    pub fn SX1280SetPacketParams(packetParams: *mut PacketParams_t);
+    pub fn SX1280SetPacketParams(sx1280: *mut SX1280_t,
+                                 packetParams: *mut PacketParams_t);
 }
 extern "C" {
     #[link_name = "_Z23SX1280GetRxBufferStatus"]
-    pub fn SX1280GetRxBufferStatus(payloadLength: *mut u8,
+    pub fn SX1280GetRxBufferStatus(sx1280: *mut SX1280_t,
+                                   payloadLength: *mut u8,
                                    rxStartBuffer: *mut u8);
 }
 extern "C" {
     #[link_name = "_Z21SX1280GetPacketStatus"]
-    pub fn SX1280GetPacketStatus(pktStatus: *mut PacketStatus_t);
+    pub fn SX1280GetPacketStatus(sx1280: *mut SX1280_t,
+                                 pktStatus: *mut PacketStatus_t);
 }
 extern "C" {
     #[link_name = "_Z17SX1280GetRssiInst"]
-    pub fn SX1280GetRssiInst() -> i8;
+    pub fn SX1280GetRssiInst(sx1280: *mut SX1280_t) -> i8;
 }
 extern "C" {
     #[link_name = "_Z21SX1280SetDioIrqParams"]
-    pub fn SX1280SetDioIrqParams(irqMask: u16, dio1Mask: u16, dio2Mask: u16,
-                                 dio3Mask: u16);
+    pub fn SX1280SetDioIrqParams(sx1280: *mut SX1280_t, irqMask: u16,
+                                 dio1Mask: u16, dio2Mask: u16, dio3Mask: u16);
 }
 extern "C" {
     #[link_name = "_Z18SX1280GetIrqStatus"]
-    pub fn SX1280GetIrqStatus() -> u16;
+    pub fn SX1280GetIrqStatus(sx1280: *mut SX1280_t) -> u16;
 }
 extern "C" {
     #[link_name = "_Z20SX1280ClearIrqStatus"]
-    pub fn SX1280ClearIrqStatus(irq: u16);
+    pub fn SX1280ClearIrqStatus(sx1280: *mut SX1280_t, irq: u16);
 }
 extern "C" {
     #[link_name = "_Z15SX1280Calibrate"]
-    pub fn SX1280Calibrate(calibParam: CalibrationParams_t);
+    pub fn SX1280Calibrate(sx1280: *mut SX1280_t,
+                           calibParam: CalibrationParams_t);
 }
 extern "C" {
     #[link_name = "_Z22SX1280SetRegulatorMode"]
-    pub fn SX1280SetRegulatorMode(mode: RadioRegulatorModes_t);
+    pub fn SX1280SetRegulatorMode(sx1280: *mut SX1280_t,
+                                  mode: RadioRegulatorModes_t);
 }
 extern "C" {
     #[link_name = "_Z20SX1280SetSaveContext"]
-    pub fn SX1280SetSaveContext();
+    pub fn SX1280SetSaveContext(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z15SX1280SetAutoTx"]
-    pub fn SX1280SetAutoTx(time: u16);
+    pub fn SX1280SetAutoTx(sx1280: *mut SX1280_t, time: u16);
 }
 extern "C" {
     #[link_name = "_Z16SX1280StopAutoTx"]
-    pub fn SX1280StopAutoTx();
+    pub fn SX1280StopAutoTx(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z15SX1280SetAutoFS"]
-    pub fn SX1280SetAutoFS(enable: u8);
+    pub fn SX1280SetAutoFS(sx1280: *mut SX1280_t, enable: u8);
 }
 extern "C" {
     #[link_name = "_Z21SX1280SetLongPreamble"]
-    pub fn SX1280SetLongPreamble(enable: u8);
+    pub fn SX1280SetLongPreamble(sx1280: *mut SX1280_t, enable: u8);
 }
 extern "C" {
     #[link_name = "_Z16SX1280SetPayload"]
-    pub fn SX1280SetPayload(payload: *mut u8, size: u8);
+    pub fn SX1280SetPayload(sx1280: *mut SX1280_t, payload: *mut u8,
+                            size: u8);
 }
 extern "C" {
     #[link_name = "_Z16SX1280GetPayload"]
-    pub fn SX1280GetPayload(payload: *mut u8, size: *mut u8, maxSize: u8)
-     -> u8;
+    pub fn SX1280GetPayload(sx1280: *mut SX1280_t, payload: *mut u8,
+                            size: *mut u8, maxSize: u8) -> u8;
 }
 extern "C" {
     #[link_name = "_Z17SX1280SendPayload"]
-    pub fn SX1280SendPayload(payload: *mut u8, size: u8, timeout: TickTime_t);
+    pub fn SX1280SendPayload(sx1280: *mut SX1280_t, payload: *mut u8,
+                             size: u8, timeout: TickTime_t);
 }
 extern "C" {
     #[link_name = "_Z17SX1280SetSyncWord"]
-    pub fn SX1280SetSyncWord(syncWordIdx: u8, syncWord: *mut u8) -> u8;
+    pub fn SX1280SetSyncWord(sx1280: *mut SX1280_t, syncWordIdx: u8,
+                             syncWord: *mut u8) -> u8;
 }
 extern "C" {
     #[link_name = "_Z31SX1280SetSyncWordErrorTolerance"]
-    pub fn SX1280SetSyncWordErrorTolerance(errorBits: u8);
+    pub fn SX1280SetSyncWordErrorTolerance(sx1280: *mut SX1280_t,
+                                           errorBits: u8);
 }
 extern "C" {
     #[link_name = "_Z16SX1280SetCrcSeed"]
-    pub fn SX1280SetCrcSeed(seed: u16);
+    pub fn SX1280SetCrcSeed(sx1280: *mut SX1280_t, seed: u16);
 }
 extern "C" {
     #[link_name = "_Z25SX1280SetBleAccessAddress"]
-    pub fn SX1280SetBleAccessAddress(accessAddress: u32);
+    pub fn SX1280SetBleAccessAddress(sx1280: *mut SX1280_t,
+                                     accessAddress: u32);
 }
 extern "C" {
     #[link_name = "_Z35SX1280SetBleAdvertizerAccessAddress"]
-    pub fn SX1280SetBleAdvertizerAccessAddress();
+    pub fn SX1280SetBleAdvertizerAccessAddress(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z22SX1280SetCrcPolynomial"]
-    pub fn SX1280SetCrcPolynomial(seed: u16);
+    pub fn SX1280SetCrcPolynomial(sx1280: *mut SX1280_t, seed: u16);
 }
 extern "C" {
     #[link_name = "_Z22SX1280SetWhiteningSeed"]
-    pub fn SX1280SetWhiteningSeed(seed: u8);
+    pub fn SX1280SetWhiteningSeed(sx1280: *mut SX1280_t, seed: u8);
 }
 extern "C" {
     #[link_name = "_Z22SX1280EnableManualGain"]
-    pub fn SX1280EnableManualGain();
+    pub fn SX1280EnableManualGain(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z23SX1280DisableManualGain"]
-    pub fn SX1280DisableManualGain();
+    pub fn SX1280DisableManualGain(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z24SX1280SetManualGainValue"]
-    pub fn SX1280SetManualGainValue(gain: u8);
+    pub fn SX1280SetManualGainValue(sx1280: *mut SX1280_t, gain: u8);
 }
 extern "C" {
     #[link_name = "_Z23SX1280SetLNAGainSetting"]
-    pub fn SX1280SetLNAGainSetting(lnaSetting: RadioLnaSettings_t);
+    pub fn SX1280SetLNAGainSetting(sx1280: *mut SX1280_t,
+                                   lnaSetting: RadioLnaSettings_t);
 }
 extern "C" {
     #[link_name = "_Z24SX1280SetRangingIdLength"]
-    pub fn SX1280SetRangingIdLength(length: RadioRangingIdCheckLengths_t);
+    pub fn SX1280SetRangingIdLength(sx1280: *mut SX1280_t,
+                                    length: RadioRangingIdCheckLengths_t);
 }
 extern "C" {
     #[link_name = "_Z29SX1280SetDeviceRangingAddress"]
-    pub fn SX1280SetDeviceRangingAddress(address: u32);
+    pub fn SX1280SetDeviceRangingAddress(sx1280: *mut SX1280_t, address: u32);
 }
 extern "C" {
     #[link_name = "_Z30SX1280SetRangingRequestAddress"]
-    pub fn SX1280SetRangingRequestAddress(address: u32);
+    pub fn SX1280SetRangingRequestAddress(sx1280: *mut SX1280_t,
+                                          address: u32);
 }
 extern "C" {
     #[link_name = "_Z22SX1280GetRangingResult"]
-    pub fn SX1280GetRangingResult(resultType: RadioRangingResultTypes_t)
+    pub fn SX1280GetRangingResult(sx1280: *mut SX1280_t,
+                                  resultType: RadioRangingResultTypes_t)
      -> f64;
 }
 extern "C" {
     #[link_name = "_Z27SX1280SetRangingCalibration"]
-    pub fn SX1280SetRangingCalibration(cal: u16);
+    pub fn SX1280SetRangingCalibration(sx1280: *mut SX1280_t, cal: u16);
 }
 extern "C" {
     #[link_name = "_Z44SX1280GetRangingPowerDeltaThresholdIndicator"]
-    pub fn SX1280GetRangingPowerDeltaThresholdIndicator() -> u8;
+    pub fn SX1280GetRangingPowerDeltaThresholdIndicator(sx1280: *mut SX1280_t)
+     -> u8;
 }
 extern "C" {
     #[link_name = "_Z30SX1280RangingClearFilterResult"]
-    pub fn SX1280RangingClearFilterResult();
+    pub fn SX1280RangingClearFilterResult(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z32SX1280RangingSetFilterNumSamples"]
-    pub fn SX1280RangingSetFilterNumSamples(numSample: u8);
+    pub fn SX1280RangingSetFilterNumSamples(sx1280: *mut SX1280_t,
+                                            numSample: u8);
 }
 extern "C" {
     #[link_name = "_Z23SX1280GetFrequencyError"]
-    pub fn SX1280GetFrequencyError() -> f64;
+    pub fn SX1280GetFrequencyError(sx1280: *mut SX1280_t) -> f64;
 }
 extern "C" {
     #[link_name = "_Z17SX1280ProcessIrqs"]
-    pub fn SX1280ProcessIrqs();
+    pub fn SX1280ProcessIrqs(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z25SX1280ClearInstructionRam"]
-    pub fn SX1280ClearInstructionRam();
+    pub fn SX1280ClearInstructionRam(sx1280: *mut SX1280_t);
 }
 extern "C" {
     #[link_name = "_Z22SX1280ParseHexFileLine"]
-    pub fn SX1280ParseHexFileLine(line: *mut libc::c_char) -> i8;
+    pub fn SX1280ParseHexFileLine(sx1280: *mut SX1280_t,
+                                  line: *mut libc::c_char) -> i8;
 }
 extern "C" {
     #[link_name = "_Z26SX1280GetHexFileLineFields"]
-    pub fn SX1280GetHexFileLineFields(line: *mut libc::c_char, bytes: *mut u8,
+    pub fn SX1280GetHexFileLineFields(sx1280: *mut SX1280_t,
+                                      line: *mut libc::c_char, bytes: *mut u8,
                                       addr: *mut u16, num: *mut u16,
                                       code: *mut u8) -> i8;
 }
