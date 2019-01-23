@@ -10,7 +10,7 @@ extern crate nb;
 use core::{mem, ptr, slice};
 
 use hal::blocking::{spi, delay};
-use hal::digital::{InputPin, OutputPin};
+use hal::digital::v2::{InputPin, OutputPin};
 use hal::spi::{Mode, Phase, Polarity};
 
 
@@ -43,25 +43,36 @@ extern fn DelayMs(ms: u32) {
 
 }
 
-pub enum Sx127xError<SPIError> {
-    SPI(SPIError)
+pub enum Sx128xError<SpiError, PinError> {
+    SPI(SpiError),
+    Pin(PinError),
 }
 
-impl <SPIError>From<SPIError> for Sx127xError<SPIError> {
-	fn from(e: SPIError) -> Sx127xError<SPIError> {
-		Sx127xError::SPI(e)
+impl <SpiError, PinError> From<SpiError> for Sx128xError<SpiError, PinError> {
+	fn from(e: SpiError) -> Sx128xError<SpiError, PinError> {
+		Sx128xError::SPI(e)
+	}
+}
+
+/// Cannot provide two From impls (presumably because SpiError and PinError could be identical)
+/// TODO: work out how to resolve this?
+#[cfg(impossible)]
+impl <SpiError, PinError> From<PinError> for Sx128xError<SpiError, PinError> {
+	fn from(e: PinError) -> Sx128xError<SpiError, PinError>  {
+		Sx128xError::Pin(e)
 	}
 }
 
 
-impl<E, SPI, OUTPUT, INPUT, DELAY> Sx128x<SPI, OUTPUT, INPUT, DELAY>
+impl<SPI_ERROR, SPI, PIN_ERROR, OUTPUT, INPUT, DELAY> Sx128x<SPI, OUTPUT, INPUT, DELAY>
 where
-    SPI: spi::Transfer<u8, Error = E> + spi::Write<u8, Error = E>,
-    OUTPUT: OutputPin,
-    INPUT: InputPin,
+    SPI: spi::Transfer<u8, Error = SPI_ERROR> + spi::Write<u8, Error = SPI_ERROR>,
+    OUTPUT: OutputPin<Error = PIN_ERROR>,
+    INPUT: InputPin<Error = PIN_ERROR>,
     DELAY: delay::DelayMs<usize>,
+    Sx128xError<SPI_ERROR, PIN_ERROR>: From<PIN_ERROR> + From<SPI_ERROR>,
 {
-    pub fn new(spi: SPI, sdn: OUTPUT, cs: OUTPUT, gpio: [Option<INPUT>; 4], delay: DELAY, settings: Settings) -> Result<Self, Sx127xError<E>> {
+    pub fn new(spi: SPI, sdn: OUTPUT, cs: OUTPUT, gpio: [Option<INPUT>; 4], delay: DELAY, settings: Settings) -> Result<Self, Sx128xError<SPI_ERROR, PIN_ERROR>> {
         unsafe {
             let mut c = SX1280_s{
                 ctx: mem::uninitialized(),
@@ -92,11 +103,14 @@ where
         }
     }
 
-     extern fn ext_reset(ctx: *mut libc::c_void) {
+    // extern functions used by c hal
+    // todo: errors are nut bubbled through these functions
+
+    extern fn ext_reset(ctx: *mut libc::c_void) {
         unsafe {
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x = (*sx1280).ctx as *mut Sx128x<SPI, OUTPUT, INPUT, DELAY>;
-            (*sx128x).reset();
+            let _ = (*sx128x).reset();
         }
     }
 
@@ -105,7 +119,7 @@ where
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x = (*sx1280).ctx as *mut Sx128x<SPI, OUTPUT, INPUT, DELAY>;
             let data: &[u8] = slice::from_raw_parts(buffer, size as usize);
-            (*sx128x).reg_write(addr, data);
+            let _ = (*sx128x).reg_write(addr, data);
         }
     }
     
@@ -114,7 +128,7 @@ where
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x = (*sx1280).ctx as *mut Sx128x<SPI, OUTPUT, INPUT, DELAY>;
             let data: &mut [u8] = slice::from_raw_parts_mut(buffer, size as usize);
-            (*sx128x).reg_read(addr, data);
+            let _ = (*sx128x).reg_read(addr, data);
         }
     }
 
@@ -122,7 +136,7 @@ where
         unsafe {
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x = (*sx1280).ctx as *mut Sx128x<SPI, OUTPUT, INPUT, DELAY>;
-            (*sx128x).delay.delay_ms(ms as usize);
+            let _ = (*sx128x).delay.delay_ms(ms as usize);
         }
     }
 
@@ -134,16 +148,19 @@ where
         }
     }
 
-    pub fn reset(&mut self) {
-        self.sdn.set_low();
+    /// Reset the radio device
+    pub fn reset(&mut self) -> Result<(), Sx128xError<SPI_ERROR, PIN_ERROR>> {
+        self.sdn.set_low()?;
         self.delay.delay_ms(1);
-        self.sdn.set_high();
+        self.sdn.set_high()?;
         self.delay.delay_ms(10);
+
+        Ok(())
     }
 
     /// Read data from a specified register address
     /// This consumes the provided input data array and returns a reference to this on success
-    fn reg_read<'a>(&mut self, reg: u8, data: &'a mut [u8]) -> Result<&'a [u8], Sx127xError<E>> {
+    fn reg_read<'a>(&mut self, reg: u8, data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SPI_ERROR, PIN_ERROR>> {
         // Setup read command
         let out_buf: [u8; 1] = [reg as u8 & 0x7F];
         // Assert CS
@@ -153,7 +170,7 @@ where
             Ok(_r) => (),
             Err(e) => {
                 self.cs.set_high();
-                return Err(Sx127xError::SPI(e));
+                return Err(Sx128xError::SPI(e));
             }
         };
         // Transfer data
@@ -161,7 +178,7 @@ where
             Ok(r) => r,
             Err(e) => {
                 self.cs.set_high();
-                return Err(Sx127xError::SPI(e));
+                return Err(Sx128xError::SPI(e));
             }
         };
         // Clear CS
@@ -171,7 +188,7 @@ where
     }
 
     /// Write data to a specified register address
-    pub fn reg_write(&mut self, reg: u8, data: &[u8]) -> Result<(), Sx127xError<E>> {
+    pub fn reg_write(&mut self, reg: u8, data: &[u8]) -> Result<(), Sx128xError<SPI_ERROR, PIN_ERROR>> {
         // Setup write command
         let out_buf: [u8; 1] = [reg as u8 | 0x80];
         // Assert CS
@@ -181,7 +198,7 @@ where
             Ok(_r) => (),
             Err(e) => {
                 self.cs.set_high();
-                return Err(Sx127xError::SPI(e));
+                return Err(Sx128xError::SPI(e));
             }
         };
         // Transfer data
@@ -189,7 +206,7 @@ where
             Ok(_r) => (),
             Err(e) => {
                 self.cs.set_high();
-                return Err(Sx127xError::SPI(e));
+                return Err(Sx128xError::SPI(e));
             }
         };
         // Clear CS

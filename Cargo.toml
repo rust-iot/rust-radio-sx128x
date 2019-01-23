@@ -5,7 +5,7 @@ version = "0.1.0"
 authors = ["Ryan Kurte <ryankurte@gmail.com>"]
 
 [dependencies]
-embedded-hal = { git="https://github.com/japaric/embedded-hal", features=["unproven"] }
+embedded-hal = { version = "0.2.2", features=["unproven"] }
 futures = "0.1.22"
 nb = "0.1.1"
 radio = { path = "../rust-radio" }
@@ -18,3 +18,7 @@ cc = "1.0"
 
 [dev-dependencies]
 embedded-hal-mock = "0.5.0"
+
+[patch.crates-io]
+embedded-hal = { git="https://github.com/japaric/embedded-hal", features=["unproven"] }
+embedded-hal-mock = { git="https://github.com/ryankurte/embedded-hal-mock", features=["unproven"] }
