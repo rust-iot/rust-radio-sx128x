@@ -202,9 +202,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    extern crate embedded_hal_mock;
 
-    use embedded_hal_mock::spi::{Mock as SpiMock, Transaction as SpiTransaction};
+    extern crate embedded_hal_mock;
+    use tests::embedded_hal_mock::spi::{Mock as SpiMock, Transaction as SpiTransaction};
 
     #[test]
     fn mock_test() {

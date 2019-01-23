@@ -713,9 +713,9 @@ void SX1280SetCrcSeed( SX1280_t *sx1280, uint16_t seed )
 
 void SX1280SetBleAccessAddress( SX1280_t *sx1280, uint32_t accessAddress )
 {
-    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS, ( sx1280, accessAddress >> 24 ) & 0x000000FF );
-    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 1, ( sx1280, accessAddress >> 16 ) & 0x000000FF );
-    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 2, ( sx1280, accessAddress >> 8 ) & 0x000000FF );
+    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS, ( accessAddress >> 24 ) & 0x000000FF );
+    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 1, ( accessAddress >> 16 ) & 0x000000FF );
+    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 2, ( accessAddress >> 8 ) & 0x000000FF );
     SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 3, accessAddress & 0x000000FF );
 }
 
@@ -887,8 +887,8 @@ void SX1280SetRangingCalibration( SX1280_t *sx1280, uint16_t cal )
     switch( SX1280GetPacketType( sx1280 ) )
     {
         case PACKET_TYPE_RANGING:
-            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRERXTXDELAYCAL, ( uint8_t )( ( sx1280, cal >> 8 ) & 0xFF ) );
-            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRERXTXDELAYCAL + 1, ( uint8_t )( ( sx1280, cal ) & 0xFF ) );
+            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRERXTXDELAYCAL, ( uint8_t )( ( cal >> 8 ) & 0xFF ) );
+            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRERXTXDELAYCAL + 1, ( uint8_t )( ( cal ) & 0xFF ) );
             break;
 
         default:
@@ -901,14 +901,14 @@ void SX1280RangingClearFilterResult( SX1280_t *sx1280)
     uint8_t regVal = SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG );
 
     // To clear result, set bit 5 to 1 then to 0
-    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG, regVal | ( sx1280, 1 << 5 ) );
-    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG, regVal & ( ~( sx1280, 1 << 5 ) ) );
+    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG, regVal | ( 1 << 5 ) );
+    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG, regVal & ( ~( 1 << 5 ) ) );
 }
 
 void SX1280RangingSetFilterNumSamples( SX1280_t *sx1280, uint8_t num )
 {
     // Silently set 8 as minimum value
-    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGFILTERWINDOWSIZE, ( sx1280, num < DEFAULT_RANGING_FILTER_SIZE ) ? DEFAULT_RANGING_FILTER_SIZE : num );
+    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGFILTERWINDOWSIZE, ( num < DEFAULT_RANGING_FILTER_SIZE ) ? DEFAULT_RANGING_FILTER_SIZE : num );
 }
 
 int8_t SX1280ParseHexFileLine( SX1280_t *sx1280, char* line )
