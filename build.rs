@@ -10,15 +10,43 @@ use std::fs::File;
 use std::path::PathBuf;
 use std::io::prelude::*;
 use std::error::Error;
+use std::collections::HashSet;
+
+#[derive(Debug)]
+struct IgnoreMacros(HashSet<String>);
+
+impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
+    fn will_parse_macro(&self, name: &str) -> bindgen::callbacks::MacroParsingBehavior {
+        if self.0.contains(name) {
+            bindgen::callbacks::MacroParsingBehavior::Ignore
+        } else {
+            bindgen::callbacks::MacroParsingBehavior::Default
+        }
+    }
+}
 
 fn main() {
     let out_path = PathBuf::new(); //from(env::var("OUT_DIR").unwrap());
     let src_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 
+    let ignored_macros = IgnoreMacros(
+        vec![
+            "FP_INFINITE".into(),
+            "FP_NAN".into(),
+            "FP_NORMAL".into(),
+            "FP_SUBNORMAL".into(),
+            "FP_ZERO".into(),
+            "IPPORT_RESERVED".into(),
+        ]
+        .into_iter()
+        .collect(),
+    );
+
     // Build bindings
     println!("Generating bindings");
     let bindings = bindgen::Builder::default()
         .generate_comments(false)
+        .parse_callbacks(Box::new(ignored_macros))
         .use_core()
         .ctypes_prefix("libc")
         .header("src/wrapper.h")
@@ -33,7 +61,7 @@ fn main() {
     };
 
     // Patch
-    file.write_all(b"#![allow(non_snake_case)]\n#![allow(non_camel_case_types)]\nuse libc;\n\n").unwrap();
+    file.write_all(b"#![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]\nuse libc;\n\n").unwrap();
 
     // Write bindings
     bindings

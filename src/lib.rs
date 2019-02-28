@@ -55,6 +55,14 @@ impl <IoError>From<IoError> for Error<IoError> {
 	}
 }
 
+/// Cannot provide two From impls (presumably because SpiError and PinError could be identical)
+/// TODO: work out how to resolve this?
+#[cfg(impossible)]
+impl <SpiError, PinError> From<PinError> for Sx128xError<SpiError, PinError> {
+	fn from(e: PinError) -> Sx128xError<SpiError, PinError>  {
+		Sx128xError::Pin(e)
+	}
+}
 
 impl<E, Spi, Output, Input, Delay> Sx128x<Spi, Output, Input, Delay>
 where
@@ -94,7 +102,10 @@ where
         }
     }
 
-     extern fn ext_reset(ctx: *mut libc::c_void) {
+    // extern functions used by c hal
+    // todo: errors are nut bubbled through these functions
+
+    extern fn ext_reset(ctx: *mut libc::c_void) {
         unsafe {
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x = (*sx1280).ctx as *mut Sx128x<Spi, Output, Input, Delay>;
@@ -107,7 +118,7 @@ where
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x = (*sx1280).ctx as *mut Sx128x<Spi, Output, Input, Delay>;
             let data: &[u8] = slice::from_raw_parts(buffer, size as usize);
-            (*sx128x).reg_write(addr, data);
+            let _ = (*sx128x).reg_write(addr, data);
         }
     }
     
@@ -116,7 +127,7 @@ where
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x = (*sx1280).ctx as *mut Sx128x<Spi, Output, Input, Delay>;
             let data: &mut [u8] = slice::from_raw_parts_mut(buffer, size as usize);
-            (*sx128x).reg_read(addr, data);
+            let _ = (*sx128x).reg_read(addr, data);
         }
     }
 
@@ -136,11 +147,14 @@ where
         }
     }
 
-    pub fn reset(&mut self) {
+    /// Reset the radio device
+    pub fn reset(&mut self) -> Result<(), Error<E>> {
         self.sdn.set_low();
         self.delay.delay_ms(1);
         self.sdn.set_high();
         self.delay.delay_ms(10);
+
+        Ok(())
     }
 
     /// Read data from a specified register address
@@ -204,8 +218,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    extern crate embedded_hal_mock;
 
+    extern crate embedded_hal_mock;
     use tests::embedded_hal_mock::spi::{Mock as SpiMock, Transaction as SpiTransaction};
 
     #[test]
