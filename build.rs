@@ -33,7 +33,7 @@ fn main() {
     };
 
     // Patch
-    file.write_all(b"#![allow(non_snake_case)]\nuse libc;\n\n").unwrap();
+    file.write_all(b"#![allow(non_snake_case)]\n#![allow(non_camel_case_types)]\nuse libc;\n\n").unwrap();
 
     // Write bindings
     bindings
