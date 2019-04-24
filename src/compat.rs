@@ -1,4 +1,6 @@
 
+extern crate std;
+
 use core::{mem, ptr, slice};
 
 use hal::blocking::{spi, delay};
@@ -46,9 +48,12 @@ where
     }
 
     pub(crate) fn to_c(&mut self) -> *mut libc::c_void {
-        unsafe {
+        let ptr = unsafe {
             self as *mut Self as *mut libc::c_void
-        }
+        };
+        self.c.ctx = ptr;
+        std::println!("Radio: {:?}", ptr);
+        ptr;
     }
 
     // extern functions used by c hal
