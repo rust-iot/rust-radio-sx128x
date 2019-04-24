@@ -73,6 +73,9 @@ fn main() {
     cc::Build::new()
         .file("src/sx1280/sx1280.c")
         .include("src/sx1280")
+        .flag("-Wno-unused-parameter")
+        .flag("-Wno-int-conversion")
+        .flag("-Wno-implicit-function-declaration")
         .compile(out_path.join("sx1280").to_str().unwrap());
 
     // Link the library

@@ -14,6 +14,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 Maintainer: Miguel Luis, Matthieu Verdy and Benjamin Boulet
 */
 #include <string.h>
+#include <stdio.h>
 #include "sx1280.h"
 #include "sx1280-hal.h"
 #include "rangingcorrection.h"
@@ -688,7 +689,7 @@ uint8_t SX1280SetSyncWord( SX1280_t *sx1280, uint8_t syncWordIdx, uint8_t *syncW
 
 void SX1280SetSyncWordErrorTolerance( SX1280_t *sx1280, uint8_t ErrorBits )
 {
-    ErrorBits = ( SX1280HalReadRegister( sx1280, REG_LR_SYNCWORDTOLERANCE ) & 0xF0 ) | ( sx1280, ErrorBits & 0x0F );
+    ErrorBits = ( SX1280HalReadRegister( sx1280, REG_LR_SYNCWORDTOLERANCE ) & 0xF0 ) | ( ErrorBits & 0x0F );
     SX1280HalWriteRegister( sx1280, REG_LR_SYNCWORDTOLERANCE, ErrorBits );
 }
 
@@ -877,7 +878,7 @@ double SX1280GetRangingResult( SX1280_t *sx1280, RadioRangingResultTypes_t resul
 uint8_t SX1280GetRangingPowerDeltaThresholdIndicator( SX1280_t *sx1280)
 {
 SX1280HalSetStandby( sx1280, STDBY_XOSC );
-    SX1280HalWriteRegister( sx1280, 0x97F, SX1280HalReadRegister( sx1280, 0x97F ) | ( sx1280, 1 << 1 ) ); // enable LoRa modem clock
+    SX1280HalWriteRegister( sx1280, 0x97F, SX1280HalReadRegister( sx1280, 0x97F ) | ( 1 << 1 ) ); // enable LoRa modem clock
     SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCONFIG, ( SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTCONFIG ) & MASK_RANGINGMUXSEL ) | ( ( ( ( uint8_t )RANGING_RESULT_RAW ) & 0x03 ) << 4 ) ); // Select raw results
     return SX1280HalReadRegister( sx1280, REG_RANGING_RSSI );
 }
