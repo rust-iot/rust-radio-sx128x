@@ -95,13 +95,13 @@ void SX1280SetRegistersDefault( SX1280_t *sx1280)
 {
     for( int16_t i = 0; i < sizeof( RadioRegsInit ) / sizeof( RadioRegisters_t ); i++ )
     {
-        SX1280HalWriteRegister( sx1280, RadioRegsInit[i].Addr, RadioRegsInit[i].Value );
+        sx1280->write_register( sx1280->ctx, RadioRegsInit[i].Addr, RadioRegsInit[i].Value );
     }
 }
 
 uint16_t SX1280GetFirmwareVersion( SX1280_t *sx1280)
 {
-    return( ( ( SX1280HalReadRegister( sx1280, REG_LR_FIRMWARE_VERSION_MSB ) ) << 8 ) | ( SX1280HalReadRegister( sx1280, REG_LR_FIRMWARE_VERSION_MSB + 1 ) ) );
+    return( ( ( sx1280->read_register( sx1280->ctx, REG_LR_FIRMWARE_VERSION_MSB ) ) << 8 ) | ( sx1280->read_register( sx1280->ctx, REG_LR_FIRMWARE_VERSION_MSB + 1 ) ) );
 }
 
 RadioStatus_t SX1280GetStatus( SX1280_t *sx1280)
@@ -109,7 +109,7 @@ RadioStatus_t SX1280GetStatus( SX1280_t *sx1280)
     uint8_t stat = 0;
     RadioStatus_t status;
 
-    SX1280HalReadCommand( sx1280, RADIO_GET_STATUS, ( uint8_t * )&stat, 1 );
+    sx1280->read_command(sx1280->ctx, RADIO_GET_STATUS, ( uint8_t * )&stat, 1 );
     status.Value = stat;
     return status;
 }
@@ -127,12 +127,12 @@ void SX1280SetSleep( SX1280_t *sx1280, SleepParams_t sleepConfig )
                     ( sleepConfig.DataRamRetention );
 
     OperatingMode = MODE_SLEEP;
-    SX1280HalWriteCommand( sx1280, RADIO_SET_SLEEP, &sleep, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_SLEEP, &sleep, 1 );
 }
 
 void SX1280SetStandby( SX1280_t *sx1280, RadioStandbyModes_t standbyConfig )
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_STANDBY, ( uint8_t* )&standbyConfig, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_STANDBY, ( uint8_t* )&standbyConfig, 1 );
     if( standbyConfig == STDBY_RC )
     {
         OperatingMode = MODE_STDBY_RC;
@@ -145,7 +145,7 @@ void SX1280SetStandby( SX1280_t *sx1280, RadioStandbyModes_t standbyConfig )
 
 void SX1280SetFs( SX1280_t *sx1280)
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_FS, 0, 0 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_FS, 0, 0 );
     OperatingMode = MODE_FS;
 }
 
@@ -164,7 +164,7 @@ void SX1280SetTx( SX1280_t *sx1280, TickTime_t timeout )
     {
         SX1280SetRangingRole( sx1280, RADIO_RANGING_ROLE_MASTER );
     }
-    SX1280HalWriteCommand( sx1280, RADIO_SET_TX, buf, 3 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_TX, buf, 3 );
     OperatingMode = MODE_TX;
 }
 
@@ -183,7 +183,7 @@ void SX1280SetRx( SX1280_t *sx1280, TickTime_t timeout )
     {
         SX1280SetRangingRole( sx1280, RADIO_RANGING_ROLE_SLAVE );
     }
-    SX1280HalWriteCommand( sx1280, RADIO_SET_RX, buf, 3 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_RX, buf, 3 );
     OperatingMode = MODE_RX;
 }
 
@@ -196,24 +196,24 @@ void SX1280SetRxDutyCycle( SX1280_t *sx1280, RadioTickSizes_t Step, uint16_t NbS
     buf[2] = ( uint8_t )( NbStepRx & 0x00FF );
     buf[3] = ( uint8_t )( ( RxNbStepSleep >> 8 ) & 0x00FF );
     buf[4] = ( uint8_t )( RxNbStepSleep & 0x00FF );
-    SX1280HalWriteCommand( sx1280, RADIO_SET_RXDUTYCYCLE, buf, 5 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_RXDUTYCYCLE, buf, 5 );
     OperatingMode = MODE_RX;
 }
 
 void SX1280SetCad( SX1280_t *sx1280)
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_CAD, 0, 0 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_CAD, 0, 0 );
     OperatingMode = MODE_CAD;
 }
 
 void SX1280SetTxContinuousWave( SX1280_t *sx1280)
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_TXCONTINUOUSWAVE, 0, 0 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_TXCONTINUOUSWAVE, 0, 0 );
 }
 
 void SX1280SetTxContinuousPreamble( SX1280_t *sx1280)
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_TXCONTINUOUSPREAMBLE, 0, 0 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_TXCONTINUOUSPREAMBLE, 0, 0 );
 }
 
 void SX1280SetPacketType( SX1280_t *sx1280, RadioPacketTypes_t packetType )
@@ -221,7 +221,7 @@ void SX1280SetPacketType( SX1280_t *sx1280, RadioPacketTypes_t packetType )
     // Save packet type internally to avoid questioning the radio
     PacketType = packetType;
 
-    SX1280HalWriteCommand( sx1280, RADIO_SET_PACKETTYPE, ( uint8_t* )&packetType, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_PACKETTYPE, ( uint8_t* )&packetType, 1 );
 }
 
 RadioPacketTypes_t SX1280GetPacketType( SX1280_t *sx1280)
@@ -238,7 +238,7 @@ void SX1280SetRfFrequency( SX1280_t *sx1280, uint32_t frequency )
     buf[0] = ( uint8_t )( ( freq >> 16 ) & 0xFF );
     buf[1] = ( uint8_t )( ( freq >> 8 ) & 0xFF );
     buf[2] = ( uint8_t )( freq & 0xFF );
-    SX1280HalWriteCommand( sx1280, RADIO_SET_RFFREQUENCY, buf, 3 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_RFFREQUENCY, buf, 3 );
 }
 
 void SX1280SetTxParams( SX1280_t *sx1280, int8_t power, RadioRampTimes_t rampTime )
@@ -249,12 +249,12 @@ void SX1280SetTxParams( SX1280_t *sx1280, int8_t power, RadioRampTimes_t rampTim
     // physical output power is in the range [-18..13]dBm
     buf[0] = power + 18;
     buf[1] = ( uint8_t )rampTime;
-    SX1280HalWriteCommand( sx1280, RADIO_SET_TXPARAMS, buf, 2 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_TXPARAMS, buf, 2 );
 }
 
 void SX1280SetCadParams( SX1280_t *sx1280, RadioLoRaCadSymbols_t cadSymbolNum )
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_CADPARAMS, ( uint8_t* )&cadSymbolNum, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_CADPARAMS, ( uint8_t* )&cadSymbolNum, 1 );
     OperatingMode = MODE_CAD;
 }
 
@@ -264,7 +264,7 @@ void SX1280SetBufferBaseAddresses( SX1280_t *sx1280, uint8_t txBaseAddress, uint
 
     buf[0] = txBaseAddress;
     buf[1] = rxBaseAddress;
-    SX1280HalWriteCommand( sx1280, RADIO_SET_BUFFERBASEADDRESS, buf, 2 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_BUFFERBASEADDRESS, buf, 2 );
 }
 
 void SX1280SetModulationParams( SX1280_t *sx1280, ModulationParams_t *modulationParams )
@@ -312,7 +312,7 @@ void SX1280SetModulationParams( SX1280_t *sx1280, ModulationParams_t *modulation
             buf[2] = NULL;
             break;
     }
-    SX1280HalWriteCommand( sx1280, RADIO_SET_MODULATIONPARAMS, buf, 3 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_MODULATIONPARAMS, buf, 3 );
 }
 
 void SX1280SetPacketParams( SX1280_t *sx1280, PacketParams_t *packetParams )
@@ -379,20 +379,20 @@ void SX1280SetPacketParams( SX1280_t *sx1280, PacketParams_t *packetParams )
             buf[6] = NULL;
             break;
     }
-    SX1280HalWriteCommand( sx1280, RADIO_SET_PACKETPARAMS, buf, 7 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_PACKETPARAMS, buf, 7 );
 }
 
 void SX1280GetRxBufferStatus( SX1280_t *sx1280, uint8_t *payloadLength, uint8_t *rxStartBufferPointer )
 {
     uint8_t status[2];
 
-    SX1280HalReadCommand( sx1280, RADIO_GET_RXBUFFERSTATUS, status, 2 );
+    sx1280->read_command(sx1280->ctx, RADIO_GET_RXBUFFERSTATUS, status, 2 );
 
     // In case of LORA fixed header, the payloadLength is obtained by reading
     // the register REG_LR_PAYLOADLENGTH
-    if( ( SX1280GetPacketType( sx1280 ) == PACKET_TYPE_LORA ) && ( SX1280HalReadRegister( sx1280, REG_LR_PACKETPARAMS ) >> 7 == 1 ) )
+    if( ( SX1280GetPacketType( sx1280 ) == PACKET_TYPE_LORA ) && ( sx1280->read_register( sx1280->ctx, REG_LR_PACKETPARAMS ) >> 7 == 1 ) )
     {
-        *payloadLength = SX1280HalReadRegister( sx1280, REG_LR_PAYLOADLENGTH );
+        *payloadLength = sx1280->read_register( sx1280->ctx, REG_LR_PAYLOADLENGTH );
     }
     else if( SX1280GetPacketType( sx1280 ) == PACKET_TYPE_BLE )
     {
@@ -412,7 +412,7 @@ void SX1280GetPacketStatus( SX1280_t *sx1280, PacketStatus_t *pktStatus )
 {
     uint8_t status[5];
 
-    SX1280HalReadCommand( sx1280, RADIO_GET_PACKETSTATUS, status, 5 );
+    sx1280->read_command(sx1280->ctx, RADIO_GET_PACKETSTATUS, status, 5 );
 
     pktStatus->packetType = SX1280GetPacketType( sx1280 );
     switch( pktStatus->packetType )
@@ -504,7 +504,7 @@ int8_t SX1280GetRssiInst( SX1280_t *sx1280)
 {
     uint8_t raw = 0;
 
-    SX1280HalReadCommand( sx1280, RADIO_GET_RSSIINST, &raw, 1 );
+    sx1280->read_command(sx1280->ctx, RADIO_GET_RSSIINST, &raw, 1 );
 
     return ( int8_t )( -raw / 2 );
 }
@@ -521,14 +521,14 @@ void SX1280SetDioIrqParams( SX1280_t *sx1280, uint16_t irqMask, uint16_t dio1Mas
     buf[5] = ( uint8_t )( dio2Mask & 0x00FF );
     buf[6] = ( uint8_t )( ( dio3Mask >> 8 ) & 0x00FF );
     buf[7] = ( uint8_t )( dio3Mask & 0x00FF );
-    SX1280HalWriteCommand( sx1280, RADIO_SET_DIOIRQPARAMS, buf, 8 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_DIOIRQPARAMS, buf, 8 );
 }
 
 uint16_t SX1280GetIrqStatus( SX1280_t *sx1280)
 {
     uint8_t irqStatus[2];
 
-    SX1280HalReadCommand( sx1280, RADIO_GET_IRQSTATUS, irqStatus, 2 );
+    sx1280->read_command(sx1280->ctx, RADIO_GET_IRQSTATUS, irqStatus, 2 );
 
     return ( irqStatus[0] << 8 ) | irqStatus[1];
 }
@@ -539,7 +539,7 @@ void SX1280ClearIrqStatus( SX1280_t *sx1280, uint16_t irq )
 
     buf[0] = ( uint8_t )( ( ( uint16_t )irq >> 8 ) & 0x00FF );
     buf[1] = ( uint8_t )( ( uint16_t )irq & 0x00FF );
-    SX1280HalWriteCommand( sx1280, RADIO_CLR_IRQSTATUS, buf, 2 );
+    sx1280->write_command(sx1280->ctx, RADIO_CLR_IRQSTATUS, buf, 2 );
 }
 
 void SX1280Calibrate( SX1280_t *sx1280, CalibrationParams_t calibParam )
@@ -551,17 +551,17 @@ void SX1280Calibrate( SX1280_t *sx1280, CalibrationParams_t calibParam )
                   ( calibParam.RC13MEnable << 1 ) |
                   ( calibParam.RC64KEnable );
 
-    SX1280HalWriteCommand( sx1280, RADIO_CALIBRATE, &cal, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_CALIBRATE, &cal, 1 );
 }
 
 void SX1280SetRegulatorMode( SX1280_t *sx1280, RadioRegulatorModes_t mode )
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_REGULATORMODE, ( uint8_t* )&mode, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_REGULATORMODE, ( uint8_t* )&mode, 1 );
 }
 
 void SX1280SetSaveContext( SX1280_t *sx1280)
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_SAVECONTEXT, 0, 0 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_SAVECONTEXT, 0, 0 );
 }
 
 void SX1280SetAutoTx( SX1280_t *sx1280, uint16_t time )
@@ -571,28 +571,28 @@ void SX1280SetAutoTx( SX1280_t *sx1280, uint16_t time )
 
     buf[0] = ( uint8_t )( ( compensatedTime >> 8 ) & 0x00FF );
     buf[1] = ( uint8_t )( compensatedTime & 0x00FF );
-    SX1280HalWriteCommand( sx1280, RADIO_SET_AUTOTX, buf, 2 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_AUTOTX, buf, 2 );
 }
 
 void SX1280StopAutoTx( SX1280_t *sx1280)
 {
     uint8_t buf[2] = {0x00, 0x00};
-    SX1280HalWriteCommand( sx1280, RADIO_SET_AUTOTX, buf, 2 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_AUTOTX, buf, 2 );
 }
 
 void SX1280SetAutoFS( SX1280_t *sx1280, uint8_t enable )
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_AUTOFS, &enable, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_AUTOFS, &enable, 1 );
 }
 
 void SX1280SetLongPreamble( SX1280_t *sx1280, uint8_t enable )
 {
-    SX1280HalWriteCommand( sx1280, RADIO_SET_LONGPREAMBLE, &enable, 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_LONGPREAMBLE, &enable, 1 );
 }
 
 void SX1280SetPayload( SX1280_t *sx1280, uint8_t *buffer, uint8_t size )
 {
-    SX1280HalWriteBuffer( sx1280, 0x00, buffer, size );
+    sx1280->write_buffer( sx1280->ctx, 0x00, buffer, size );
 }
 
 uint8_t SX1280GetPayload( SX1280_t *sx1280, uint8_t *buffer, uint8_t *size , uint8_t maxSize )
@@ -604,7 +604,7 @@ SX1280HalGetRxBufferStatus( sx1280, size, &offset );
     {
         return 1;
     }
-    SX1280HalReadBuffer( sx1280, offset, buffer, *size );
+    sx1280->read_buffer( sx1280->ctx, offset, buffer, *size );
     return 0;
 }
 
@@ -683,14 +683,14 @@ uint8_t SX1280SetSyncWord( SX1280_t *sx1280, uint8_t syncWordIdx, uint8_t *syncW
         default:
             return 1;
     }
-    SX1280HalWriteRegisters( sx1280, addr, syncWord, syncwordSize );
+    sx1280->write_registers( sx1280->ctx, addr, syncWord, syncwordSize );
     return 0;
 }
 
 void SX1280SetSyncWordErrorTolerance( SX1280_t *sx1280, uint8_t ErrorBits )
 {
-    ErrorBits = ( SX1280HalReadRegister( sx1280, REG_LR_SYNCWORDTOLERANCE ) & 0xF0 ) | ( ErrorBits & 0x0F );
-    SX1280HalWriteRegister( sx1280, REG_LR_SYNCWORDTOLERANCE, ErrorBits );
+    ErrorBits = ( sx1280->read_register( sx1280->ctx, REG_LR_SYNCWORDTOLERANCE ) & 0xF0 ) | ( ErrorBits & 0x0F );
+    sx1280->write_register( sx1280->ctx, REG_LR_SYNCWORDTOLERANCE, ErrorBits );
 }
 
 void SX1280SetCrcSeed( SX1280_t *sx1280, uint16_t seed )
@@ -704,7 +704,7 @@ void SX1280SetCrcSeed( SX1280_t *sx1280, uint16_t seed )
     {
         case PACKET_TYPE_GFSK:
         case PACKET_TYPE_FLRC:
-            SX1280HalWriteRegisters( sx1280, REG_LR_CRCSEEDBASEADDR, val, 2 );
+            sx1280->write_registers( sx1280->ctx, REG_LR_CRCSEEDBASEADDR, val, 2 );
             break;
 
         default:
@@ -714,10 +714,10 @@ void SX1280SetCrcSeed( SX1280_t *sx1280, uint16_t seed )
 
 void SX1280SetBleAccessAddress( SX1280_t *sx1280, uint32_t accessAddress )
 {
-    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS, ( accessAddress >> 24 ) & 0x000000FF );
-    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 1, ( accessAddress >> 16 ) & 0x000000FF );
-    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 2, ( accessAddress >> 8 ) & 0x000000FF );
-    SX1280HalWriteRegister( sx1280, REG_LR_BLE_ACCESS_ADDRESS + 3, accessAddress & 0x000000FF );
+    sx1280->write_register( sx1280->ctx, REG_LR_BLE_ACCESS_ADDRESS, ( accessAddress >> 24 ) & 0x000000FF );
+    sx1280->write_register( sx1280->ctx, REG_LR_BLE_ACCESS_ADDRESS + 1, ( accessAddress >> 16 ) & 0x000000FF );
+    sx1280->write_register( sx1280->ctx, REG_LR_BLE_ACCESS_ADDRESS + 2, ( accessAddress >> 8 ) & 0x000000FF );
+    sx1280->write_register( sx1280->ctx, REG_LR_BLE_ACCESS_ADDRESS + 3, accessAddress & 0x000000FF );
 }
 
 void SX1280SetBleAdvertizerAccessAddress( SX1280_t *sx1280)
@@ -736,7 +736,7 @@ void SX1280SetCrcPolynomial( SX1280_t *sx1280, uint16_t polynomial )
     {
         case PACKET_TYPE_GFSK:
         case PACKET_TYPE_FLRC:
-            SX1280HalWriteRegisters( sx1280, REG_LR_CRCPOLYBASEADDR, val, 2 );
+            sx1280->write_registers( sx1280->ctx, REG_LR_CRCPOLYBASEADDR, val, 2 );
             break;
 
         default:
@@ -751,7 +751,7 @@ void SX1280SetWhiteningSeed( SX1280_t *sx1280, uint8_t seed )
         case PACKET_TYPE_GFSK:
         case PACKET_TYPE_FLRC:
         case PACKET_TYPE_BLE:
-            SX1280HalWriteRegister( sx1280, REG_LR_WHITSEEDBASEADDR, seed );
+            sx1280->write_register( sx1280->ctx, REG_LR_WHITSEEDBASEADDR, seed );
             break;
 
         default:
@@ -761,19 +761,19 @@ void SX1280SetWhiteningSeed( SX1280_t *sx1280, uint8_t seed )
 
 void SX1280EnableManualGain( SX1280_t *sx1280)
 {
-    SX1280HalWriteRegister( sx1280, REG_ENABLE_MANUAL_GAIN_CONTROL, SX1280HalReadRegister( sx1280, REG_ENABLE_MANUAL_GAIN_CONTROL ) | MASK_MANUAL_GAIN_CONTROL );
-    SX1280HalWriteRegister( sx1280, REG_DEMOD_DETECTION, SX1280HalReadRegister( sx1280, REG_DEMOD_DETECTION ) & MASK_DEMOD_DETECTION );
+    sx1280->write_register( sx1280->ctx, REG_ENABLE_MANUAL_GAIN_CONTROL, sx1280->read_register( sx1280->ctx, REG_ENABLE_MANUAL_GAIN_CONTROL ) | MASK_MANUAL_GAIN_CONTROL );
+    sx1280->write_register( sx1280->ctx, REG_DEMOD_DETECTION, sx1280->read_register( sx1280->ctx, REG_DEMOD_DETECTION ) & MASK_DEMOD_DETECTION );
 }
 
 void SX1280DisableManualGain( SX1280_t *sx1280)
 {
-    SX1280HalWriteRegister( sx1280, REG_ENABLE_MANUAL_GAIN_CONTROL, SX1280HalReadRegister( sx1280, REG_ENABLE_MANUAL_GAIN_CONTROL ) & ~MASK_MANUAL_GAIN_CONTROL );
-    SX1280HalWriteRegister( sx1280, REG_DEMOD_DETECTION, SX1280HalReadRegister( sx1280, REG_DEMOD_DETECTION ) | ~MASK_DEMOD_DETECTION );
+    sx1280->write_register( sx1280->ctx, REG_ENABLE_MANUAL_GAIN_CONTROL, sx1280->read_register( sx1280->ctx, REG_ENABLE_MANUAL_GAIN_CONTROL ) & ~MASK_MANUAL_GAIN_CONTROL );
+    sx1280->write_register( sx1280->ctx, REG_DEMOD_DETECTION, sx1280->read_register( sx1280->ctx, REG_DEMOD_DETECTION ) | ~MASK_DEMOD_DETECTION );
 }
 
 void SX1280SetManualGainValue( SX1280_t *sx1280, uint8_t gain )
 {
-    SX1280HalWriteRegister( sx1280, REG_MANUAL_GAIN_VALUE, ( SX1280HalReadRegister( sx1280, REG_MANUAL_GAIN_VALUE ) & MASK_MANUAL_GAIN_VALUE ) | gain );
+    sx1280->write_register( sx1280->ctx, REG_MANUAL_GAIN_VALUE, ( sx1280->read_register( sx1280->ctx, REG_MANUAL_GAIN_VALUE ) & MASK_MANUAL_GAIN_VALUE ) | gain );
 }
 
 void SX1280SetLNAGainSetting( SX1280_t *sx1280, const RadioLnaSettings_t lnaSetting )
@@ -782,12 +782,12 @@ void SX1280SetLNAGainSetting( SX1280_t *sx1280, const RadioLnaSettings_t lnaSett
     {
         case LNA_HIGH_SENSITIVITY_MODE:
         {
-            SX1280HalWriteRegister( sx1280, REG_LNA_REGIME, SX1280HalReadRegister( sx1280, REG_LNA_REGIME ) | MASK_LNA_REGIME );
+            sx1280->write_register( sx1280->ctx, REG_LNA_REGIME, sx1280->read_register( sx1280->ctx, REG_LNA_REGIME ) | MASK_LNA_REGIME );
             break;
         }
         case LNA_LOW_POWER_MODE:
         {
-            SX1280HalWriteRegister( sx1280, REG_LNA_REGIME, SX1280HalReadRegister( sx1280, REG_LNA_REGIME ) & ~MASK_LNA_REGIME );
+            sx1280->write_register( sx1280->ctx, REG_LNA_REGIME, sx1280->read_register( sx1280->ctx, REG_LNA_REGIME ) & ~MASK_LNA_REGIME );
             break;
         }
     }
@@ -798,7 +798,7 @@ void SX1280SetRangingIdLength( SX1280_t *sx1280, RadioRangingIdCheckLengths_t le
     switch( SX1280GetPacketType( sx1280 ) )
     {
         case PACKET_TYPE_RANGING:
-            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGIDCHECKLENGTH, ( ( ( ( uint8_t )length ) & 0x03 ) << 6 ) | ( SX1280HalReadRegister( sx1280, REG_LR_RANGINGIDCHECKLENGTH ) & 0x3F ) );
+            sx1280->write_register( sx1280->ctx, REG_LR_RANGINGIDCHECKLENGTH, ( ( ( ( uint8_t )length ) & 0x03 ) << 6 ) | ( sx1280->read_register( sx1280->ctx, REG_LR_RANGINGIDCHECKLENGTH ) & 0x3F ) );
             break;
 
         default:
@@ -813,7 +813,7 @@ void SX1280SetDeviceRangingAddress( SX1280_t *sx1280, uint32_t address )
     switch( SX1280GetPacketType( sx1280 ) )
     {
         case PACKET_TYPE_RANGING:
-            SX1280HalWriteRegisters( sx1280, REG_LR_DEVICERANGINGADDR, addrArray, 4 );
+            sx1280->write_registers( sx1280->ctx, REG_LR_DEVICERANGINGADDR, addrArray, 4 );
             break;
 
         default:
@@ -828,7 +828,7 @@ void SX1280SetRangingRequestAddress( SX1280_t *sx1280, uint32_t address )
     switch( SX1280GetPacketType( sx1280 ) )
     {
         case PACKET_TYPE_RANGING:
-            SX1280HalWriteRegisters( sx1280, REG_LR_REQUESTRANGINGADDR, addrArray, 4 );
+            sx1280->write_registers( sx1280->ctx, REG_LR_REQUESTRANGINGADDR, addrArray, 4 );
             break;
 
         default:
@@ -845,9 +845,9 @@ double SX1280GetRangingResult( SX1280_t *sx1280, RadioRangingResultTypes_t resul
     {
         case PACKET_TYPE_RANGING:
             SX1280HalSetStandby( sx1280, STDBY_XOSC );
-            SX1280HalWriteRegister( sx1280, 0x97F, SX1280HalReadRegister( sx1280, 0x97F ) | ( 1 << 1 ) ); // enable LORA modem clock
-            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCONFIG, ( SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTCONFIG ) & MASK_RANGINGMUXSEL ) | ( ( ( ( uint8_t )resultType ) & 0x03 ) << 4 ) );
-            valLsb = ( ( SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTBASEADDR ) << 16 ) | ( SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTBASEADDR + 1 ) << 8 ) | ( SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTBASEADDR + 2 ) ) );
+            sx1280->write_register( sx1280->ctx, 0x97F, sx1280->read_register( sx1280->ctx, 0x97F ) | ( 1 << 1 ) ); // enable LORA modem clock
+            sx1280->write_register( sx1280->ctx, REG_LR_RANGINGRESULTCONFIG, ( sx1280->read_register( sx1280->ctx, REG_LR_RANGINGRESULTCONFIG ) & MASK_RANGINGMUXSEL ) | ( ( ( ( uint8_t )resultType ) & 0x03 ) << 4 ) );
+            valLsb = ( ( sx1280->read_register( sx1280->ctx, REG_LR_RANGINGRESULTBASEADDR ) << 16 ) | ( sx1280->read_register( sx1280->ctx, REG_LR_RANGINGRESULTBASEADDR + 1 ) << 8 ) | ( sx1280->read_register( sx1280->ctx, REG_LR_RANGINGRESULTBASEADDR + 2 ) ) );
             SX1280HalSetStandby( sx1280, STDBY_RC );
 
             // Convertion from LSB to distance. For explanation on the formula, refer to Datasheet of SX1280
@@ -878,9 +878,9 @@ double SX1280GetRangingResult( SX1280_t *sx1280, RadioRangingResultTypes_t resul
 uint8_t SX1280GetRangingPowerDeltaThresholdIndicator( SX1280_t *sx1280)
 {
 SX1280HalSetStandby( sx1280, STDBY_XOSC );
-    SX1280HalWriteRegister( sx1280, 0x97F, SX1280HalReadRegister( sx1280, 0x97F ) | ( 1 << 1 ) ); // enable LoRa modem clock
-    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCONFIG, ( SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTCONFIG ) & MASK_RANGINGMUXSEL ) | ( ( ( ( uint8_t )RANGING_RESULT_RAW ) & 0x03 ) << 4 ) ); // Select raw results
-    return SX1280HalReadRegister( sx1280, REG_RANGING_RSSI );
+    sx1280->write_register( sx1280->ctx, 0x97F, sx1280->read_register( sx1280->ctx, 0x97F ) | ( 1 << 1 ) ); // enable LoRa modem clock
+    sx1280->write_register( sx1280->ctx, REG_LR_RANGINGRESULTCONFIG, ( sx1280->read_register( sx1280->ctx, REG_LR_RANGINGRESULTCONFIG ) & MASK_RANGINGMUXSEL ) | ( ( ( ( uint8_t )RANGING_RESULT_RAW ) & 0x03 ) << 4 ) ); // Select raw results
+    return sx1280->read_register( sx1280->ctx, REG_RANGING_RSSI );
 }
 
 void SX1280SetRangingCalibration( SX1280_t *sx1280, uint16_t cal )
@@ -888,8 +888,8 @@ void SX1280SetRangingCalibration( SX1280_t *sx1280, uint16_t cal )
     switch( SX1280GetPacketType( sx1280 ) )
     {
         case PACKET_TYPE_RANGING:
-            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRERXTXDELAYCAL, ( uint8_t )( ( cal >> 8 ) & 0xFF ) );
-            SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRERXTXDELAYCAL + 1, ( uint8_t )( ( cal ) & 0xFF ) );
+            sx1280->write_register( sx1280->ctx, REG_LR_RANGINGRERXTXDELAYCAL, ( uint8_t )( ( cal >> 8 ) & 0xFF ) );
+            sx1280->write_register( sx1280->ctx, REG_LR_RANGINGRERXTXDELAYCAL + 1, ( uint8_t )( ( cal ) & 0xFF ) );
             break;
 
         default:
@@ -899,17 +899,17 @@ void SX1280SetRangingCalibration( SX1280_t *sx1280, uint16_t cal )
 
 void SX1280RangingClearFilterResult( SX1280_t *sx1280)
 {
-    uint8_t regVal = SX1280HalReadRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG );
+    uint8_t regVal = sx1280->read_register( sx1280->ctx, REG_LR_RANGINGRESULTCLEARREG );
 
     // To clear result, set bit 5 to 1 then to 0
-    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG, regVal | ( 1 << 5 ) );
-    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGRESULTCLEARREG, regVal & ( ~( 1 << 5 ) ) );
+    sx1280->write_register( sx1280->ctx, REG_LR_RANGINGRESULTCLEARREG, regVal | ( 1 << 5 ) );
+    sx1280->write_register( sx1280->ctx, REG_LR_RANGINGRESULTCLEARREG, regVal & ( ~( 1 << 5 ) ) );
 }
 
 void SX1280RangingSetFilterNumSamples( SX1280_t *sx1280, uint8_t num )
 {
     // Silently set 8 as minimum value
-    SX1280HalWriteRegister( sx1280, REG_LR_RANGINGFILTERWINDOWSIZE, ( num < DEFAULT_RANGING_FILTER_SIZE ) ? DEFAULT_RANGING_FILTER_SIZE : num );
+    sx1280->write_register( sx1280->ctx, REG_LR_RANGINGFILTERWINDOWSIZE, ( num < DEFAULT_RANGING_FILTER_SIZE ) ? DEFAULT_RANGING_FILTER_SIZE : num );
 }
 
 int8_t SX1280ParseHexFileLine( SX1280_t *sx1280, char* line )
@@ -923,7 +923,7 @@ int8_t SX1280ParseHexFileLine( SX1280_t *sx1280, char* line )
     {
         if( code == 0 )
         {
-            SX1280HalWriteRegisters( sx1280, addr, bytes, n );
+            sx1280->write_registers( sx1280->ctx, addr, bytes, n );
         }
         if( code == 1 )
         { // end of file
@@ -946,7 +946,7 @@ void SX1280SetRangingRole( SX1280_t *sx1280, RadioRangingRoles_t role )
     uint8_t buf[1];
 
     buf[0] = role;
-    SX1280HalWriteCommand( sx1280, RADIO_SET_RANGING_ROLE, &buf[0], 1 );
+    sx1280->write_command(sx1280->ctx, RADIO_SET_RANGING_ROLE, &buf[0], 1 );
 }
 
 int8_t SX1280GetHexFileLineFields( SX1280_t *sx1280, char* line, uint8_t *bytes, uint16_t *addr, uint16_t *num, uint8_t *code )
@@ -1020,9 +1020,9 @@ double SX1280GetFrequencyError( SX1280_t *sx1280 )
     {
         case PACKET_TYPE_LORA:
         case PACKET_TYPE_RANGING:
-            efeRaw[0] = SX1280HalReadRegister( sx1280, REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB );
-            efeRaw[1] = SX1280HalReadRegister( sx1280, REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 1 );
-            efeRaw[2] = SX1280HalReadRegister( sx1280, REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 2 );
+            efeRaw[0] = sx1280->read_register( sx1280->ctx, REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB );
+            efeRaw[1] = sx1280->read_register( sx1280->ctx, REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 1 );
+            efeRaw[2] = sx1280->read_register( sx1280->ctx, REG_LR_ESTIMATED_FREQUENCY_ERROR_MSB + 2 );
             efe = ( efeRaw[0]<<16 ) | ( efeRaw[1]<<8 ) | efeRaw[2];
             efe &= REG_LR_ESTIMATED_FREQUENCY_ERROR_MASK;
 

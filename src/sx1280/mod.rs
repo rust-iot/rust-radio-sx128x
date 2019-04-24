@@ -1638,11 +1638,27 @@ extern "C" {
 }
 pub type Reset = ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void)>;
 pub type DelayMs = ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void, ms: u32)>;
+pub type WriteCommand = ::core::option::Option<
+    unsafe extern "C" fn(ctx: *mut libc::c_void, command: u8, buffer: *mut u8, size: u8),
+>;
+pub type ReadCommand = ::core::option::Option<
+    unsafe extern "C" fn(ctx: *mut libc::c_void, command: u8, buffer: *mut u8, size: u8),
+>;
+pub type WriteRegisters = ::core::option::Option<
+    unsafe extern "C" fn(ctx: *mut libc::c_void, addr: u16, buffer: *mut u8, size: u8),
+>;
+pub type ReadRegisters = ::core::option::Option<
+    unsafe extern "C" fn(ctx: *mut libc::c_void, addr: u16, buffer: *mut u8, size: u8),
+>;
+pub type WriteRegister =
+    ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void, addr: u16, value: u8)>;
+pub type ReadRegister =
+    ::core::option::Option<unsafe extern "C" fn(ctx: *mut libc::c_void, addr: u16) -> u8>;
 pub type WriteBuffer = ::core::option::Option<
-    unsafe extern "C" fn(ctx: *mut libc::c_void, addr: u8, buffer: *mut u8, size: u8),
+    unsafe extern "C" fn(ctx: *mut libc::c_void, offset: u8, buffer: *mut u8, size: u8),
 >;
 pub type ReadBuffer = ::core::option::Option<
-    unsafe extern "C" fn(ctx: *mut libc::c_void, addr: u8, buffer: *mut u8, size: u8),
+    unsafe extern "C" fn(ctx: *mut libc::c_void, offset: u8, buffer: *mut u8, size: u8),
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1650,6 +1666,12 @@ pub struct SX1280_s {
     pub ctx: *mut libc::c_void,
     pub reset: Reset,
     pub delay_ms: DelayMs,
+    pub write_command: WriteCommand,
+    pub read_command: ReadCommand,
+    pub write_registers: WriteRegisters,
+    pub read_registers: ReadRegisters,
+    pub write_register: WriteRegister,
+    pub read_register: ReadRegister,
     pub write_buffer: WriteBuffer,
     pub read_buffer: ReadBuffer,
 }
@@ -1657,7 +1679,7 @@ pub struct SX1280_s {
 fn bindgen_test_layout_SX1280_s() {
     assert_eq!(
         ::core::mem::size_of::<SX1280_s>(),
-        40usize,
+        88usize,
         concat!("Size of: ", stringify!(SX1280_s))
     );
     assert_eq!(
@@ -1696,8 +1718,68 @@ fn bindgen_test_layout_SX1280_s() {
         )
     );
     assert_eq!(
-        unsafe { &(*(::core::ptr::null::<SX1280_s>())).write_buffer as *const _ as usize },
+        unsafe { &(*(::core::ptr::null::<SX1280_s>())).write_command as *const _ as usize },
         24usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SX1280_s),
+            "::",
+            stringify!(write_command)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<SX1280_s>())).read_command as *const _ as usize },
+        32usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SX1280_s),
+            "::",
+            stringify!(read_command)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<SX1280_s>())).write_registers as *const _ as usize },
+        40usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SX1280_s),
+            "::",
+            stringify!(write_registers)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<SX1280_s>())).read_registers as *const _ as usize },
+        48usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SX1280_s),
+            "::",
+            stringify!(read_registers)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<SX1280_s>())).write_register as *const _ as usize },
+        56usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SX1280_s),
+            "::",
+            stringify!(write_register)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<SX1280_s>())).read_register as *const _ as usize },
+        64usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(SX1280_s),
+            "::",
+            stringify!(read_register)
+        )
+    );
+    assert_eq!(
+        unsafe { &(*(::core::ptr::null::<SX1280_s>())).write_buffer as *const _ as usize },
+        72usize,
         concat!(
             "Offset of field: ",
             stringify!(SX1280_s),
@@ -1707,7 +1789,7 @@ fn bindgen_test_layout_SX1280_s() {
     );
     assert_eq!(
         unsafe { &(*(::core::ptr::null::<SX1280_s>())).read_buffer as *const _ as usize },
-        32usize,
+        80usize,
         concat!(
             "Offset of field: ",
             stringify!(SX1280_s),

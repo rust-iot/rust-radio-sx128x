@@ -27,8 +27,15 @@ Maintainer: Miguel Luis, Gregory Cristian and Matthieu Verdy
 
 typedef void Reset( void* ctx );
 typedef void DelayMs( void* ctx, uint32_t ms );
-typedef void WriteBuffer( void* ctx, uint8_t addr, uint8_t *buffer, uint8_t size );
-typedef void ReadBuffer( void* ctx, uint8_t addr, uint8_t *buffer, uint8_t size );
+
+typedef void WriteCommand( void* ctx, uint8_t command, uint8_t *buffer, uint8_t size );
+typedef void ReadCommand(  void* ctx, uint8_t command, uint8_t *buffer, uint8_t size );
+typedef void WriteRegisters( void* ctx, uint16_t addr, uint8_t *buffer, uint8_t size );
+typedef void ReadRegisters(  void* ctx, uint16_t addr, uint8_t *buffer, uint8_t size );
+typedef void WriteRegister(  void* ctx, uint16_t addr, uint8_t value );
+typedef uint8_t ReadRegister(   void* ctx, uint16_t addr );
+typedef void WriteBuffer( void* ctx, uint8_t offset, uint8_t *buffer, uint8_t size );
+typedef void ReadBuffer(  void* ctx, uint8_t offset, uint8_t *buffer, uint8_t size );
 
 /*!
  * \brief Radio device object
@@ -37,10 +44,17 @@ typedef void ReadBuffer( void* ctx, uint8_t addr, uint8_t *buffer, uint8_t size 
  */
 struct SX1280_s {
     void* ctx;
-    Reset *reset;
-    DelayMs *delay_ms;
-    WriteBuffer *write_buffer;
-    ReadBuffer *read_buffer;
+
+    Reset           *reset;
+    DelayMs         *delay_ms;
+    WriteCommand    *write_command;
+    ReadCommand     *read_command;
+    WriteRegisters  *write_registers;
+    ReadRegisters   *read_registers;
+    WriteRegister   *write_register;
+    ReadRegister    *read_register;
+    WriteBuffer     *write_buffer;
+    ReadBuffer      *read_buffer;
 };
 
 typedef struct SX1280_s SX1280_t;

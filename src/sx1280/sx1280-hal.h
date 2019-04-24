@@ -24,6 +24,8 @@ Maintainer: Miguel Luis, Matthieu Verdy and Benjamin Boulet
 #define RADIO_DIO2_ENABLE	0
 #define RADIO_DIO3_ENABLE	0
 
+#include "sx1280.h"
+
 void SX1280HalWaitOnBusy( SX1280_t *sx1280 );
 
 void SX1280HalInit( SX1280_t *sx1280, DioIrqHandler **irqHandlers );

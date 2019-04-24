@@ -2,13 +2,10 @@
 //! Copyright 2018 Ryan Kurte
 
 #![no_std]
-
+extern crate libc;
 extern crate embedded_hal as hal;
 extern crate futures;
-extern crate libc;
 extern crate nb;
-
-use core::{mem, ptr, slice};
 
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
@@ -18,6 +15,7 @@ use hal::spi::{Mode, Phase, Polarity};
 pub mod sx1280;
 use sx1280::{SX1280_s};
 
+pub mod compat;
 
 /// Sx128x Spi operating mode
 pub const MODE: Mode = Mode {
@@ -46,10 +44,6 @@ impl Default for Settings {
     }
 }
 
-extern fn DelayMs(ms: u32) {
-
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum Sx128xError<SpiError, PinError> {
     Spi(SpiError),
@@ -63,9 +57,9 @@ where
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
 {
-    pub fn new(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, settings: Settings) -> Result<Self, Sx128xError<SpiError, PinError>> {
+    pub fn new(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, _settings: Settings) -> Result<Self, Sx128xError<SpiError, PinError>> {
 
-        let mut sx128x = Self::build(spi, sdn, cs, busy, delay, settings);
+        let mut sx128x = Self::build(spi, sdn, cs, busy, delay);
 
         // Reset IC
         sx128x.reset()?;
@@ -83,69 +77,6 @@ where
         Ok(sx128x)
     }
 
-    fn build(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, settings: Settings) -> Self {
-        unsafe {
-            let mut c = SX1280_s{
-                ctx: mem::uninitialized(),
-                reset: Some(Self::ext_reset),
-                write_buffer: Some(Self::write_buffer),
-                read_buffer: Some(Self::read_buffer),
-                delay_ms: Some(Self::delay_ms),
-            };
-
-            let mut sx128x = Sx128x { spi, sdn, cs, busy, delay, c: c };
-            
-            sx128x.c.ctx = &mut sx128x as *mut Sx128x<Spi, Output, Input, Delay> as *mut libc::c_void;
-
-            sx128x
-        }
-    }
-
-    // extern functions used by c hal
-    // todo: errors are not bubbled through these functions
-
-    extern fn ext_reset(ctx: *mut libc::c_void) {
-        unsafe {
-            let sx1280 = ctx as *mut SX1280_s;
-            let sx128x = (*sx1280).ctx as *mut Sx128x<Spi, Output, Input, Delay>;
-            let _ = (*sx128x).reset();
-        }
-    }
-
-    extern fn write_buffer(ctx: *mut libc::c_void, addr: u8, buffer: *mut u8, size: u8) {
-        unsafe {
-            let sx1280 = ctx as *mut SX1280_s;
-            let sx128x = (*sx1280).ctx as *mut Sx128x<Spi, Output, Input, Delay>;
-            let data: &[u8] = slice::from_raw_parts(buffer, size as usize);
-            let _ = (*sx128x).reg_write(addr, data);
-        }
-    }
-    
-    extern fn read_buffer(ctx: *mut libc::c_void, addr: u8, buffer: *mut u8, size: u8) {
-        unsafe {
-            let sx1280 = ctx as *mut SX1280_s;
-            let sx128x = (*sx1280).ctx as *mut Sx128x<Spi, Output, Input, Delay>;
-            let data: &mut [u8] = slice::from_raw_parts_mut(buffer, size as usize);
-            let _ = (*sx128x).reg_read(addr, data);
-        }
-    }
-
-    extern fn delay_ms(ctx: *mut libc::c_void, ms: u32) {
-        unsafe {
-            let sx1280 = ctx as *mut SX1280_s;
-            let sx128x = (*sx1280).ctx as *mut Sx128x<Spi, Output, Input, Delay>;
-            let _ = (*sx128x).delay.delay_ms(ms as u32);
-        }
-    }
-
-    fn from_c<'a>(sx1280: * mut SX1280_s) -> *mut Self {
-        unsafe {
-            let sx128x_ptr = (*sx1280).ctx as *mut libc::c_void;
-            let sx128x = sx128x_ptr as *mut Sx128x<Spi, Output, Input, Delay>;
-            sx128x
-        }
-    }
-
     /// Reset the radio device
     pub fn reset(&mut self) -> Result<(), Sx128xError<SpiError, PinError>> {
         self.sdn.set_low().map_err(|e| Sx128xError::Pin(e) )?;
@@ -158,14 +89,14 @@ where
 
     /// Read data from a specified register address
     /// This consumes the provided input data array and returns a reference to this on success
-    fn reg_read<'a>(&mut self, reg: u8, mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
-        // Setup read command
-        let out_buf: [u8; 1] = [reg as u8 & 0x7F];
+    fn read<'a>(&mut self, command: &[u8], mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
+        // TODO: wait on busy
+
         // Assert CS
         self.cs.set_low().map_err(|e| Sx128xError::Pin(e) )?;
 
         // Write command
-        let mut res = self.spi.write(&out_buf);
+        let mut res = self.spi.write(&command);
 
         // Read incoming data
         if res.is_ok() {
@@ -175,6 +106,8 @@ where
         // Clear CS
         self.cs.set_high().map_err(|e| Sx128xError::Pin(e) )?;
 
+        // TODO: wait on busy
+
         // Return result (contains returned data)
         match res {
             Err(e) => Err(Sx128xError::Spi(e)),
@@ -183,14 +116,14 @@ where
     }
 
     /// Write data to a specified register address
-    pub fn reg_write(&mut self, reg: u8, data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
-        // Setup write command
-        let out_buf: [u8; 1] = [reg as u8 | 0x80];
+    pub fn write(&mut self, command: &[u8], data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
+        // TODO: wait on busy
+
         // Assert CS
         self.cs.set_low().map_err(|e| Sx128xError::Pin(e) )?;
 
         // Write command
-        let mut res = self.spi.write(&out_buf);
+        let mut res = self.spi.write(&command);
 
         // Read incoming data
         if res.is_ok() {
@@ -198,13 +131,66 @@ where
         }
 
         // Clear CS
-        self.cs.set_high().map_err(|e| Sx128xError::Pin(e) )?;;
+        self.cs.set_high().map_err(|e| Sx128xError::Pin(e) )?;
+
+        // TODO: wait on busy
 
         match res {
             Err(e) => Err(Sx128xError::Spi(e)),
             Ok(_) => Ok(()),
         }
     }
+    
+    pub fn cmd_write(&mut self, command: u8, data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
+        // Setup register write command
+        let out_buf: [u8; 1] = [command as u8];
+        self.write(&out_buf, data)
+    }
+    pub fn cmd_read<'a>(&mut self, command: u8, mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
+        // Setup register read command
+        let out_buf: [u8; 2] = [command as u8, 0x00];
+        self.read(&out_buf, data)
+    }
+
+
+    pub fn reg_write(&mut self, reg: u16, data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
+        // Setup register write command
+        let out_buf: [u8; 3] = [
+            sx1280::RadioCommands_u_RADIO_WRITE_REGISTER as u8,
+            ((reg & 0xFF00) >> 8) as u8,
+            (reg & 0x00FF) as u8,
+        ];
+        self.write(&out_buf, data)
+    }
+    pub fn reg_read<'a>(&mut self, reg: u16, mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
+        // Setup register read command
+        let out_buf: [u8; 4] = [
+            sx1280::RadioCommands_u_RADIO_READ_REGISTER as u8,
+            ((reg & 0xFF00) >> 8) as u8,
+            (reg & 0x00FF) as u8,
+            0,
+        ];
+        self.read(&out_buf, data)
+    }
+
+     pub fn buff_write(&mut self, offset: u8, data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
+        // Setup register write command
+        let out_buf: [u8; 2] = [
+            sx1280::RadioCommands_u_RADIO_WRITE_BUFFER as u8,
+            offset,
+        ];
+        self.write(&out_buf, data)
+    }
+    pub fn buff_read<'a>(&mut self, offset: u8, mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
+        // Setup register read command
+        let out_buf: [u8; 3] = [
+            sx1280::RadioCommands_u_RADIO_READ_BUFFER as u8,
+            offset,
+            0
+        ];
+        self.read(&out_buf, data)
+    }
+    
 
     pub fn status(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
         let status = unsafe { sx1280::SX1280GetStatus(&mut self.c) };
@@ -247,7 +233,7 @@ mod tests {
 
         //let s: Box<Test<_, _>> = Box::new(spi.clone());
 
-        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), cs.clone(), busy.clone(), delay.clone(), Settings::default());
+        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), cs.clone(), busy.clone(), delay.clone());
 
         engine.done();
 

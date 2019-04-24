@@ -72,6 +72,7 @@ fn main() {
     println!("Building library");
     cc::Build::new()
         .file("src/sx1280/sx1280.c")
+        //.file("src/sx1280/sx1280-hal.c")
         .include("src/sx1280")
         .flag("-Wno-unused-parameter")
         .flag("-Wno-int-conversion")
