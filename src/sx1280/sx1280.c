@@ -17,7 +17,7 @@ Maintainer: Miguel Luis, Matthieu Verdy and Benjamin Boulet
 #include <stdio.h>
 #include "sx1280.h"
 #include "sx1280-hal.h"
-#include "rangingcorrection.h"
+#include "rangingCorrection.h"
 
 /*!
  * \brief Radio registers definition

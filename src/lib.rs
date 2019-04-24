@@ -2,6 +2,7 @@
 //! Copyright 2018 Ryan Kurte
 
 #![no_std]
+
 extern crate embedded_hal as hal;
 extern crate futures;
 extern crate libc;
@@ -259,7 +260,7 @@ mod tests {
 
         engine.done();
 
-        spi.inner().expect(SpiTransaction::write(vec![sx1280::RadioCommands_u_RADIO_GET_STATUS as u8]));
+        //spi.inner().expect(SpiTransaction::write(vec![sx1280::RadioCommands_u_RADIO_GET_STATUS as u8]));
 
         radio.status();
 
