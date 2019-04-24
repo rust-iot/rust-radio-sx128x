@@ -193,6 +193,9 @@ where
     
 
     pub fn status(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
+        // Update rust object pointer to c object context
+        self.c.ctx = self.to_c();
+
         let status = unsafe { sx1280::SX1280GetStatus(&mut self.c) };
         Ok(status)
     }

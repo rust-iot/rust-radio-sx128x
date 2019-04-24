@@ -36,7 +36,7 @@ where
 
             // Create rust object
             let mut sx128x = Sx128x { spi, sdn, cs, busy, delay, c: c };
-            
+
             // Bind rust object pointer to c object context
             sx128x.c.ctx = sx128x.to_c();
 
@@ -45,7 +45,7 @@ where
         }
     }
 
-    fn to_c(&mut self) -> *mut libc::c_void {
+    pub(crate) fn to_c(&mut self) -> *mut libc::c_void {
         unsafe {
             self as *mut Self as *mut libc::c_void
         }
@@ -157,6 +157,8 @@ mod tests {
         std::println!("Radio: {:?}, ctx: {:?}", ptr, radio.c.ctx);
 
         let r = radio.from_existing(ptr);
+
+        //assert_eq!(radio.c.ctx, r.c.ctx);
 
 
     }
