@@ -6,8 +6,8 @@ use core::{mem, ptr, slice};
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
 
-use crate::{Sx128x, Settings};
-use crate::sx1280::{SX1280_s};
+use crate::{Sx128x, Sx128xError, Settings};
+use crate::sx1280::{self, SX1280_s};
 
 impl<SpiError, Spi, PinError, Output, Input, Delay> Sx128x<Spi, Output, Input, Delay>
 where
@@ -17,50 +17,42 @@ where
     Delay: delay::DelayMs<u32>,
 {
     /// Build a rust object containing a c object containing a pointer to the rust object
-    pub(crate) fn build(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay) -> Self {
-        unsafe {
-            // Create base C object
-            let c = SX1280_s {
-                ctx: mem::uninitialized(),
-                reset: Some(Self::ext_reset),
-                
-                write_command: Some(Self::write_command),
-                read_command: Some(Self::read_command),
-                write_registers: Some(Self::write_registers),
-                read_registers: Some(Self::read_registers),
-                write_register: Some(Self::write_register),
-                read_register: Some(Self::read_register),
-                write_buffer: Some(Self::write_buffer),
-                read_buffer: Some(Self::read_buffer),
+    pub(crate) fn bind(&mut self) {
+        let ctx = self.to_c();
 
-                delay_ms: Some(Self::delay_ms),
-            };
+        std::println!("Binding: {:?}", ctx);
 
-            // Create rust object
-            let mut sx128x = Sx128x { spi, sdn, cs, busy, delay, c: c };
+        // Create base C object
+        let c = SX1280_s {
+            ctx,
+            reset: Some(Self::ext_reset),
+            
+            write_command: Some(Self::write_command),
+            read_command: Some(Self::read_command),
+            write_registers: Some(Self::write_registers),
+            read_registers: Some(Self::read_registers),
+            write_register: Some(Self::write_register),
+            read_register: Some(Self::read_register),
+            write_buffer: Some(Self::write_buffer),
+            read_buffer: Some(Self::read_buffer),
 
-            // Bind rust object pointer to c object context
-            sx128x.c.ctx = sx128x.to_c();
+            delay_ms: Some(Self::delay_ms),
+        };
 
-            // Return rust object
-            sx128x
-        }
+        // Store C object in structure
+        self.c = Some(c);
     }
 
     pub(crate) fn to_c(&mut self) -> *mut libc::c_void {
         let ptr = unsafe {
             self as *mut Self as *mut libc::c_void
         };
-        self.c.ctx = ptr;
-        std::println!("Radio: {:?}", ptr);
-        ptr;
+        ptr
     }
 
-    // extern functions used by c hal
-    // todo: errors are not bubbled through these functions
-
-    fn from_c<'a>(ctx: *mut libc::c_void) -> &'a mut Self {
+    pub(crate) fn from_c<'a>(ctx: *mut libc::c_void) -> &'a mut Self {
         unsafe {
+            std::println!("Retrieving: {:?}", ctx);
             //assert!(ctx == ptr::null());
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x_ptr = (*sx1280).ctx as *mut libc::c_void;
@@ -68,6 +60,9 @@ where
             &mut *sx128x
         }
     }
+
+    // extern functions used by c hal
+    // todo: errors are not bubbled through these functions
 
     fn from_existing<'a>(&self, ctx: *mut libc::c_void) -> &'a mut Self {
         Self::from_c(ctx)
@@ -119,6 +114,7 @@ where
         let data: [u8; 1] = [value];
         let _ = sx128x.reg_write(address, &data);
     }
+
     extern fn read_register(ctx: *mut libc::c_void, address: u16) -> u8 {
         let sx128x = Self::from_c(ctx);
         let mut data: [u8; 1] = [0];
@@ -130,6 +126,26 @@ where
         let sx128x = Self::from_c(ctx);;
         let _ = sx128x.delay.delay_ms(ms as u32);
     }
+
+}
+
+impl<SpiError, Spi, PinError, Output, Input, Delay> Sx128x<Spi, Output, Input, Delay>
+where
+    Spi: spi::Transfer<u8, Error = SpiError> + spi::Write<u8, Error = SpiError>,
+    Output: OutputPin<Error = PinError>,
+    Input: InputPin<Error = PinError>,
+    Delay: delay::DelayMs<u32>,
+{
+
+
+    pub fn status(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
+        // Update rust object pointer to c object context
+        let mut ctx = self.c.unwrap();
+
+        let status = unsafe { sx1280::SX1280GetStatus(&mut ctx) };
+        Ok(status)
+    }
+
 }
 
 
@@ -142,9 +158,12 @@ mod tests {
     extern crate embedded_hal_mock;
     use self::embedded_hal_mock::engine::*;
 
+    extern crate color_backtrace;
 
     #[test]
     fn ffi_casts() {
+        color_backtrace::install();
+
         let mut engine = Engine::new();
 
         let mut spi = engine.spi();
@@ -153,18 +172,18 @@ mod tests {
         let mut busy = engine.pin();
         let mut delay = engine.delay();
 
-        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), cs.clone(), busy.clone(), delay.clone());
+        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None};
+
+        std::println!("new {:p}", &radio);
+
+        radio.bind();
 
         let ptr = radio.to_c();
 
         assert!(ptr != (0 as *mut libc::c_void), "to_c is not void");
 
-        std::println!("Radio: {:?}, ctx: {:?}", ptr, radio.c.ctx);
+        std::println!("Radio: {:?}, ctx: {:?}", ptr, radio.c.unwrap().ctx);
 
         let r = radio.from_existing(ptr);
-
-        //assert_eq!(radio.c.ctx, r.c.ctx);
-
-
     }
 }

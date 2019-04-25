@@ -31,7 +31,7 @@ pub struct Sx128x<Spi, Output, Input, Delay> {
     cs: Output,
     busy: Input,
     delay: Delay,
-    c: SX1280_s,
+    c: Option<SX1280_s>,
 }
 
 pub struct Settings {
@@ -59,7 +59,7 @@ where
 {
     pub fn new(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, _settings: Settings) -> Result<Self, Sx128xError<SpiError, PinError>> {
 
-        let mut sx128x = Self::build(spi, sdn, cs, busy, delay);
+        let mut sx128x = Sx128x { spi, sdn, cs, busy, delay, c: None };
 
         // Reset IC
         sx128x.reset()?;
@@ -191,15 +191,6 @@ where
         self.read(&out_buf, data)
     }
     
-
-    pub fn status(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
-        // Update rust object pointer to c object context
-        self.c.ctx = self.to_c();
-
-        let status = unsafe { sx1280::SX1280GetStatus(&mut self.c) };
-        Ok(status)
-    }
-
 }
 
 
@@ -236,7 +227,9 @@ mod tests {
 
         //let s: Box<Test<_, _>> = Box::new(spi.clone());
 
-        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), cs.clone(), busy.clone(), delay.clone());
+        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None};
+
+        radio.bind();
 
         engine.done();
 
