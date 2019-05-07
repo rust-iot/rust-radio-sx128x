@@ -5,6 +5,6 @@
 #include <stdbool.h>
 
 
-#include "sx1280/sx1280.h"
-
+#include "sx1280.h"
+#include "sx1280-hal.h"
 

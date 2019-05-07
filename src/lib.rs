@@ -12,8 +12,8 @@ use hal::digital::v2::{InputPin, OutputPin};
 use hal::spi::{Mode, Phase, Polarity};
 
 
-pub mod sx1280;
-use sx1280::{SX1280_s};
+pub mod bindings;
+use bindings::{SX1280_s};
 
 pub mod compat;
 
@@ -202,7 +202,8 @@ mod tests {
     use tests::std::boxed::Box;
     use tests::std::vec::*;
 
-
+    extern crate embedded_spi;
+    use embedded_spi::mock::{Mock, MockTransaction};
 
     extern crate embedded_hal_mock;
     use tests::embedded_hal_mock::engine::*;
@@ -218,10 +219,7 @@ mod tests {
     #[test]
     fn mock_test() {
         let mut engine = Engine::new();
-
-        let mut spi = engine.spi();
         let mut sdn = engine.pin();
-        let mut cs = engine.pin();
         let mut busy = engine.pin();
         let mut delay = engine.delay();
 

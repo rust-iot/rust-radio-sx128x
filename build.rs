@@ -3,6 +3,8 @@
 
 
 extern crate bindgen;
+extern crate git2;
+use git2::Repository;
 
 use std::env;
 use std::boxed::Box;
@@ -26,9 +28,32 @@ impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
 }
 
 fn main() {
-    let out_path = PathBuf::new(); //from(env::var("OUT_DIR").unwrap());
+    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
     let src_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 
+    // Clone library
+    let repo_url = "https://github.com/ryankurte/libsx128x";
+    let mut repo_path = PathBuf::new();
+    repo_path.push("libsx128x");
+
+    let _repo = match repo_path.exists() {
+        false => {
+            println!("Cloning: '{}' into: '{:?}'", repo_url, repo_path);
+            match Repository::clone(repo_url, repo_path) {
+                Ok(repo) => repo,
+                Err(e) => panic!("failed to clone: {}", e),
+            }
+        },
+        true => {
+            println!("Connecting to repo: '{:?}'", repo_path);
+            match Repository::open(repo_path) {
+                Ok(repo) => repo,
+                Err(e) => panic!("failed to clone: {}", e),
+            }
+        }
+    };
+
+    // Build bindings
     let ignored_macros = IgnoreMacros(
         vec![
             "FP_INFINITE".into(),
@@ -42,25 +67,26 @@ fn main() {
         .collect(),
     );
 
-    // Build bindings
     println!("Generating bindings");
     let bindings = bindgen::Builder::default()
         .generate_comments(false)
         .parse_callbacks(Box::new(ignored_macros))
         .use_core()
         .ctypes_prefix("libc")
-        .header("src/wrapper.h")
+        //.clang_arg("-I/usr/include")
+        .clang_arg("-Ilibsx128x/lib")
+        .header("wrapper.h")
         .generate()
         .expect("Unable to generate bindings");
 
     // Open a file for writing
-    let binding_path = src_path.join("src/sx1280/mod.rs");
+    let binding_path = src_path.join("src/bindings.rs");
     let mut file = match File::create(&binding_path) {
         Err(e) => panic!("Error opening file {}: {}", binding_path.display(), e.description()),
         Ok(f) => f,
     };
 
-    // Patch
+    // Patch generated output to suppress warnings
     file.write_all(b"#![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]\nuse libc;\n\n").unwrap();
 
     // Write bindings
@@ -71,9 +97,9 @@ fn main() {
     // Build libraries
     println!("Building library");
     cc::Build::new()
-        .file("src/sx1280/sx1280.c")
+        .file("libsx128x/lib/sx1280.c")
         //.file("src/sx1280/sx1280-hal.c")
-        .include("src/sx1280")
+        .include("libsx128x/lib")
         .flag("-Wno-unused-parameter")
         .flag("-Wno-int-conversion")
         .flag("-Wno-implicit-function-declaration")
