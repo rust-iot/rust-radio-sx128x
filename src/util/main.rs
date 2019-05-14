@@ -23,7 +23,7 @@ pub struct Options {
     command: Command,
 
 
-    #[structopt(long = "spi", default_value = "/dev/spi0.0", env = "SX128X_SPI")]
+    #[structopt(long = "spi", default_value = "/dev/spidev0.0", env = "SX128X_SPI")]
     /// Specify the hostname of the remote-hal server
     spi: String,
 
