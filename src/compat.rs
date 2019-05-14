@@ -1,9 +1,7 @@
 
 extern crate std;
 
-use core::{mem, ptr, slice};
-
-use embedded_spi::compat::{Cursed, Conv};
+use embedded_spi::compat::{Conv};
 
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
@@ -20,9 +18,11 @@ where
     SpiError: core::fmt::Debug,
     PinError: core::fmt::Debug,
 {
-    /// Build a rust object containing a c object containing a pointer to the rust object
-    pub(crate) fn bind(&mut self) {
-        let ctx = self.to_c();
+    /// Create and bind an internal C object to support the bound C api
+    pub fn bind(s: &mut Self) {
+        std::println!("Binding Object: {:p}", s);
+
+        let ctx = Self::to_c_ptr(s);
 
         std::println!("Binding: {:?}", ctx);
 
@@ -42,36 +42,12 @@ where
         };
 
         // Store C object in structure
-        self.c = Some(c);
+        s.c = Some(c);
     }
 
-    pub(crate) fn to_c(&mut self) -> *mut libc::c_void {
-        let ptr = unsafe {
-            self as *mut Self as *mut libc::c_void
-        };
-        ptr
-    }
-
-    pub(crate) fn from_c<'a>(ctx: *mut libc::c_void) -> &'a mut Self {
-        unsafe {
-            //std::println!("Retrieving: {:?}", ctx);
-            //assert!(ctx == ptr::null());
-            let sx1280 = ctx as *mut SX1280_s;
-            let sx128x_ptr = (*sx1280).ctx as *mut libc::c_void;
-            let sx128x = sx128x_ptr as *mut Self;
-            &mut *sx128x
-        }
-    }
-
-    // extern functions used by c hal
-    // todo: errors are not bubbled through these functions
-
-    fn from_existing<'a>(&self, ctx: *mut libc::c_void) -> &'a mut Self {
-        Self::from_c(ctx)
-    }
-
+    #[allow(dead_code)]
     extern fn set_reset(ctx: *mut libc::c_void, value: bool) -> i32 {
-        let sx128x = Self::from_c(ctx);
+        let sx128x = Self::from_c_ptr(ctx);
         let r = match value {
             true => sx128x.sdn.set_high(),
             false => sx128x.sdn.set_low(),
@@ -85,8 +61,9 @@ where
         }
     }
 
+    #[allow(dead_code)]
     extern fn get_busy(ctx: *mut libc::c_void) -> i32 {
-        let sx128x = Self::from_c(ctx);
+        let sx128x = Self::from_c_ptr(ctx);
         let r = sx128x.busy.is_high();
         match r {
             Ok(true) => 1,
@@ -98,6 +75,7 @@ where
         }
     }
 
+    #[allow(dead_code)]
     extern fn spi_write(ctx: *mut libc::c_void, prefix: *mut u8, prefix_len: u16, data: *mut u8, data_len: u16) -> i32 {
         // Coerce back into rust
         let s = Self::from_c_ptr(ctx);
@@ -116,6 +94,7 @@ where
         }
     }
     
+    #[allow(dead_code)]
     extern fn spi_read(ctx: *mut libc::c_void, prefix: *mut u8, prefix_len: u16, data: *mut u8, data_len: u16) -> i32 {
          // Coerce back into rust
         let s = Self::from_c_ptr(ctx);
@@ -134,8 +113,9 @@ where
         }
     }
 
+    #[allow(dead_code)]
     extern fn delay_ms(ctx: *mut libc::c_void, ms: u32) {
-        let sx128x = Self::from_c(ctx);;
+        let sx128x = Self::from_c_ptr(ctx);;
         let _ = sx128x.delay.delay_ms(ms as u32);
     }
 
@@ -149,8 +129,7 @@ where
     Delay: delay::DelayMs<u32>,
 {
 
-
-    pub fn status(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
+    pub fn status2(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
         // Update rust object pointer to c object context
         let mut ctx = self.c.unwrap();
 
@@ -164,39 +143,84 @@ where
 #[cfg(test)]
 mod tests {
     use crate::Sx128x;
+    use crate::bindings as sx1280;
 
     extern crate std;
 
     extern crate embedded_spi;
-    use self::embedded_spi::mock::Mock;
+    use embedded_spi::compat::{Conv};
+    use self::embedded_spi::mock::{Mock, MockTransaction as Mt};
 
     extern crate color_backtrace;
 
+    type Radio = Sx128x<embedded_spi::mock::Spi, embedded_spi::mock::Error<(), ()>, embedded_spi::mock::Pin, embedded_spi::mock::Pin, (), embedded_spi::mock::Delay>;
+
     #[test]
-    fn ffi_casts() {
+    fn test_compat() {
         color_backtrace::install();
 
         let mut m = Mock::new();
 
-        let mut spi = m.spi();
-        let mut cs = m.pin();
-        let mut sdn = m.pin();
+        let spi = m.spi();
+        let cs = m.pin();
+        let sdn = m.pin();
         
-        let mut busy = m.pin();
-        let mut delay = m.delay();
+        let busy = m.pin();
+        let delay = m.delay();
 
         let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None, err: None };
 
         std::println!("new {:p}", &radio);
 
-        radio.bind();
-
-        let ptr = radio.to_c();
+        Radio::bind(&mut radio);
+        let ptr = Radio::to_c_ptr(&mut radio);
 
         assert!(ptr != (0 as *mut libc::c_void), "to_c is not void");
 
         std::println!("Radio: {:?}, ctx: {:?}", ptr, radio.c.unwrap().ctx);
+        assert_eq!(ptr, radio.c.unwrap().ctx);
 
-        let r = radio.from_existing(ptr);
+
+        m.expect(&[
+            Mt::set_high(&sdn),
+        ]);
+
+        Radio::set_reset(ptr, true);
+        
+        m.finalise();
+
+    }
+
+    #[test]
+    fn test_bindings() {
+        color_backtrace::install();
+
+        let mut m = Mock::new();
+
+        let spi = m.spi();
+        let cs = m.pin();
+        let sdn = m.pin();
+        
+        let busy = m.pin();
+        let delay = m.delay();
+
+        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None, err: None };
+
+        std::println!("new {:p}", &radio);
+
+        Sx128x::bind(&mut radio);
+
+        std::println!("Test status command");
+
+        m.expect(&[
+            Mt::set_low(&cs),
+            Mt::write(&spi, &[sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, 0]),
+            Mt::transfer(&spi, &[0x00], &[0x00]),
+            Mt::set_high(&cs),
+        ]);
+
+        radio.status2();
+
+        m.finalise();
     }
 }
