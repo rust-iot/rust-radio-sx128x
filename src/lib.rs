@@ -9,7 +9,7 @@ extern crate nb;
 
 extern crate embedded_spi;
 use embedded_spi::compat::Cursed;
-use embedded_spi::{Transactional, wrapper::Wrapper as SpiWrapper};
+
 
 extern crate embedded_hal as hal;
 use hal::blocking::{spi, delay};
@@ -92,7 +92,9 @@ where
 
     pub fn status(&mut self) -> Result<u8, Sx128xError<SpiError, PinError>> {
         let mut d = [0u8; 1];
+        self.wait_busy();
         self.cmd_read(sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, &mut d)?;
+        self.wait_busy();
         Ok(d[0])
     }
 
@@ -105,14 +107,9 @@ mod tests {
     use bindings as sx1280;
 
     extern crate std;
-    use tests::std::boxed::Box;
-    use tests::std::vec::*;
-
+    
     extern crate embedded_spi;
     use self::embedded_spi::mock::{Mock, MockTransaction as Mt};
-
-    extern crate embedded_hal;
-    use tests::embedded_hal::blocking::spi::{Transfer, Write};
 
     #[test]
     fn test_mod() {
@@ -147,10 +144,13 @@ mod tests {
         std::println!("Test status command");
 
         m.expect(&[
+            Mt::is_high(&busy, false),
             Mt::set_low(&cs),
             Mt::write(&spi, &[sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, 0]),
             Mt::transfer(&spi, &[0x00], &[0x00]),
             Mt::set_high(&cs),
+            Mt::is_high(&busy, true),
+            Mt::is_high(&busy, false),
         ]);
 
         radio.status().unwrap();

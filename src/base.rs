@@ -1,10 +1,10 @@
 
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
-use hal::spi::{Mode, Phase, Polarity};
+
 
 use crate::{Sx128x, Sx128xError};
-use crate::bindings::{self as sx1280, SX1280_s};
+use crate::bindings::{self as sx1280};
 
 impl<Spi, SpiError, Output, Input, PinError, Delay> Sx128x<Spi, SpiError, Output, Input, PinError, Delay>
 where
@@ -20,6 +20,14 @@ where
         self.delay.delay_ms(1);
         self.sdn.set_high().map_err(|e| Sx128xError::Pin(e) )?;
         self.delay.delay_ms(10);
+
+        Ok(())
+    }
+
+    /// Wait on radio device busy
+    pub fn wait_busy(&mut self) -> Result<(), Sx128xError<SpiError, PinError>> {
+        // TODO: timeouts here
+        while self.busy.is_high().map_err(|e| Sx128xError::Pin(e) )? {}
 
         Ok(())
     }
@@ -84,7 +92,7 @@ where
         self.write(&out_buf, data)
     }
 
-    pub fn cmd_read<'a>(&mut self, command: u8, mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
+    pub fn cmd_read<'a>(&mut self, command: u8, data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 2] = [command as u8, 0x00];
         self.read(&out_buf, data)
@@ -101,7 +109,7 @@ where
         self.write(&out_buf, data)
     }
 
-    pub fn reg_read<'a>(&mut self, reg: u16, mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
+    pub fn reg_read<'a>(&mut self, reg: u16, data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 4] = [
             sx1280::RadioCommands_u_RADIO_READ_REGISTER as u8,
@@ -121,7 +129,7 @@ where
         self.write(&out_buf, data)
     }
 
-    pub fn buff_read<'a>(&mut self, offset: u8, mut data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
+    pub fn buff_read<'a>(&mut self, offset: u8, data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 3] = [
             sx1280::RadioCommands_u_RADIO_READ_BUFFER as u8,

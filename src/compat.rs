@@ -6,7 +6,7 @@ use embedded_spi::compat::{Conv};
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
 
-use crate::{Sx128x, Sx128xError, Settings};
+use crate::{Sx128x, Sx128xError};
 use crate::bindings::{self as sx1280, SX1280_s};
 
 impl<Spi, SpiError, Output, Input, PinError, Delay> Sx128x<Spi, SpiError, Output, Input, PinError, Delay>
@@ -180,7 +180,6 @@ mod tests {
         std::println!("Radio: {:?}, ctx: {:?}", ptr, radio.c.unwrap().ctx);
         assert_eq!(ptr, radio.c.unwrap().ctx);
 
-
         m.expect(&[
             Mt::set_high(&sdn),
         ]);
@@ -213,13 +212,16 @@ mod tests {
         std::println!("Test status command");
 
         m.expect(&[
+            Mt::is_high(&busy, false),
             Mt::set_low(&cs),
             Mt::write(&spi, &[sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, 0]),
             Mt::transfer(&spi, &[0x00], &[0x00]),
             Mt::set_high(&cs),
+            Mt::is_high(&busy, true),
+            Mt::is_high(&busy, false),
         ]);
 
-        radio.status2();
+        radio.status2().unwrap();
 
         m.finalise();
     }
