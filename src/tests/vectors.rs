@@ -29,3 +29,22 @@ pub fn status(spi: &Spi, cs: &Pin, _sdn: &Pin, busy: &Pin, _delay: &Delay) -> Ve
         Mt::is_high(&busy, false),
     ]
 }
+
+pub fn firmware_version(spi: &Spi, cs: &Pin, _sdn: &Pin, busy: &Pin, _delay: &Delay, version: u16) -> Vec<Mt> {
+    vec![
+        Mt::is_high(&busy, false),
+        Mt::set_low(&cs),
+        Mt::spi_read(&spi, &[
+            sx1280::RadioCommands_u_RADIO_READ_REGISTER as u8,
+            (sx1280::REG_LR_FIRMWARE_VERSION_MSB >> 8) as u8, 
+            (sx1280::REG_LR_FIRMWARE_VERSION_MSB >> 0) as u8,
+            0
+        ], &[
+            (version >> 8) as u8,
+            (version >> 0) as u8,
+        ]),
+        Mt::set_high(&cs),
+        Mt::is_high(&busy, true),
+        Mt::is_high(&busy, false),
+    ]
+}

@@ -1,7 +1,7 @@
 //! Compat module implements FFI bindings to an underlying C driver instance
 //! This is provided to enable full API access and piece-wise migration to a pure-rust driver
 
-
+use embedded_spi::Transactional;
 use embedded_spi::compat::{Cursed, Conv};
 
 use hal::blocking::{spi, delay};
@@ -86,10 +86,10 @@ where
         let data: &[u8] = unsafe { core::slice::from_raw_parts(data, data_len as usize) };
 
         // Execute command and handle errors
-        match s.write(&prefix, &data) {
+        match s.spi.spi_write(&prefix, &data) {
             Ok(_) => 0,
             Err(e) => {
-                s.err = Some(e);
+                s.err = Some(e.into());
                 -1
             },
         }
@@ -105,10 +105,10 @@ where
         let mut data: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(data, data_len as usize) };
 
         // Execute command and handle errors
-        match s.read(&prefix, &mut data) {
+        match s.spi.spi_read(&prefix, &mut data) {
             Ok(_) => 0,
             Err(e) => {
-                s.err = Some(e);
+                s.err = Some(e.into());
                 -1
             },
         }
@@ -138,22 +138,27 @@ where
         Ok(status)
     }
 
+    pub fn ffi_get_firmware_version(&mut self) -> Result<u16, Sx128xError<SpiError, PinError>> {
+        // Update rust object pointer to c object context
+        let mut ctx = self.c.unwrap();
+
+        let version = unsafe { sx1280::SX1280GetFirmwareVersion(&mut ctx) };
+        Ok(version)
+    }
+
 }
 
 
 #[cfg(test)]
 mod tests {
-    use crate::Sx128x;
+    use crate::{Sx128x, Settings};
 
-    extern crate std;
-
-    extern crate embedded_spi;
     use embedded_spi::compat::{Conv};
-    use self::embedded_spi::mock::{Mock, MockTransaction as Mt};
+    use embedded_spi::mock::{Mock, MockTransaction as Mt};
 
     extern crate color_backtrace;
 
-    type Radio = Sx128x<embedded_spi::mock::Spi, embedded_spi::mock::Error<(), ()>, embedded_spi::mock::Pin, embedded_spi::mock::Pin, (), embedded_spi::mock::Delay>;
+    type Radio = Sx128x<embedded_spi::mock::Spi, embedded_spi::Error<(), ()>, embedded_spi::mock::Pin, embedded_spi::mock::Pin, (), embedded_spi::mock::Delay>;
 
     use crate::tests::vectors;
 
@@ -162,15 +167,9 @@ mod tests {
         color_backtrace::install();
 
         let mut m = Mock::new();
+        let (spi, cs, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.pin(), m.delay());
 
-        let spi = m.spi();
-        let cs = m.pin();
-        let sdn = m.pin();
-        
-        let busy = m.pin();
-        let delay = m.delay();
-
-        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None, err: None };
+        let mut radio = Sx128x::build(spi.clone(), cs.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
 
         std::println!("new {:p}", &radio);
 
@@ -199,18 +198,19 @@ mod tests {
         let mut m = Mock::new();
         let (spi, cs, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.pin(), m.delay());
 
-        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None, err: None };
-
+        let mut radio = Sx128x::build(spi.clone(), cs.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
         std::println!("new {:p}", &radio);
 
         Sx128x::bind(&mut radio);
 
         std::println!("Test status command");
-
         m.expect(vectors::status(&spi, &cs, &sdn, &busy, &delay));
-
         radio.ffi_status().unwrap();
+        m.finalise();
 
+        std::println!("Test firmware version command");
+        m.expect(vectors::status(&spi, &cs, &sdn, &busy, &delay));
+        radio.ffi_status().unwrap();
         m.finalise();
     }
 }
