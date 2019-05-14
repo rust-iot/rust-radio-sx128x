@@ -3,13 +3,16 @@
 use hal::blocking::{spi as hal_spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
 
-use embedded_spi::{Transactional as _};
+use embedded_spi::{Transactional, PinState};
+use embedded_spi::{Error as WrapError};
 
 use crate::{Sx128x, Sx128xError};
 use crate::bindings::{self as sx1280};
 
 /// Comms implementation can be generic over SPI or UART connections
 pub trait Comms<CommsError, PinError> {
+    /// Wait on radio device busy
+    fn wait_busy(&mut self) -> Result<(), Sx128xError<CommsError, PinError>>;
     /// Write the specified command and data
     fn cmd_write(&mut self, command: u8, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
     /// Read the specified command and data
@@ -24,9 +27,8 @@ pub trait Comms<CommsError, PinError> {
     fn buff_read(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
 }
 
-impl<Spi, CommsError, Output, Input, PinError, Delay> Sx128x<Spi, CommsError, Output, Input, PinError, Delay>
+impl<Comms, CommsError, Output, Input, PinError, Delay> Sx128x<Comms, CommsError, Output, Input, PinError, Delay>
 where
-    Spi: hal_spi::Transfer<u8, Error = CommsError> + hal_spi::Write<u8, Error = CommsError>,
     Output: OutputPin<Error = PinError>,
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
@@ -40,29 +42,26 @@ where
 
         Ok(())
     }
+}
 
+impl<T, CommsError, PinError> Comms<CommsError, PinError> for T
+where
+    T: Transactional<Error=WrapError<CommsError, PinError>>,
+{    
     /// Wait on radio device busy
-    pub fn wait_busy(&mut self) -> Result<(), Sx128xError<CommsError, PinError>> {
+    fn wait_busy(&mut self) -> Result<(), Sx128xError<CommsError, PinError>> {
         // TODO: timeouts here
-        while self.busy.is_high().map_err(|e| Sx128xError::Pin(e) )? {}
+        while self.spi_busy()? == PinState::High {}
 
         Ok(())
     }
-}
 
-impl<Spi, CommsError, Output, Input, PinError, Delay> Comms<CommsError, PinError> for Sx128x<Spi, CommsError, Output, Input, PinError, Delay>
-where
-    Spi: hal_spi::Transfer<u8, Error = CommsError> + hal_spi::Write<u8, Error = CommsError>,
-    Output: OutputPin<Error = PinError>,
-    Input: InputPin<Error = PinError>,
-    Delay: delay::DelayMs<u32>,
-{    
     /// Write the specified command and data
     fn cmd_write(&mut self, command: u8, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 1] = [command as u8];
         self.wait_busy()?;
-        let r = self.spi.spi_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -72,7 +71,7 @@ where
         // Setup register read command
         let out_buf: [u8; 2] = [command as u8, 0x00];
         self.wait_busy()?;
-        let r = self.spi.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -86,7 +85,7 @@ where
             (reg & 0x00FF) as u8,
         ];
         self.wait_busy()?;
-        let r = self.spi.spi_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -101,7 +100,7 @@ where
             0,
         ];
         self.wait_busy()?;
-        let r = self.spi.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -114,7 +113,7 @@ where
             offset,
         ];
         self.wait_busy()?;
-        let r = self.spi.spi_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -128,7 +127,7 @@ where
             0
         ];
         self.wait_busy()?;
-        let r = self.spi.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }

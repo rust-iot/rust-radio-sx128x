@@ -12,14 +12,13 @@ extern crate nb;
 extern crate std;
 
 extern crate embedded_hal as hal;
-use hal::blocking::{spi, delay};
+use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
 use hal::spi::{Mode, Phase, Polarity};
 
 
 extern crate embedded_spi;
 use embedded_spi::{Error as WrapError};
-use embedded_spi::wrapper::{Wrapper as SpiWrapper};
 
 pub mod bindings;
 use bindings::{self as sx1280};
@@ -28,7 +27,6 @@ use bindings::{self as sx1280};
 use bindings::SX1280_s;
 
 pub mod base;
-use base::Comms;
 
 #[cfg(feature = "ffi")]
 pub mod ffi;
@@ -41,11 +39,11 @@ pub const MODE: Mode = Mode {
 
 /// Sx128x device object
 #[repr(C)]
-pub struct Sx128x<Spi, CommsError, Output, Input, PinError, Delay> {
-    spi: SpiWrapper<Spi, CommsError, Output, PinError>,
+pub struct Sx128x<Comms, CommsError, OutputPin, InputPin, PinError, Delay> {
+    comms: Comms,
 
-    sdn: Output,
-    busy: Input,
+    sdn: OutputPin,
+    busy: InputPin,
     delay: Delay,
 
     #[cfg(feature = "ffi")]
@@ -86,16 +84,16 @@ impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Sx128xErro
 }
 
 
-impl<Spi, CommsError, Output, Input, PinError, Delay> Sx128x<Spi, CommsError, Output, Input, PinError, Delay>
+impl<Comms, CommsError, Output, Input, PinError, Delay> Sx128x<Comms, CommsError, Output, Input, PinError, Delay>
 where
-    Spi: spi::Transfer<u8, Error = CommsError> + spi::Write<u8, Error = CommsError>,
+    Comms: base::Comms<CommsError, PinError>,
     Output: OutputPin<Error = PinError>,
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
 {
-    pub fn new(spi: Spi, cs: Output, sdn: Output, busy: Input, delay: Delay, settings: Settings) -> Result<Self, Sx128xError<CommsError, PinError>> {
+    pub fn new(comms: Comms, sdn: Output, busy: Input, delay: Delay, settings: Settings) -> Result<Self, Sx128xError<CommsError, PinError>> {
 
-        let mut sx128x = Self::build(spi, sdn, cs, busy, delay, settings);
+        let mut sx128x = Self::build(comms, sdn, busy, delay, settings);
 
         // Reset IC
         sx128x.reset()?;
@@ -113,10 +111,9 @@ where
         Ok(sx128x)
     }
 
-    pub(crate) fn build(spi: Spi, cs: Output, sdn: Output, busy: Input, delay: Delay, _settings: Settings) -> Self {
+    pub(crate) fn build(comms: Comms, sdn: Output, busy: Input, delay: Delay, _settings: Settings) -> Self {
         Sx128x { 
-            spi: SpiWrapper::new(spi, cs),
-            sdn, busy, delay, 
+            comms, sdn, busy, delay, 
             #[cfg(feature = "ffi")]
             c: None, 
             #[cfg(feature = "ffi")]
@@ -126,14 +123,14 @@ where
 
     pub fn status(&mut self) -> Result<u8, Sx128xError<CommsError, PinError>> {
         let mut d = [0u8; 1];
-        self.cmd_read(sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, &mut d)?;
+        self.comms.cmd_read(sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, &mut d)?;
         Ok(d[0])
     }
 
     pub fn firmware_version(&mut self) -> Result<u16, Sx128xError<CommsError, PinError>> {
         let mut d = [0u8; 2];
 
-        self.reg_read(sx1280::REG_LR_FIRMWARE_VERSION_MSB as u16, &mut d)?;
+        self.comms.reg_read(sx1280::REG_LR_FIRMWARE_VERSION_MSB as u16, &mut d)?;
 
         Ok((d[0] as u16) << 8 | (d[1] as u16))
     }
@@ -153,10 +150,10 @@ mod tests {
     #[test]
     fn test_api_reset() {
         let mut m = Mock::new();
-        let (spi, cs, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.pin(), m.delay());
-        let mut radio = Sx128x::build(spi.clone(), cs.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
+        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
 
-        m.expect(vectors::reset(&spi, &cs, &sdn, &busy, &delay));
+        m.expect(vectors::reset(&spi, &sdn, &delay));
         radio.reset().unwrap();
         m.finalise();
     }
@@ -164,10 +161,10 @@ mod tests {
     #[test]
     fn test_api_status() {
         let mut m = Mock::new();
-        let (spi, cs, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.pin(), m.delay());
-        let mut radio = Sx128x::build(spi.clone(), cs.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
+        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
 
-        m.expect(vectors::status(&spi, &cs, &sdn, &busy, &delay));
+        m.expect(vectors::status(&spi, &sdn, &delay));
         radio.status().unwrap();
         m.finalise();
     }
@@ -175,10 +172,10 @@ mod tests {
     #[test]
     fn test_api_firmware_version() {
         let mut m = Mock::new();
-        let (spi, cs, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.pin(), m.delay());
-        let mut radio = Sx128x::build(spi.clone(), cs.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
+        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
 
-        m.expect(vectors::firmware_version(&spi, &cs, &sdn, &busy, &delay, 16));
+        m.expect(vectors::firmware_version(&spi, &sdn, &delay, 16));
         let version = radio.firmware_version().unwrap();
         m.finalise();
         assert_eq!(version, 16);

@@ -10,7 +10,6 @@ use std::env;
 use std::boxed::Box;
 use std::fs::File;
 use std::path::PathBuf;
-use std::io::prelude::*;
 use std::error::Error;
 use std::collections::HashSet;
 
@@ -29,7 +28,7 @@ impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
 
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let src_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let _src_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 
     // Clone library
     let repo_url = "https://github.com/ryankurte/libsx128x";
@@ -37,23 +36,25 @@ fn main() {
     let repo_path = match env::var("LIBSX128x_DIR") {
         Ok(d) => PathBuf::from(d),
         Err(_) => {
-            let mut repo_path = PathBuf::new();
-            repo_path.push("libsx128x");
+            let mut repo_path = out_path.clone();
+            repo_path.push("libsx128x-src");
             repo_path
         }
     };
 
+    println!("Using libsx128x from: {} (source: {})", &repo_path.to_str().unwrap(), repo_url);
+
     let _repo = match repo_path.exists() {
         false => {
-            println!("Cloning: '{}' into: '{:?}'", repo_url, repo_path);
-            match Repository::clone(repo_url, repo_path) {
+            println!("Cloning: '{}' into: '{:?}'", repo_url, &repo_path);
+            match Repository::clone(repo_url, &repo_path) {
                 Ok(repo) => repo,
                 Err(e) => panic!("failed to clone: {}", e),
             }
         },
         true => {
-            println!("Connecting to repo: '{:?}'", repo_path);
-            match Repository::open(repo_path) {
+            println!("Connecting to repo: '{:?}'", &repo_path);
+            match Repository::open(&repo_path) {
                 Ok(repo) => repo,
                 Err(e) => panic!("failed to clone: {}", e),
             }
@@ -81,20 +82,17 @@ fn main() {
         .use_core()
         .ctypes_prefix("libc")
         //.clang_arg("-I/usr/include")
-        .clang_arg("-Ilibsx128x/lib")
+        .clang_arg(format!("-I{}/lib", &repo_path.to_str().unwrap()))
         .header("wrapper.h")
         .generate()
         .expect("Unable to generate bindings");
 
     // Open a file for writing
-    let binding_path = src_path.join("src/bindings.rs");
-    let mut file = match File::create(&binding_path) {
+    let binding_path = out_path.join("sx128x.rs");
+    let file = match File::create(&binding_path) {
         Err(e) => panic!("Error opening file {}: {}", binding_path.display(), e.description()),
         Ok(f) => f,
     };
-
-    // Patch generated output to suppress warnings
-    file.write_all(b"#![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]\nuse libc;\n\n").unwrap();
 
     // Write bindings
     bindings
@@ -104,13 +102,14 @@ fn main() {
     // Build libraries
     println!("Building library");
     cc::Build::new()
-        .file("libsx128x/lib/sx1280.c")
-        .file("libsx128x/lib/sx1280-hal.c")
-        .include("libsx128x/lib")
+        .file(format!("{}/lib/sx1280.c", &repo_path.to_str().unwrap()))
+        .file(format!("{}/lib/sx1280-hal.c", &repo_path.to_str().unwrap()))
+        .include(format!("{}/lib", &repo_path.to_str().unwrap()))
         .debug(true)
         .flag("-Wno-unused-parameter")
         .flag("-Wno-int-conversion")
         .flag("-Wno-implicit-function-declaration")
+        .flag("-Wno-sign-compare")
         .compile("sx1280");
 
     // Link the library
