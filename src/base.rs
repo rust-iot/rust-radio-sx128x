@@ -1,6 +1,6 @@
 //! Basic HAL functions for communicating with the radio device
 
-use hal::blocking::{spi as hal_spi, delay};
+use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
 
 use embedded_spi::{Transactional, PinState};
@@ -10,9 +10,10 @@ use crate::{Sx128x, Sx128xError};
 use crate::bindings::{self as sx1280};
 
 /// Comms implementation can be generic over SPI or UART connections
-pub trait Comms<CommsError, PinError> {
+pub trait Hal<CommsError, PinError> {
     /// Wait on radio device busy
     fn wait_busy(&mut self) -> Result<(), Sx128xError<CommsError, PinError>>;
+    
     /// Write the specified command and data
     fn cmd_write(&mut self, command: u8, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
     /// Read the specified command and data
@@ -44,7 +45,7 @@ where
     }
 }
 
-impl<T, CommsError, PinError> Comms<CommsError, PinError> for T
+impl<T, CommsError, PinError> Hal<CommsError, PinError> for T
 where
     T: Transactional<Error=WrapError<CommsError, PinError>>,
 {    

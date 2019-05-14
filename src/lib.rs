@@ -16,7 +16,6 @@ use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
 use hal::spi::{Mode, Phase, Polarity};
 
-
 extern crate embedded_spi;
 use embedded_spi::{Error as WrapError};
 
@@ -39,13 +38,14 @@ pub const MODE: Mode = Mode {
 
 /// Sx128x device object
 #[repr(C)]
-pub struct Sx128x<Comms, CommsError, OutputPin, InputPin, PinError, Delay> {
-    comms: Comms,
+pub struct Sx128x<Hal, CommsError, OutputPin, InputPin, PinError, Delay> {
+    hal: Hal,
 
-    sdn: OutputPin,
     busy: InputPin,
     delay: Delay,
 
+    sdn: OutputPin,
+    
     #[cfg(feature = "ffi")]
     c: Option<SX1280_s>,
     #[cfg(feature = "ffi")]
@@ -84,16 +84,16 @@ impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Sx128xErro
 }
 
 
-impl<Comms, CommsError, Output, Input, PinError, Delay> Sx128x<Comms, CommsError, Output, Input, PinError, Delay>
+impl<Hal, CommsError, Output, Input, PinError, Delay> Sx128x<Hal, CommsError, Output, Input, PinError, Delay>
 where
-    Comms: base::Comms<CommsError, PinError>,
+    Hal: base::Hal<CommsError, PinError>,
     Output: OutputPin<Error = PinError>,
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
 {
-    pub fn new(comms: Comms, sdn: Output, busy: Input, delay: Delay, settings: Settings) -> Result<Self, Sx128xError<CommsError, PinError>> {
+    pub fn new(hal: Hal, sdn: Output, busy: Input, delay: Delay, settings: Settings) -> Result<Self, Sx128xError<CommsError, PinError>> {
 
-        let mut sx128x = Self::build(comms, sdn, busy, delay, settings);
+        let mut sx128x = Self::build(hal, sdn, busy, delay, settings);
 
         // Reset IC
         sx128x.reset()?;
@@ -111,9 +111,9 @@ where
         Ok(sx128x)
     }
 
-    pub(crate) fn build(comms: Comms, sdn: Output, busy: Input, delay: Delay, _settings: Settings) -> Self {
+    pub(crate) fn build(hal: Hal, sdn: Output, busy: Input, delay: Delay, _settings: Settings) -> Self {
         Sx128x { 
-            comms, sdn, busy, delay, 
+            hal, sdn, busy, delay, 
             #[cfg(feature = "ffi")]
             c: None, 
             #[cfg(feature = "ffi")]
@@ -123,14 +123,14 @@ where
 
     pub fn status(&mut self) -> Result<u8, Sx128xError<CommsError, PinError>> {
         let mut d = [0u8; 1];
-        self.comms.cmd_read(sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, &mut d)?;
+        self.hal.cmd_read(sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, &mut d)?;
         Ok(d[0])
     }
 
     pub fn firmware_version(&mut self) -> Result<u16, Sx128xError<CommsError, PinError>> {
         let mut d = [0u8; 2];
 
-        self.comms.reg_read(sx1280::REG_LR_FIRMWARE_VERSION_MSB as u16, &mut d)?;
+        self.hal.reg_read(sx1280::REG_LR_FIRMWARE_VERSION_MSB as u16, &mut d)?;
 
         Ok((d[0] as u16) << 8 | (d[1] as u16))
     }
@@ -140,7 +140,6 @@ where
 #[cfg(test)]
 mod tests {
     use crate::{Sx128x, Settings};
-    use crate::base::Comms;
 
     extern crate embedded_spi;
     use self::embedded_spi::mock::{Mock};

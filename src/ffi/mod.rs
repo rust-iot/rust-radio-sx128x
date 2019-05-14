@@ -2,7 +2,7 @@
 //! This is provided to enable full API access and piece-wise migration to a pure-rust driver
 
 use embedded_spi::{Transactional, PinState, Error as WrapError};
-use embedded_spi::compat::{Cursed, Conv};
+use embedded_spi::ffi::{Cursed, Conv};
 
 use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
@@ -67,7 +67,7 @@ where
     #[allow(dead_code)]
     extern fn get_busy(ctx: *mut libc::c_void) -> i32 {
         let sx128x = Self::from_c_ptr(ctx);
-        let r = sx128x.comms.spi_busy();
+        let r = sx128x.hal.spi_busy();
         match r {
             Ok(PinState::High) => 1,
             Ok(PinState::Low) => 0,
@@ -88,7 +88,7 @@ where
         let data: &[u8] = unsafe { core::slice::from_raw_parts(data, data_len as usize) };
 
         // Execute command and handle errors
-        match s.comms.spi_write(&prefix, &data) {
+        match s.hal.spi_write(&prefix, &data) {
             Ok(_) => 0,
             Err(e) => {
                 s.err = Some(e.into());
@@ -107,7 +107,7 @@ where
         let mut data: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(data, data_len as usize) };
 
         // Execute command and handle errors
-        match s.comms.spi_read(&prefix, &mut data) {
+        match s.hal.spi_read(&prefix, &mut data) {
             Ok(_) => 0,
             Err(e) => {
                 s.err = Some(e.into());
@@ -157,7 +157,7 @@ mod tests {
     use crate::{Sx128x, Settings};
 
     use embedded_spi::PinState;
-    use embedded_spi::compat::{Conv};
+    use embedded_spi::ffi::{Conv};
     use embedded_spi::mock::{Mock, MockTransaction as Mt};
 
     extern crate color_backtrace;

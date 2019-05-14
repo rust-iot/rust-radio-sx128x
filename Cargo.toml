@@ -10,7 +10,7 @@ default = [ "ffi" ]
 
 [dependencies]
 embedded-hal = { version = "0.2.3-rc.1", features = ["unproven"] }
-embedded-spi = "0.3.0"
+embedded-spi = "0.4.0"
 #radio = { path = "../rust-radio" }
 
 futures = "0.1.22"
