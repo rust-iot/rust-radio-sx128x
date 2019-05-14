@@ -1,3 +1,4 @@
+//! Basic HAL functions for communicating with the radio device
 
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
@@ -14,7 +15,7 @@ where
     Delay: delay::DelayMs<u32>,
 {
 
-    /// Reset the radio device
+    /// Reset the radio
     pub fn reset(&mut self) -> Result<(), Sx128xError<SpiError, PinError>> {
         self.sdn.set_low().map_err(|e| Sx128xError::Pin(e) )?;
         self.delay.delay_ms(1);
@@ -86,19 +87,21 @@ where
         }
     }
     
+    /// Write the specified command and data
     pub fn cmd_write(&mut self, command: u8, data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 1] = [command as u8];
         self.write(&out_buf, data)
     }
 
+    /// Read the specified command and data
     pub fn cmd_read<'a>(&mut self, command: u8, data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 2] = [command as u8, 0x00];
         self.read(&out_buf, data)
     }
 
-
+    /// Write to the specified register
     pub fn reg_write(&mut self, reg: u16, data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 3] = [
@@ -109,6 +112,7 @@ where
         self.write(&out_buf, data)
     }
 
+    /// Read from the specified register
     pub fn reg_read<'a>(&mut self, reg: u16, data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 4] = [
@@ -120,6 +124,7 @@ where
         self.read(&out_buf, data)
     }
 
+    /// Write to the specified buffer
     pub fn buff_write(&mut self, offset: u8, data: &[u8]) -> Result<(), Sx128xError<SpiError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 2] = [
@@ -129,6 +134,7 @@ where
         self.write(&out_buf, data)
     }
 
+    /// Read from the specified buffer
     pub fn buff_read<'a>(&mut self, offset: u8, data: &'a mut [u8]) -> Result<&'a [u8], Sx128xError<SpiError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 3] = [

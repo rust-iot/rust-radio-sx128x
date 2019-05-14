@@ -20,10 +20,14 @@ use hal::spi::{Mode, Phase, Polarity};
 
 
 pub mod bindings;
-use bindings::{self as sx1280, SX1280_s};
+use bindings::{self as sx1280};
+
+#[cfg(feature = "ffi")]
+use bindings::SX1280_s;
 
 pub mod base;
 
+#[cfg(feature = "ffi")]
 pub mod compat;
 
 /// Sx128x Spi operating mode
@@ -42,7 +46,9 @@ pub struct Sx128x<Spi, SpiError, Output, Input, PinError, Delay> {
     busy: Input,
     delay: Delay,
 
+    #[cfg(feature = "ffi")]
     c: Option<SX1280_s>,
+    #[cfg(feature = "ffi")]
     err: Option<Sx128xError<SpiError, PinError>>,
 }
 
@@ -69,9 +75,9 @@ where
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
 {
-    pub fn new(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, _settings: Settings) -> Result<Self, Sx128xError<SpiError, PinError>> {
+    pub fn new(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, settings: Settings) -> Result<Self, Sx128xError<SpiError, PinError>> {
 
-        let mut sx128x = Sx128x { spi, sdn, cs, busy, delay, c: None, err: None };
+        let mut sx128x = Self::build(spi, sdn, cs, busy, delay, settings);
 
         // Reset IC
         sx128x.reset()?;
@@ -89,6 +95,15 @@ where
         Ok(sx128x)
     }
 
+    pub(crate) fn build(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, _settings: Settings) -> Self {
+        Sx128x { spi, sdn, cs, busy, delay, 
+            #[cfg(feature = "ffi")]
+            c: None, 
+            #[cfg(feature = "ffi")]
+            err: None,
+        }
+    }
+
     pub fn status(&mut self) -> Result<u8, Sx128xError<SpiError, PinError>> {
         let mut d = [0u8; 1];
         self.wait_busy()?;
@@ -96,7 +111,6 @@ where
         self.wait_busy()?;
         Ok(d[0])
     }
-
 }
 
 

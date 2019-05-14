@@ -1,5 +1,6 @@
+//! Compat module implements FFI bindings to an underlying C driver instance
+//! This is provided to enable full API access and piece-wise migration to a pure-rust driver
 
-extern crate std;
 
 use embedded_spi::compat::{Cursed, Conv};
 
@@ -129,7 +130,7 @@ where
     Delay: delay::DelayMs<u32>,
 {
 
-    pub fn status2(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
+    pub fn ffi_status(&mut self) -> Result<sx1280::RadioStatus_t, Sx128xError<SpiError, PinError>> {
         // Update rust object pointer to c object context
         let mut ctx = self.c.unwrap();
 
@@ -143,7 +144,6 @@ where
 #[cfg(test)]
 mod tests {
     use crate::Sx128x;
-    use crate::bindings as sx1280;
 
     extern crate std;
 
@@ -197,13 +197,7 @@ mod tests {
         color_backtrace::install();
 
         let mut m = Mock::new();
-
-        let spi = m.spi();
-        let cs = m.pin();
-        let sdn = m.pin();
-        
-        let busy = m.pin();
-        let delay = m.delay();
+        let (spi, cs, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.pin(), m.delay());
 
         let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None, err: None };
 
@@ -215,7 +209,7 @@ mod tests {
 
         m.expect(vectors::status(&spi, &cs, &sdn, &busy, &delay));
 
-        radio.status2().unwrap();
+        radio.ffi_status().unwrap();
 
         m.finalise();
     }
