@@ -8,8 +8,10 @@ extern crate futures;
 extern crate nb;
 
 extern crate embedded_spi;
-use embedded_spi::compat::Cursed;
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
 
 extern crate embedded_hal as hal;
 use hal::blocking::{spi, delay};
@@ -43,9 +45,6 @@ pub struct Sx128x<Spi, SpiError, Output, Input, PinError, Delay> {
     c: Option<SX1280_s>,
     err: Option<Sx128xError<SpiError, PinError>>,
 }
-
-// Mark Sx128x object as cursed to forever wander the lands of ffi
-impl <Spi, SpiError, Output, Input, PinError, Delay> Cursed for Sx128x <Spi, SpiError, Output, Input, PinError, Delay> {}
 
 pub struct Settings {
 
@@ -92,9 +91,9 @@ where
 
     pub fn status(&mut self) -> Result<u8, Sx128xError<SpiError, PinError>> {
         let mut d = [0u8; 1];
-        self.wait_busy();
+        self.wait_busy()?;
         self.cmd_read(sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, &mut d)?;
-        self.wait_busy();
+        self.wait_busy()?;
         Ok(d[0])
     }
 
@@ -104,12 +103,11 @@ where
 #[cfg(test)]
 mod tests {
     use super::Sx128x;
-    use bindings as sx1280;
-
-    extern crate std;
-    
+   
     extern crate embedded_spi;
-    use self::embedded_spi::mock::{Mock, MockTransaction as Mt};
+    use self::embedded_spi::mock::{Mock};
+
+    pub mod vectors;
 
     #[test]
     fn test_mod() {
@@ -130,12 +128,7 @@ mod tests {
 
         std::println!("Test reset command");
 
-        m.expect(&[
-            Mt::set_low(&sdn),
-            Mt::delay_ms(&delay, 1),
-            Mt::set_high(&sdn),
-            Mt::delay_ms(&delay, 10),
-        ]);
+        m.expect(vectors::reset(&spi, &cs, &sdn, &busy, &delay));
 
         radio.reset().unwrap();
 
@@ -143,15 +136,7 @@ mod tests {
 
         std::println!("Test status command");
 
-        m.expect(&[
-            Mt::is_high(&busy, false),
-            Mt::set_low(&cs),
-            Mt::write(&spi, &[sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, 0]),
-            Mt::transfer(&spi, &[0x00], &[0x00]),
-            Mt::set_high(&cs),
-            Mt::is_high(&busy, true),
-            Mt::is_high(&busy, false),
-        ]);
+        m.expect(vectors::status(&spi, &cs, &sdn, &busy, &delay));
 
         radio.status().unwrap();
 

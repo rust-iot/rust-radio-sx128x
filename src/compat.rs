@@ -1,13 +1,17 @@
 
 extern crate std;
 
-use embedded_spi::compat::{Conv};
+use embedded_spi::compat::{Cursed, Conv};
 
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
 
 use crate::{Sx128x, Sx128xError};
 use crate::bindings::{self as sx1280, SX1280_s};
+
+// Mark Sx128x object as cursed to forever wander the lands of ffi
+impl <Spi, SpiError, Output, Input, PinError, Delay> Cursed for Sx128x <Spi, SpiError, Output, Input, PinError, Delay> {}
+
 
 impl<Spi, SpiError, Output, Input, PinError, Delay> Sx128x<Spi, SpiError, Output, Input, PinError, Delay>
 where
@@ -20,11 +24,7 @@ where
 {
     /// Create and bind an internal C object to support the bound C api
     pub fn bind(s: &mut Self) {
-        std::println!("Binding Object: {:p}", s);
-
         let ctx = Self::to_c_ptr(s);
-
-        std::println!("Binding: {:?}", ctx);
 
         // Create base C object
         let c = SX1280_s {
@@ -155,6 +155,8 @@ mod tests {
 
     type Radio = Sx128x<embedded_spi::mock::Spi, embedded_spi::mock::Error<(), ()>, embedded_spi::mock::Pin, embedded_spi::mock::Pin, (), embedded_spi::mock::Delay>;
 
+    use crate::tests::vectors;
+
     #[test]
     fn test_compat() {
         color_backtrace::install();
@@ -211,15 +213,7 @@ mod tests {
 
         std::println!("Test status command");
 
-        m.expect(&[
-            Mt::is_high(&busy, false),
-            Mt::set_low(&cs),
-            Mt::write(&spi, &[sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, 0]),
-            Mt::transfer(&spi, &[0x00], &[0x00]),
-            Mt::set_high(&cs),
-            Mt::is_high(&busy, true),
-            Mt::is_high(&busy, false),
-        ]);
+        m.expect(vectors::status(&spi, &cs, &sdn, &busy, &delay));
 
         radio.status2().unwrap();
 

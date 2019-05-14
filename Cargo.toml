@@ -4,6 +4,9 @@ description = "Driver for the Semtec sx1280 2.4GHz RF IC"
 version = "0.1.0"
 authors = ["Ryan Kurte <ryankurte@gmail.com>"]
 
+[features]
+default = []
+
 [dependencies]
 embedded-hal = { version = "0.2.3-rc.1", features = ["unproven"] }
 embedded-spi = "0.3.0"
