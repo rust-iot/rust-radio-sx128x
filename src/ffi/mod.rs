@@ -158,7 +158,7 @@ mod tests {
 
     use embedded_spi::PinState;
     use embedded_spi::ffi::{Conv};
-    use embedded_spi::mock::{Mock, MockTransaction as Mt};
+    use embedded_spi::mock::{Mock, MockTransaction as Mt, Spi, Pin};
 
     extern crate color_backtrace;
 
@@ -171,9 +171,9 @@ mod tests {
         color_backtrace::install();
 
         let mut m = Mock::new();
-        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
 
-        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
+        let mut radio = Sx128x::<Spi, _, Pin, Pin, _, _>::build(spi.clone(), sdn.clone(), delay.clone(), Settings::default());
 
         Radio::bind(&mut radio);
         let ptr = Radio::to_c_ptr(&mut radio);
@@ -198,9 +198,9 @@ mod tests {
         color_backtrace::install();
 
         let mut m = Mock::new();
-        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
 
-        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
+        let mut radio = Sx128x::<Spi, _, Pin, Pin, _, _>::build(spi.clone(), sdn.clone(), delay.clone(), Settings::default());
 
         Sx128x::bind(&mut radio);
 
@@ -215,9 +215,9 @@ mod tests {
         color_backtrace::install();
 
         let mut m = Mock::new();
-        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
 
-        let mut radio = Sx128x::build(spi.clone(), sdn.clone(), busy.clone(), delay.clone(), Settings::default());
+        let mut radio = Sx128x::<Spi, _, Pin, Pin, _, _>::build(spi.clone(), sdn.clone(), delay.clone(), Settings::default());
 
         Sx128x::bind(&mut radio);
 
