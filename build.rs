@@ -33,8 +33,15 @@ fn main() {
 
     // Clone library
     let repo_url = "https://github.com/ryankurte/libsx128x";
-    let mut repo_path = PathBuf::new();
-    repo_path.push("libsx128x");
+
+    let repo_path = match env::var("LIBSX128x_DIR") {
+        Ok(d) => PathBuf::from(d),
+        Err(_) => {
+            let mut repo_path = PathBuf::new();
+            repo_path.push("libsx128x");
+            repo_path
+        }
+    };
 
     let _repo = match repo_path.exists() {
         false => {
@@ -98,12 +105,13 @@ fn main() {
     println!("Building library");
     cc::Build::new()
         .file("libsx128x/lib/sx1280.c")
-        //.file("src/sx1280/sx1280-hal.c")
+        .file("libsx128x/lib/sx1280-hal.c")
         .include("libsx128x/lib")
+        .debug(true)
         .flag("-Wno-unused-parameter")
         .flag("-Wno-int-conversion")
         .flag("-Wno-implicit-function-declaration")
-        .compile(out_path.join("sx1280").to_str().unwrap());
+        .compile("sx1280");
 
     // Link the library
     println!("cargo:rustc-link-lib=sx1280");

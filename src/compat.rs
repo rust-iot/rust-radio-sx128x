@@ -3,18 +3,22 @@ extern crate std;
 
 use core::{mem, ptr, slice};
 
+use embedded_spi::compat::{Cursed, Conv};
+
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
 
 use crate::{Sx128x, Sx128xError, Settings};
-use crate::sx1280::{self, SX1280_s};
+use crate::bindings::{self as sx1280, SX1280_s};
 
-impl<SpiError, Spi, PinError, Output, Input, Delay> Sx128x<Spi, Output, Input, Delay>
+impl<Spi, SpiError, Output, Input, PinError, Delay> Sx128x<Spi, SpiError, Output, Input, PinError, Delay>
 where
     Spi: spi::Transfer<u8, Error = SpiError> + spi::Write<u8, Error = SpiError>,
     Output: OutputPin<Error = PinError>,
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
+    SpiError: core::fmt::Debug,
+    PinError: core::fmt::Debug,
 {
     /// Build a rust object containing a c object containing a pointer to the rust object
     pub(crate) fn bind(&mut self) {
@@ -25,16 +29,14 @@ where
         // Create base C object
         let c = SX1280_s {
             ctx,
-            reset: Some(Self::ext_reset),
+
+            set_reset: Some(Self::set_reset),
+            get_busy: Some(Self::get_busy),
             
-            write_command: Some(Self::write_command),
-            read_command: Some(Self::read_command),
-            write_registers: Some(Self::write_registers),
-            read_registers: Some(Self::read_registers),
-            write_register: Some(Self::write_register),
-            read_register: Some(Self::read_register),
-            write_buffer: Some(Self::write_buffer),
-            read_buffer: Some(Self::read_buffer),
+            spi_write: Some(Self::spi_write),
+            spi_read: Some(Self::spi_read),
+
+            get_dio: [None; 4],
 
             delay_ms: Some(Self::delay_ms),
         };
@@ -52,11 +54,11 @@ where
 
     pub(crate) fn from_c<'a>(ctx: *mut libc::c_void) -> &'a mut Self {
         unsafe {
-            std::println!("Retrieving: {:?}", ctx);
+            //std::println!("Retrieving: {:?}", ctx);
             //assert!(ctx == ptr::null());
             let sx1280 = ctx as *mut SX1280_s;
             let sx128x_ptr = (*sx1280).ctx as *mut libc::c_void;
-            let sx128x = sx128x_ptr as *mut Sx128x<Spi, Output, Input, Delay>;
+            let sx128x = sx128x_ptr as *mut Self;
             &mut *sx128x
         }
     }
@@ -68,58 +70,68 @@ where
         Self::from_c(ctx)
     }
 
-    extern fn ext_reset(ctx: *mut libc::c_void) {
+    extern fn set_reset(ctx: *mut libc::c_void, value: bool) -> i32 {
         let sx128x = Self::from_c(ctx);
-        let _ = sx128x.reset();
+        let r = match value {
+            true => sx128x.sdn.set_high(),
+            false => sx128x.sdn.set_low(),
+        };
+        match r {
+            Ok(_) => 0,
+            Err(e) => {
+                sx128x.err = Some(Sx128xError::Pin(e));
+                -1
+            }
+        }
     }
 
-    extern fn write_buffer(ctx: *mut libc::c_void, offset: u8, buffer: *mut u8, size: u8) {
+    extern fn get_busy(ctx: *mut libc::c_void) -> i32 {
         let sx128x = Self::from_c(ctx);
-        let data: &[u8] = unsafe {slice::from_raw_parts_mut(buffer, size as usize) };
-        let _ = sx128x.buff_write(offset, data);
+        let r = sx128x.busy.is_high();
+        match r {
+            Ok(true) => 1,
+            Ok(false) => 0,
+            Err(e) => {
+                sx128x.err = Some(Sx128xError::Pin(e));
+                -1
+            }
+        }
+    }
+
+    extern fn spi_write(ctx: *mut libc::c_void, prefix: *mut u8, prefix_len: u16, data: *mut u8, data_len: u16) -> i32 {
+        // Coerce back into rust
+        let s = Self::from_c_ptr(ctx);
+
+        // Parse buffers
+        let prefix: &[u8] = unsafe { core::slice::from_raw_parts(prefix, prefix_len as usize) };
+        let data: &[u8] = unsafe { core::slice::from_raw_parts(data, data_len as usize) };
+
+        // Execute command and handle errors
+        match s.write(&prefix, &data) {
+            Ok(_) => 0,
+            Err(e) => {
+                s.err = Some(e);
+                -1
+            },
+        }
     }
     
-    extern fn read_buffer(ctx: *mut libc::c_void, offset: u8, buffer: *mut u8, size: u8) {
-        let sx128x = Self::from_c(ctx);
-        let data: &mut [u8] = unsafe { slice::from_raw_parts_mut(buffer, size as usize) };
-        let _ = sx128x.buff_read(offset, data);
-    }
+    extern fn spi_read(ctx: *mut libc::c_void, prefix: *mut u8, prefix_len: u16, data: *mut u8, data_len: u16) -> i32 {
+         // Coerce back into rust
+        let s = Self::from_c_ptr(ctx);
 
-    extern fn write_command(ctx: *mut libc::c_void, command: u8, buffer: *mut u8, size: u8) {
-        let sx128x = Self::from_c(ctx);
-        let data: &[u8] = unsafe { slice::from_raw_parts(buffer, size as usize) };
-        let _ = sx128x.cmd_write(command, data);
-    }
-    
-    extern fn read_command(ctx: *mut libc::c_void, command: u8, buffer: *mut u8, size: u8) {
-        let sx128x = Self::from_c(ctx);
-        let data: &mut [u8] = unsafe{ slice::from_raw_parts_mut(buffer, size as usize) };
-        let _ = sx128x.cmd_read(command, data);
-    }
+        // Parse buffers
+        let prefix: &[u8] = unsafe { core::slice::from_raw_parts(prefix, prefix_len as usize) };
+        let mut data: &mut [u8] = unsafe { core::slice::from_raw_parts_mut(data, data_len as usize) };
 
-    extern fn write_registers(ctx: *mut libc::c_void, address: u16, buffer: *mut u8, size: u8) {
-        let sx128x = Self::from_c(ctx);
-        let data: &[u8] = unsafe{ slice::from_raw_parts(buffer, size as usize) };
-        let _ = sx128x.reg_write(address, data);
-    }
-    
-    extern fn read_registers(ctx: *mut libc::c_void, address: u16, buffer: *mut u8, size: u8) {
-        let sx128x = Self::from_c(ctx);
-        let data: &mut [u8] = unsafe{ slice::from_raw_parts_mut(buffer, size as usize) };
-        let _ = sx128x.reg_read(address, data);
-    }
-
-    extern fn write_register(ctx: *mut libc::c_void, address: u16, value: u8) {
-        let sx128x = Self::from_c(ctx);
-        let data: [u8; 1] = [value];
-        let _ = sx128x.reg_write(address, &data);
-    }
-
-    extern fn read_register(ctx: *mut libc::c_void, address: u16) -> u8 {
-        let sx128x = Self::from_c(ctx);
-        let mut data: [u8; 1] = [0];
-        let _ = sx128x.reg_read(address, &mut data);
-        data[0]
+        // Execute command and handle errors
+        match s.read(&prefix, &mut data) {
+            Ok(_) => 0,
+            Err(e) => {
+                s.err = Some(e);
+                -1
+            },
+        }
     }
 
     extern fn delay_ms(ctx: *mut libc::c_void, ms: u32) {
@@ -129,7 +141,7 @@ where
 
 }
 
-impl<SpiError, Spi, PinError, Output, Input, Delay> Sx128x<Spi, Output, Input, Delay>
+impl<Spi, SpiError, Output, Input, PinError, Delay> Sx128x<Spi, SpiError, Output, Input, PinError, Delay>
 where
     Spi: spi::Transfer<u8, Error = SpiError> + spi::Write<u8, Error = SpiError>,
     Output: OutputPin<Error = PinError>,
@@ -151,12 +163,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::Sx128x;
 
     extern crate std;
 
-    extern crate embedded_hal_mock;
-    use self::embedded_hal_mock::engine::*;
+    extern crate embedded_spi;
+    use self::embedded_spi::mock::Mock;
 
     extern crate color_backtrace;
 
@@ -164,15 +176,16 @@ mod tests {
     fn ffi_casts() {
         color_backtrace::install();
 
-        let mut engine = Engine::new();
+        let mut m = Mock::new();
 
-        let mut spi = engine.spi();
-        let mut sdn = engine.pin();
-        let mut cs = engine.pin();
-        let mut busy = engine.pin();
-        let mut delay = engine.delay();
+        let mut spi = m.spi();
+        let mut cs = m.pin();
+        let mut sdn = m.pin();
+        
+        let mut busy = m.pin();
+        let mut delay = m.delay();
 
-        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None};
+        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None, err: None };
 
         std::println!("new {:p}", &radio);
 

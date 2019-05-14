@@ -3,17 +3,22 @@
 
 #![no_std]
 extern crate libc;
-extern crate embedded_hal as hal;
+
 extern crate futures;
 extern crate nb;
 
+extern crate embedded_spi;
+use embedded_spi::compat::Cursed;
+use embedded_spi::{Transactional, wrapper::Wrapper as SpiWrapper};
+
+extern crate embedded_hal as hal;
 use hal::blocking::{spi, delay};
 use hal::digital::v2::{InputPin, OutputPin};
 use hal::spi::{Mode, Phase, Polarity};
 
 
 pub mod bindings;
-use bindings::{SX1280_s};
+use bindings::{self as sx1280, SX1280_s};
 
 pub mod compat;
 
@@ -25,14 +30,19 @@ pub const MODE: Mode = Mode {
 
 /// Sx128x device object
 #[repr(C)]
-pub struct Sx128x<Spi, Output, Input, Delay> {
+pub struct Sx128x<Spi, SpiError, Output, Input, PinError, Delay> {
     spi: Spi,
-    sdn: Output,
     cs: Output,
+
+    sdn: Output,
     busy: Input,
     delay: Delay,
+
     c: Option<SX1280_s>,
+    err: Option<Sx128xError<SpiError, PinError>>,
 }
+
+impl <Spi, SpiError, Output, Input, PinError, Delay> Cursed for Sx128x <Spi, SpiError, Output, Input, PinError, Delay> {}
 
 pub struct Settings {
 
@@ -50,7 +60,7 @@ pub enum Sx128xError<SpiError, PinError> {
     Pin(PinError),
 }
 
-impl<SpiError, Spi, PinError, Output, Input, Delay> Sx128x<Spi, Output, Input, Delay>
+impl<Spi, SpiError, Output, Input, PinError, Delay> Sx128x<Spi, SpiError, Output, Input, PinError, Delay>
 where
     Spi: spi::Transfer<u8, Error = SpiError> + spi::Write<u8, Error = SpiError>,
     Output: OutputPin<Error = PinError>,
@@ -59,7 +69,7 @@ where
 {
     pub fn new(spi: Spi, sdn: Output, cs: Output, busy: Input, delay: Delay, _settings: Settings) -> Result<Self, Sx128xError<SpiError, PinError>> {
 
-        let mut sx128x = Sx128x { spi, sdn, cs, busy, delay, c: None };
+        let mut sx128x = Sx128x { spi, sdn, cs, busy, delay, c: None, err: None };
 
         // Reset IC
         sx128x.reset()?;
@@ -225,7 +235,7 @@ mod tests {
 
         //let s: Box<Test<_, _>> = Box::new(spi.clone());
 
-        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None};
+        let mut radio = Sx128x{spi: spi.clone(), sdn: sdn.clone(), cs: cs.clone(), busy: busy.clone(), delay: delay.clone(), c: None, err: None};
 
         radio.bind();
 

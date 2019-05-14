@@ -6,7 +6,7 @@ authors = ["Ryan Kurte <ryankurte@gmail.com>"]
 
 [dependencies]
 embedded-hal = { version = "0.2.3-rc.1", features = ["unproven"] }
-embedded-spi = "0.2.0"
+embedded-spi = "0.3.0"
 #radio = { path = "../rust-radio" }
 
 futures = "0.1.22"
@@ -25,3 +25,4 @@ color-backtrace = "0.1.3"
 [patch.crates-io]
 #embedded-hal =  { path = "../embedded-hal" }
 #embedded-hal-mock = { path = "../embedded-hal-mock" }
+embedded-spi = { path = "../rust-embedded-spi" }
