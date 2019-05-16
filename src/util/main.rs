@@ -28,18 +28,26 @@ pub struct Options {
     spi: String,
 
     /// Chip Select (output) pin
-    #[structopt(long = "cs-pin", default_value = "4", env = "SX128X_CS")]
+    #[structopt(long = "cs-pin", default_value = "16", env = "SX128X_CS")]
     cs: u64,
 
     /// Reset (output) pin
-    #[structopt(long = "rst-pin", default_value = "18", env = "SX128X_RST")]
+    #[structopt(long = "rst-pin", default_value = "17", env = "SX128X_RST")]
     rst: u64,
 
-    /// Busy (input) pin
-    #[structopt(long = "busy-pin", default_value = "17", env = "SX128X_BUSY")]
-    busy: u64,
+    /// Antenna control pin
+    #[structopt(long = "ant-pin", default_value = "23", env = "SX128X_ANT")]
+    ant: u64,
 
     /// Busy (input) pin
+    #[structopt(long = "busy-pin", default_value = "5", env = "SX128X_BUSY")]
+    busy: u64,
+
+    /// DIO1 pin
+    #[structopt(long = "dio1-pin", default_value = "20", env = "SX128X_DIO1")]
+    dio1: u64,
+
+    /// Baud rate setting
     #[structopt(long = "baud", default_value = "1000000", env = "SX128X_BAUD")]
     baud: u32,
 
@@ -89,7 +97,7 @@ fn main() {
     match opts.command {
         Command::FirmwareVersion => {
             let version = radio.firmware_version().expect("error fetching firmware version");
-            info!("Firmware version: {}", version);
+            info!("Firmware version: 0x{:X}", version);
         }
         //_ => warn!("unsuppored command: {:?}", opts.command),
     }
