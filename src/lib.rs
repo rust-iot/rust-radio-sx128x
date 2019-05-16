@@ -7,7 +7,6 @@ use ::core::marker::PhantomData;
 
 extern crate libc;
 
-#[macro_use]
 extern crate log;
 
 #[cfg(test)]

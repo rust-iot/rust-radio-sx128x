@@ -71,12 +71,16 @@ fn main() {
     // Setup logging
     TermLogger::init(opts.level, simplelog::Config::default()).unwrap();
 
+    debug!("Connecting to SPI device");
+
     // Connect to hardware
     let mut spi = Spidev::open(opts.spi).expect("error opening spi device");
     let mut config = spidev::SpidevOptions::new();
     config.mode(spidev::SPI_MODE_0);
     config.max_speed_hz(opts.baud);
     spi.configure(&config).expect("error configuring spi device");
+
+    debug!("Configuring I/O pins");
 
     let cs = PinDev::new(opts.cs);
     cs.export().expect("error exporting cs pin");
@@ -86,12 +90,26 @@ fn main() {
     rst.export().expect("error exporting rst pin");
     rst.set_direction(Direction::Out).expect("error setting rst pin direction");
 
+    let ant = PinDev::new(opts.ant);
+    ant.export().expect("error exporting rst ant");
+    ant.set_direction(Direction::Out).expect("error setting ant pin direction");
+
+    // TODO: set ant output
+
     let busy = PinDev::new(opts.busy);
     busy.export().expect("error exporting busy pin");
     busy.set_direction(Direction::Out).expect("error setting busy pin direction");
 
+    let dio1 = PinDev::new(opts.dio1);
+    dio1.export().expect("error exporting dio1 pin");
+    dio1.set_direction(Direction::Out).expect("error setting dio1 pin direction");
+
+    debug!("Creating radio instance");
+
     let settings = Settings::default();
     let mut radio = Sx128x::spi(spi, cs, busy, rst, Delay{}, settings).expect("error creating device");
+
+    debug!("Executing command");
 
     // TODO: the rest
     match opts.command {

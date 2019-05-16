@@ -26,34 +26,35 @@ impl bindgen::callbacks::ParseCallbacks for IgnoreMacros {
     }
 }
 
+const REPO_VAR: &str = "LIBSX128X_DIR";
+const REPO_URL: &str = "https://github.com/ryankurte/libsx128x";
+const REPO_NAME: &str = "libsx128x-src";
+
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    let _src_path = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
 
-    // Clone library
-    let repo_url = "https://github.com/ryankurte/libsx128x";
-
-    let repo_path = match env::var("LIBSX128x_DIR") {
+    // Select path from 
+    let repo_path = match env::var(REPO_VAR) {
         Ok(d) => PathBuf::from(d),
         Err(_) => {
             let mut repo_path = out_path.clone();
-            repo_path.push("libsx128x-src");
+            repo_path.push(REPO_NAME);
             repo_path
         }
     };
 
-    println!("Using libsx128x from: {} (source: {})", &repo_path.to_str().unwrap(), repo_url);
+    println!("Using libsx128x from: {} (source: {})", &repo_path.to_str().unwrap(), REPO_URL);
 
     let _repo = match repo_path.exists() {
         false => {
-            println!("Cloning: '{}' into: '{:?}'", repo_url, &repo_path);
-            match Repository::clone(repo_url, &repo_path) {
+            println!("Cloning into: '{:?}'", &repo_path);
+            match Repository::clone(REPO_URL, &repo_path) {
                 Ok(repo) => repo,
                 Err(e) => panic!("failed to clone: {}", e),
             }
         },
         true => {
-            println!("Connecting to repo: '{:?}'", &repo_path);
+            println!("Connecting to existing repo: '{:?}'", &repo_path);
             match Repository::open(&repo_path) {
                 Ok(repo) => repo,
                 Err(e) => panic!("failed to clone: {}", e),
