@@ -17,6 +17,7 @@ matrix:
 install:
 - cargo fetch
 - rustup target add armv7-unknown-linux-gnueabihf
+- rustup component add rustfmt
 
 script: 
   - cargo build; cargo test
