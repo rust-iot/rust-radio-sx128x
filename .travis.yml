@@ -10,6 +10,8 @@ matrix:
     addons:
       apt:
         packages:
+          - libc6-i386
+          - libc6-dev-i386
           - gcc-arm-linux-gnueabihf
           - libc6-armhf-cross
           - libc6-dev-armhf-cross
