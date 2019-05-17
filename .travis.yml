@@ -20,7 +20,7 @@ install:
 - rustup component add rustfmt
 
 script: 
-  - cargo build && cargo test && "cargo build --target=$TARGET --release"
+  - cargo build && cargo test && cargo build --target=$TARGET --release
 
 before_deploy: 
   - "tar -cvf target/sx128-$TARGET-$TRAVIS_TAG.tgz -C target/$TARGET/release/ sx128x-util || return 0" 
