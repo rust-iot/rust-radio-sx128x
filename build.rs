@@ -107,6 +107,7 @@ fn main() {
         .file(format!("{}/lib/sx1280-hal.c", &repo_path.to_str().unwrap()))
         .include(format!("{}/lib", &repo_path.to_str().unwrap()))
         .debug(true)
+        .flag("-std=c11")
         .flag("-Wno-unused-parameter")
         .flag("-Wno-int-conversion")
         .flag("-Wno-implicit-function-declaration")
