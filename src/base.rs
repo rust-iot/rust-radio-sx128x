@@ -1,64 +1,101 @@
 //! Basic HAL functions for communicating with the radio device
 
-use hal::blocking::{delay};
+use hal::blocking::delay::DelayMs;
 use hal::digital::v2::{InputPin, OutputPin};
 
-use embedded_spi::{Transactional, PinState};
+use embedded_spi::{Transactional, Reset, Busy, PinState};
 use embedded_spi::{Error as WrapError};
 
-use crate::{Sx128x, Sx128xError};
+use crate::{Sx128x, Error};
 use crate::bindings::{self as sx1280};
 
 /// Comms implementation can be generic over SPI or UART connections
 pub trait Hal<CommsError, PinError> {
-    /// Wait on radio device busy
-    fn wait_busy(&mut self) -> Result<(), Sx128xError<CommsError, PinError>>;
-    
-    /// Write the specified command and data
-    fn cmd_write(&mut self, command: u8, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
-    /// Read the specified command and data
-    fn cmd_read(&mut self, command: u8, data: &mut [u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
-    /// Write to the specified register
-    fn reg_write(&mut self, reg: u16, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
-    /// Read from the specified register
-    fn reg_read(&mut self, reg: u16, data: &mut [u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
-    /// Write to the specified buffer
-    fn buff_write(&mut self, offset: u8, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
-    /// Read from the specified buffer
-    fn buff_read(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Sx128xError<CommsError, PinError>>;
-}
 
-impl<Comms, CommsError, Output, Input, PinError, Delay> Sx128x<Comms, CommsError, Output, Input, PinError, Delay>
-where
-    Output: OutputPin<Error = PinError>,
-    Input: InputPin<Error = PinError>,
-    Delay: delay::DelayMs<u32>,
-{ 
-    /// Reset the radio
-    pub fn reset(&mut self) -> Result<(), Sx128xError<CommsError, PinError>> {
-        self.sdn.set_low().map_err(|e| Sx128xError::Pin(e) )?;
-        self.delay.delay_ms(1);
-        self.sdn.set_high().map_err(|e| Sx128xError::Pin(e) )?;
-        self.delay.delay_ms(10);
+    /// Reset the device
+    fn reset(&mut self) -> Result<(), Error<CommsError, PinError>>;
+
+    /// Wait on radio device busy
+    fn get_busy(&mut self) -> Result<PinState, Error<CommsError, PinError>>;
+
+    /// Delay for the specified time
+    fn delay_ms(&mut self, ms: u32);
+
+    /// Write the specified command and data
+    fn write_cmd(&mut self, command: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError>>;
+    /// Read the specified command and data
+    fn read_cmd(&mut self, command: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>>;
+    
+    /// Write to the specified register
+    fn write_regs(&mut self, reg: u16, data: &[u8]) -> Result<(), Error<CommsError, PinError>>;
+    /// Read from the specified register
+    fn read_regs(&mut self, reg: u16, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>>;
+    
+    /// Write to the specified buffer
+    fn write_buff(&mut self, offset: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError>>;
+    /// Read from the specified buffer
+    fn read_buff(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>>;
+
+    /// Wait on radio device busy
+    fn wait_busy(&mut self) -> Result<(), Error<CommsError, PinError>> {
+        // TODO: timeouts here
+        while self.get_busy()? == PinState::High {}
 
         Ok(())
+    }
+
+    /// Read a single u8 value from the specified register
+    fn read_reg(&mut self, reg: u8) -> Result<u8, Error<CommsError, PinError>> {
+        let mut incoming = [0u8; 1];
+        self.read_regs(reg.into(), &mut incoming)?;
+        Ok(incoming[0])
+    }
+
+    /// Write a single u8 value to the specified register
+    fn write_reg(&mut self, reg: u8, value: u8) -> Result<(), Error<CommsError, PinError>> {
+        self.write_regs(reg.into(), &[value])?;
+        Ok(())
+    }
+
+    /// Update the specified register with the provided value & mask
+    fn update_reg(&mut self, reg: u8, mask: u8, value: u8) -> Result<u8, Error<CommsError, PinError>> {
+        let existing = self.read_reg(reg)?;
+        let updated = (existing & !mask) | (value & mask);
+        self.write_reg(reg, updated)?;
+        Ok(updated)
     }
 }
 
 impl<T, CommsError, PinError> Hal<CommsError, PinError> for T
 where
     T: Transactional<Error=WrapError<CommsError, PinError>>,
+    T: Reset<Error=WrapError<CommsError, PinError>>,
+    T: Busy<Error=WrapError<CommsError, PinError>>,
+    T: DelayMs<u32>,
 {    
-    /// Wait on radio device busy
-    fn wait_busy(&mut self) -> Result<(), Sx128xError<CommsError, PinError>> {
-        // TODO: timeouts here
-        while self.spi_busy()? == PinState::High {}
+    /// Reset the radio
+    fn reset(&mut self) -> Result<(), Error<CommsError, PinError>> {
+        self.set_reset(PinState::Low).map_err(|e| Error::from(e) )?;
+        self.delay_ms(1);
+        self.set_reset(PinState::High).map_err(|e| Error::from(e) )?;
+        self.delay_ms(10);
 
         Ok(())
     }
 
+    fn get_busy(&mut self) -> Result<PinState, Error<CommsError, PinError>> {
+        let busy = self.get_busy()?;
+        Ok(busy)
+    }
+
+
+    /// Delay for the specified time
+    fn delay_ms(&mut self, ms: u32) {
+        self.delay_ms(ms);
+    }
+
     /// Write the specified command and data
-    fn cmd_write(&mut self, command: u8, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>> {
+    fn write_cmd(&mut self, command: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 1] = [command as u8];
         self.wait_busy()?;
@@ -68,7 +105,7 @@ where
     }
 
     /// Read the specified command and data
-    fn cmd_read<'a>(&mut self, command: u8, data: &mut [u8]) -> Result<(), Sx128xError<CommsError, PinError>> {
+    fn read_cmd<'a>(&mut self, command: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 2] = [command as u8, 0x00];
         self.wait_busy()?;
@@ -78,7 +115,7 @@ where
     }
 
     /// Write to the specified register
-    fn reg_write(&mut self, reg: u16, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>> {
+    fn write_regs(&mut self, reg: u16, data: &[u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 3] = [
             sx1280::RadioCommands_u_RADIO_WRITE_REGISTER as u8,
@@ -92,7 +129,7 @@ where
     }
 
     /// Read from the specified register
-    fn reg_read<'a>(&mut self, reg: u16, data: &mut [u8]) -> Result<(), Sx128xError<CommsError, PinError>> {
+    fn read_regs<'a>(&mut self, reg: u16, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 4] = [
             sx1280::RadioCommands_u_RADIO_READ_REGISTER as u8,
@@ -107,7 +144,7 @@ where
     }
 
     /// Write to the specified buffer
-    fn buff_write(&mut self, offset: u8, data: &[u8]) -> Result<(), Sx128xError<CommsError, PinError>> {
+    fn write_buff(&mut self, offset: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 2] = [
             sx1280::RadioCommands_u_RADIO_WRITE_BUFFER as u8,
@@ -120,7 +157,7 @@ where
     }
 
     /// Read from the specified buffer
-    fn buff_read<'a>(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Sx128xError<CommsError, PinError>> {
+    fn read_buff<'a>(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 3] = [
             sx1280::RadioCommands_u_RADIO_READ_BUFFER as u8,

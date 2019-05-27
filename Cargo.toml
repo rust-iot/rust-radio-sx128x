@@ -12,8 +12,8 @@ default = [ "ffi", "util" ]
 [dependencies]
 libc = "0.2.42"
 embedded-hal = { version = "0.2.3", features = ["unproven"] }
-embedded-spi = "0.5.0"
-#radio = { path = "../rust-radio" }
+embedded-spi = "0.5.5"
+radio = "0.2.0"
 
 structopt = { version = "0.2.15", optional = true }
 linux-embedded-hal = { version = "0.2.2", optional = true }
@@ -33,8 +33,3 @@ color-backtrace = "0.1.3"
 name = "sx128x-util"
 path = "src/util/main.rs"
 required-features = ["util"]
-
-[patch.crates-io]
-#embedded-hal =  { path = "../embedded-hal" }
-#embedded-hal-mock = { path = "../embedded-hal-mock" }
-#embedded-spi = { path = "../rust-embedded-spi" }
