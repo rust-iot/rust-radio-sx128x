@@ -1,10 +1,16 @@
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
 pub mod ble;
+use ble::BleConfig;
 pub mod flrc;
+use flrc::FlrcConfig;
 pub mod gfsk;
+use gfsk::GfskConfig;
 pub mod lora;
+use lora::LoRaConfig;
+
 pub mod common;
+
 
 
 /// Sx128x configuration object
@@ -21,6 +27,14 @@ impl Default for Config {
             ramp_time: RampTime::Ramp04Us,
         }
     }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum ModulationConfig {
+    Gfsk(GfskConfig),
+    LoRa(LoRaConfig),
+    Flrc(FlrcConfig),
+    Ble(BleConfig),
 }
 
 #[derive(Clone, PartialEq, Debug)]

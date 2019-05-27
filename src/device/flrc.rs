@@ -1,10 +1,24 @@
 
+use super::common::*;
+
 /// FLRC configuration structure
 #[derive(Clone, PartialEq, Debug)]
-pub struct Flrc {
+pub struct FlrcConfig {
     pub bitrate_bandwidth: FlrcBitrate,
     pub coding_rate: FlrcCodingRate,
     pub modulation_shaping: (),
+}
+
+/// FLRC packet configuration structure
+#[derive(Clone, PartialEq, Debug)]
+pub struct FlrcPacketConfig {
+    pub preamble_length: PreambleLength,
+    pub sync_word_length: FlrcSyncWordLength,
+    pub sync_word_match: SyncWordRxMatch,
+    pub header_type: HeaderType,
+    pub payload_length: u8,
+    pub crc_type: CrcTypes,
+    pub whitening: WhiteningModes
 }
 
 /// Bit rate / bandwidht pairs for FLRC mode

@@ -1,10 +1,24 @@
 
+use super::common::*;
+
 /// Configuration for BLE mode
 #[derive(Clone, PartialEq, Debug)]
-pub struct Ble {
+pub struct BleConfig {
     pub bitrate_bandwidth: BleBitrate,
     pub modulation_index: BleModIndex,
     pub modulation_shaping: BleModShaping,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct BlePacketConfig {
+    /// BLE connection state
+    pub connection_state: BleConnectionStates,
+    /// Size of the CRC block in the BLE packet
+    pub crc_field: BleCrcFields,
+    /// BLE packet types
+    pub packet_type: BlePacketTypes,
+    /// Whitening on PDU and CRC blocks of BLE packet
+    pub whitening: WhiteningModes,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -46,5 +60,20 @@ pub enum BleModIndex {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum BleModShaping {
+
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum BleConnectionStates {
+
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum BleCrcFields {
+
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum BlePacketTypes {
 
 }

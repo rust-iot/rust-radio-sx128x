@@ -1,13 +1,13 @@
 
 /// LoRa mode configuration
 #[derive(Clone, PartialEq, Debug)]
-pub struct LoRa {
+pub struct LoRaConfig {
     pub spreading_factor: LoRaSpreadingFactor,
     pub bandwidth: LoRaBandwidth,
     pub coding_rate: LoRaCodingRate,
 }
 
-impl Default for LoRa {
+impl Default for LoRaConfig {
     fn default() -> Self {
         Self {
             spreading_factor: LoRaSpreadingFactor::Sf7,
@@ -16,6 +16,17 @@ impl Default for LoRa {
         }
     }
 }
+
+/// LoRa packet configuration
+#[derive(Clone, PartialEq, Debug)]
+pub struct LoRaPacketConfig {
+    pub preamble_length: u8,
+    pub header_type: LoraHeader,
+    pub payload_length: u8,
+    pub crc_mode: LoRaCrc,
+    pub invert_iq: LoRaIq,
+}
+
 
 /// Spreading factor for LoRa mode
 #[derive(Clone, PartialEq, Debug)]
@@ -52,14 +63,25 @@ pub enum LoRaCodingRate {
 }
 
 /// CRC mode for LoRa packet types
+#[derive(Clone, PartialEq, Debug)]
 pub enum LoRaCrc {
     On = 0x20,
     Off = 0x00,
 }
 
 /// IQ mode for LoRa packet types
+#[derive(Clone, PartialEq, Debug)]
 pub enum LoRaIq {
     Normal = 0x40,
     Inverted = 0x00,
+}
+
+/// Header configuration for LoRa packet types
+#[derive(Clone, PartialEq, Debug)]
+pub enum LoraHeader {
+    // Variable length packets, header included
+    Explicit = 0x00,
+    /// Constant length packets, no header included
+    Implicit = 0x80,
 }
 

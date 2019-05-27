@@ -190,6 +190,22 @@ where
 
         self.hal.write_cmd(Commands::SetTxParams as u8, &[power])
     }
+
+    pub fn write_modulation_params(&mut self, modulation: ModulationConfig) -> Result<(), Error<CommsError, PinError>> {
+        use ModulationConfig::*;
+
+        // First update packet type
+
+        // Then write modulation configuration
+        let data = match modulation {
+            Gfsk(c) => &[c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
+            LoRa(c) => &[c.spreading_factor as u8, c.bandwidth as u8, c.coding_rate as u8],
+            Flrc(c) => &[c.bitrate_bandwidth as u8 c.coding_rate as u8, c.modulation_shaping as u8],
+            Ble(c) => &[c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
+        };
+
+        self.hal.write_cmd(Commands::SetModulationParams as u8, data)
+    }
 }
 
 impl<Hal, CommsError, PinError> Channel for Sx128x<Hal, CommsError, PinError>
