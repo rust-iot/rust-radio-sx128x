@@ -19,7 +19,7 @@ extern crate bitflags;
 extern crate embedded_hal as hal;
 use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
-use hal::spi::{Mode, Phase, Polarity};
+use hal::spi::{Mode as SpiMode, Phase, Polarity};
 use hal::blocking::spi::{Transfer, Write};
 
 extern crate embedded_spi;
@@ -35,7 +35,7 @@ pub mod device;
 use device::*;
 
 /// Sx128x Spi operating mode
-pub const MODE: Mode = Mode {
+pub const SPI_MODE: SpiMode = SpiMode {
     polarity: Polarity::IdleLow,
     phase: Phase::CaptureOnFirstTransition,
 };
@@ -43,8 +43,9 @@ pub const MODE: Mode = Mode {
 /// Sx128x device object
 #[repr(C)]
 pub struct Sx128x<Base, CommsError, PinError> {
+    config: Config,
+    
     hal: Base,
-
     settings: Settings,
 
     _ce: PhantomData<CommsError>, 
@@ -53,6 +54,10 @@ pub struct Sx128x<Base, CommsError, PinError> {
 
 pub struct Settings {
     pub xtal_freq: u32,
+}
+
+pub struct Config {
+    pub packet_type: PacketType,
 }
 
 impl Default for Settings {
@@ -149,6 +154,7 @@ where
 
     pub(crate) fn build(hal: Hal, settings: Settings) -> Self {
         Sx128x { 
+            config: Config{ packet_type: PacketType::None },
             hal,
             settings,
             _ce: PhantomData,
@@ -191,20 +197,56 @@ where
         self.hal.write_cmd(Commands::SetTxParams as u8, &[power])
     }
 
-    pub fn write_modulation_params(&mut self, modulation: ModulationConfig) -> Result<(), Error<CommsError, PinError>> {
+    pub(crate) fn write_modulation_params(&mut self, modulation: ModulationConfig) -> Result<(), Error<CommsError, PinError>> {
         use ModulationConfig::*;
 
         // First update packet type
+        let packet_type = PacketType::from(&modulation);
+        if self.config.packet_type != packet_type {
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type as u8 ] )?;
+            self.config.packet_type = packet_type;
+        }
 
         // Then write modulation configuration
         let data = match modulation {
-            Gfsk(c) => &[c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
-            LoRa(c) => &[c.spreading_factor as u8, c.bandwidth as u8, c.coding_rate as u8],
-            Flrc(c) => &[c.bitrate_bandwidth as u8 c.coding_rate as u8, c.modulation_shaping as u8],
-            Ble(c) => &[c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
+            Gfsk(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
+            LoRa(c) => [c.spreading_factor as u8, c.bandwidth as u8, c.coding_rate as u8],
+            Flrc(c) => [c.bitrate_bandwidth as u8, c.coding_rate as u8, c.modulation_shaping as u8],
+            Ble(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
         };
 
-        self.hal.write_cmd(Commands::SetModulationParams as u8, data)
+        self.hal.write_cmd(Commands::SetModulationParams as u8, &data)
+    }
+
+    pub(crate) fn write_packet_params(&mut self, packet: PacketConfig) -> Result<(), Error<CommsError, PinError>> {
+        use PacketConfig::*;
+
+        // First update packet type
+        let packet_type = PacketType::from(&packet);
+        if self.config.packet_type != packet_type {
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type as u8 ] )?;
+            self.config.packet_type = packet_type;
+        }
+
+        let data = match packet {
+            Gfsk(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
+            LoRa(c) => [c.preamble_length as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.invert_iq as u8, 0u8, 0u8],
+            Flrc(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
+            Ble(c) => [c.connection_state as u8, c.crc_field as u8, c.packet_type as u8, c.whitening as u8, 0u8, 0u8, 0u8],
+            None => [0u8; 7],
+        };
+        self.hal.write_cmd(Commands::SetPacketParams as u8, &data)
+    }
+
+    pub(crate) fn get_rx_buffer_status(&mut self) -> Result<(), Error<CommsError, PinError>> {
+        let mut status = [0u8; 2];
+
+        self.hal.read_cmd(Commands::GetRxBufferStatus as u8, &mut status)?;
+
+
+
+
+        unimplemented!();
     }
 }
 

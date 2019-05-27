@@ -1,13 +1,13 @@
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
 pub mod ble;
-use ble::BleConfig;
+use ble::{BleConfig, BlePacketConfig};
 pub mod flrc;
-use flrc::FlrcConfig;
+use flrc::{FlrcConfig, FlrcPacketConfig};
 pub mod gfsk;
-use gfsk::GfskConfig;
+use gfsk::{GfskConfig, GfskPacketConfig};
 pub mod lora;
-use lora::LoRaConfig;
+use lora::{LoRaConfig, LoRaPacketConfig};
 
 pub mod common;
 
@@ -18,6 +18,7 @@ pub mod common;
 pub struct Config {
     pub regulator_mode: RegulatorMode,
     pub ramp_time: RampTime,
+    pub mode: OperatingMode,
 }
 
 impl Default for Config {
@@ -25,16 +26,96 @@ impl Default for Config {
         Config{
             regulator_mode: RegulatorMode::Ldo,
             ramp_time: RampTime::Ramp04Us,
+            mode: OperatingMode::None,
         }
     }
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum ModulationConfig {
-    Gfsk(GfskConfig),
-    LoRa(LoRaConfig),
-    Flrc(FlrcConfig),
-    Ble(BleConfig),
+pub enum OperatingMode {
+    Gfsk(GfskConfig, GfskPacketConfig),
+    LoRa(LoRaConfig, LoRaPacketConfig),
+    Flrc(FlrcConfig, FlrcPacketConfig),
+    Ble(BleConfig, BlePacketConfig),
+    Ranging(LoRaConfig, LoRaPacketConfig),
+    None,
+}
+
+impl OperatingMode {
+    fn packet_type(&mut self) -> PacketType {
+        match &self {
+            OperatingMode::Gfsk(_, _) => PacketType::Gfsk,
+            OperatingMode::LoRa(_, _) => PacketType::LoRa,
+            OperatingMode::Flrc(_, _) => PacketType::Flrc,
+            OperatingMode::Ble(_, _) => PacketType::Ble,
+        }
+    }
+
+    fn modulation_config(&self) -> ModulationConfig {
+         match &self {
+            OperatingMode::Gfsk(m, _p) => ModulationConfig::Gfsk(m),
+            OperatingMode::LoRa(m, _p) => ModulationConfig::LoRa(m),
+            OperatingMode::Flrc(m, _p) => ModulationConfig::Flrc(m),
+            OperatingMode::Ble(m, _p) => ModulationConfig::Ble(m),
+            OperatingMode::None => unimplemented!()
+        }
+    }
+
+    fn packet_config(&self) -> PacketConfig {
+         match &self {
+            OperatingMode::Gfsk(_m, p) => PacketConfig::Gfsk(p),
+            OperatingMode::LoRa(_m, p) => PacketConfig::LoRa(p),
+            OperatingMode::Flrc(_m, p) => PacketConfig::Flrc(p),
+            OperatingMode::Ble(_m, p) => PacketConfig::Ble(p),
+            OperatingMode::None => PacketConfig::None,
+        }
+    }
+}
+
+/// Device modulation configuration
+#[derive(Clone, PartialEq, Debug)]
+pub enum ModulationConfig<'a> {
+    Gfsk(&'a GfskConfig),
+    LoRa(&'a LoRaConfig),
+    Flrc(&'a FlrcConfig),
+    Ble(&'a BleConfig),
+}
+
+impl <'a> From<&ModulationConfig<'a>> for PacketType {
+    fn from(c: &ModulationConfig) -> PacketType {
+        use ModulationConfig::*;
+        
+        match c {
+            Gfsk(_) => PacketType::Gfsk,
+            LoRa(_) => PacketType::LoRa,
+            Flrc(_) => PacketType::Flrc,
+            Ble(_) => PacketType::Ble,
+        }
+    }
+}
+
+/// Device packet configuration
+#[derive(Clone, PartialEq, Debug)]
+pub enum PacketConfig<'a> {
+    Gfsk(&'a GfskPacketConfig),
+    LoRa(&'a LoRaPacketConfig),
+    Flrc(&'a FlrcPacketConfig),
+    Ble(&'a BlePacketConfig),
+    None,
+}
+
+impl <'a> From<&PacketConfig<'a>> for PacketType {
+    fn from(c: &PacketConfig) -> PacketType {
+        use PacketConfig::*;
+        
+        match c {
+            Gfsk(_) => PacketType::Gfsk,
+            LoRa(_) => PacketType::LoRa,
+            Flrc(_) => PacketType::Flrc,
+            Ble(_) => PacketType::Ble,
+            None => PacketType::None,
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]

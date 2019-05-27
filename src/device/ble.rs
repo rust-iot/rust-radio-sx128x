@@ -4,9 +4,9 @@ use super::common::*;
 /// Configuration for BLE mode
 #[derive(Clone, PartialEq, Debug)]
 pub struct BleConfig {
-    pub bitrate_bandwidth: BleBitrate,
-    pub modulation_index: BleModIndex,
-    pub modulation_shaping: BleModShaping,
+    pub bitrate_bandwidth: GfskBleBitrate,
+    pub modulation_index: GfskBleModIndex,
+    pub modulation_shaping: ModShaping,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -21,59 +21,38 @@ pub struct BlePacketConfig {
     pub whitening: WhiteningModes,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum BleBitrate {
-    GFSK_BLE_BR_2_000_BW_2_4                 = 0x04,
-    GFSK_BLE_BR_1_600_BW_2_4                 = 0x28,
-    GFSK_BLE_BR_1_000_BW_2_4                 = 0x4C,
-    GFSK_BLE_BR_1_000_BW_1_2                 = 0x45,
-    GFSK_BLE_BR_0_800_BW_2_4                 = 0x70,
-    GFSK_BLE_BR_0_800_BW_1_2                 = 0x69,
-    GFSK_BLE_BR_0_500_BW_1_2                 = 0x8D,
-    GFSK_BLE_BR_0_500_BW_0_6                 = 0x86,
-    GFSK_BLE_BR_0_400_BW_1_2                 = 0xB1,
-    GFSK_BLE_BR_0_400_BW_0_6                 = 0xAA,
-    GFSK_BLE_BR_0_250_BW_0_6                 = 0xCE,
-    GFSK_BLE_BR_0_250_BW_0_3                 = 0xC7,
-    GFSK_BLE_BR_0_125_BW_0_3                 = 0xEF,
-}
 
-#[derive(Clone, PartialEq, Debug)]
-pub enum BleModIndex {
-    GFSK_BLE_MOD_IND_0_35                    =  0,
-    GFSK_BLE_MOD_IND_0_50                    =  1,
-    GFSK_BLE_MOD_IND_0_75                    =  2,
-    GFSK_BLE_MOD_IND_1_00                    =  3,
-    GFSK_BLE_MOD_IND_1_25                    =  4,
-    GFSK_BLE_MOD_IND_1_50                    =  5,
-    GFSK_BLE_MOD_IND_1_75                    =  6,
-    GFSK_BLE_MOD_IND_2_00                    =  7,
-    GFSK_BLE_MOD_IND_2_25                    =  8,
-    GFSK_BLE_MOD_IND_2_50                    =  9,
-    GFSK_BLE_MOD_IND_2_75                    = 10,
-    GFSK_BLE_MOD_IND_3_00                    = 11,
-    GFSK_BLE_MOD_IND_3_25                    = 12,
-    GFSK_BLE_MOD_IND_3_50                    = 13,
-    GFSK_BLE_MOD_IND_3_75                    = 14,
-    GFSK_BLE_MOD_IND_4_00                    = 15,
-}
-
-#[derive(Clone, PartialEq, Debug)]
-pub enum BleModShaping {
-
-}
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum BleConnectionStates {
-
+    BLE_PAYLOAD_LENGTH_MAX_31_BYTES         = 0x00,
+    BLE_PAYLOAD_LENGTH_MAX_37_BYTES         = 0x20,
+    BLE_TX_TEST_MODE                        = 0x40,
+    BLE_PAYLOAD_LENGTH_MAX_255_BYTES        = 0x80,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum BleCrcFields {
-
+    BLE_CRC_OFF                             = 0x00,
+    BLE_CRC_3B                              = 0x10,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum BlePacketTypes {
-
+    /// Pseudo Random Binary Sequence based on 9th degree polynomial
+    BLE_PRBS_9                              = 0x00,
+    /// Pseudo Random Binary Sequence based on 15th degree polynomial
+    BLE_PRBS_15                             = 0x0C,
+    /// Repeated '11110000' sequence
+    BLE_EYELONG_1_0                         = 0x04,
+    /// Repeated '00001111' sequence
+    BLE_EYELONG_0_1                         = 0x18,
+    /// Repeated '10101010' sequence
+    BLE_EYESHORT_1_0                        = 0x08,
+    /// Repeated '01010101' sequence
+    BLE_EYESHORT_0_1                        = 0x1C,
+    /// Repeated '11111111' sequence
+    BLE_ALL_1                               = 0x10,
+    /// Repeated '00000000' sequence
+    BLE_ALL_0                               = 0x14,
 }

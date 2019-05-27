@@ -69,20 +69,36 @@ pub enum GfskBleModIndex {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum WhiteningModes {
-
+    RADIO_WHITENING_ON                      = 0x00,
+    RADIO_WHITENING_OFF                     = 0x08,
 }
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum SyncWordRxMatch {
-
+    /// No correlator turned on, i.e. do not search for SyncWord
+    RADIO_RX_MATCH_SYNCWORD_OFF             = 0x00,
+    RADIO_RX_MATCH_SYNCWORD_1               = 0x10,
+    RADIO_RX_MATCH_SYNCWORD_2               = 0x20,
+    RADIO_RX_MATCH_SYNCWORD_1_2             = 0x30,
+    RADIO_RX_MATCH_SYNCWORD_3               = 0x40,
+    RADIO_RX_MATCH_SYNCWORD_1_3             = 0x50,
+    RADIO_RX_MATCH_SYNCWORD_2_3             = 0x60,
+    RADIO_RX_MATCH_SYNCWORD_1_2_3           = 0x70,
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum HeaderType {
-
+pub enum GfskFlrcPacketLength {
+    /// Fixed length, no header included
+    Fixed = 0x00,
+    /// Variable length, header included in message
+    Variable = 0x20,
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum CrcTypes {
-
+pub enum GfskFlrcCrcModes {
+    /// CRC disabled
+    RADIO_CRC_OFF                           = 0x00, 
+    RADIO_CRC_1_BYTES                       = 0x10,
+    RADIO_CRC_2_BYTES                       = 0x20,
+    RADIO_CRC_3_BYTES                       = 0x30,
 }

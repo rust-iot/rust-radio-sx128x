@@ -6,7 +6,7 @@ use super::common::*;
 pub struct FlrcConfig {
     pub bitrate_bandwidth: FlrcBitrate,
     pub coding_rate: FlrcCodingRate,
-    pub modulation_shaping: (),
+    pub modulation_shaping: ModShaping,
 }
 
 /// FLRC packet configuration structure
@@ -15,9 +15,9 @@ pub struct FlrcPacketConfig {
     pub preamble_length: PreambleLength,
     pub sync_word_length: FlrcSyncWordLength,
     pub sync_word_match: SyncWordRxMatch,
-    pub header_type: HeaderType,
+    pub header_type: GfskFlrcPacketLength,
     pub payload_length: u8,
-    pub crc_type: CrcTypes,
+    pub crc_type: GfskFlrcCrcModes,
     pub whitening: WhiteningModes
 }
 
