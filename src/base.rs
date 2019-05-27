@@ -7,7 +7,7 @@ use embedded_spi::{Transactional, Reset, Busy, PinState};
 use embedded_spi::{Error as WrapError};
 
 use crate::{Sx128x, Error};
-use crate::bindings::{self as sx1280};
+use crate::device::*;
 
 /// Comms implementation can be generic over SPI or UART connections
 pub trait Hal<CommsError, PinError> {
@@ -118,7 +118,7 @@ where
     fn write_regs(&mut self, reg: u16, data: &[u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 3] = [
-            sx1280::RadioCommands_u_RADIO_WRITE_REGISTER as u8,
+            Commands::WiteRegister as u8,
             ((reg & 0xFF00) >> 8) as u8,
             (reg & 0x00FF) as u8,
         ];
@@ -132,7 +132,7 @@ where
     fn read_regs<'a>(&mut self, reg: u16, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 4] = [
-            sx1280::RadioCommands_u_RADIO_READ_REGISTER as u8,
+            Commands::ReadRegister as u8,
             ((reg & 0xFF00) >> 8) as u8,
             (reg & 0x00FF) as u8,
             0,
@@ -147,7 +147,7 @@ where
     fn write_buff(&mut self, offset: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 2] = [
-            sx1280::RadioCommands_u_RADIO_WRITE_BUFFER as u8,
+            Commands::WriteBuffer as u8,
             offset,
         ];
         self.wait_busy()?;
@@ -160,7 +160,7 @@ where
     fn read_buff<'a>(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 3] = [
-            sx1280::RadioCommands_u_RADIO_READ_BUFFER as u8,
+            Commands::ReadBuffer as u8,
             offset,
             0
         ];

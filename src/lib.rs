@@ -3,6 +3,8 @@
 
 #![no_std]
 
+use core::marker::PhantomData;
+
 extern crate libc;
 
 extern crate log;
@@ -10,6 +12,9 @@ extern crate log;
 #[cfg(test)]
 #[macro_use]
 extern crate std;
+
+#[macro_use]
+extern crate bitflags;
 
 extern crate embedded_hal as hal;
 use hal::blocking::{delay};
@@ -20,14 +25,14 @@ use hal::blocking::spi::{Transfer, Write};
 extern crate embedded_spi;
 use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
-pub mod bindings;
-use bindings::{self as sx1280};
-
-#[cfg(feature = "ffi")]
-use bindings::SX1280_s;
+extern crate radio;
+use radio::{Transmit, Receive, Channel, Interrupts};
 
 pub mod base;
 use base::Hal;
+
+pub mod device;
+use device::*;
 
 /// Sx128x Spi operating mode
 pub const MODE: Mode = Mode {
@@ -40,19 +45,40 @@ pub const MODE: Mode = Mode {
 pub struct Sx128x<Base, CommsError, PinError> {
     hal: Base,
 
-    #[cfg(feature = "ffi")]
-    c: Option<SX1280_s>,
-    #[cfg(feature = "ffi")]
-    err: Option<Error<CommsError, PinError>>,
+    settings: Settings,
+
+    _ce: PhantomData<CommsError>, 
+    _pe: PhantomData<PinError>,
 }
 
 pub struct Settings {
-
+    pub xtal_freq: u32,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Self{}
+        Self {
+            xtal_freq: 52000000
+        }
+    }
+}
+
+impl Settings {
+    // Calculate frequency step for a given crystal frequency
+    fn freq_step(&self) -> u32 {
+        self.xtal_freq >> 18
+    }
+
+    fn freq_stepf(&self) -> f32 {
+        self.xtal_freq as f32 / 2f32.powi(18)
+    }
+
+    fn freq_to_steps(&self, f: f32) -> f32 {
+        f / self.freq_stepf()
+    }
+
+    fn steps_to_freq(&self, s: f32) -> f32 {
+        s * self.freq_stepf()
     }
 }
 
@@ -99,7 +125,6 @@ where
 impl<Hal, CommsError, PinError> Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
-
 {
     /// Create a new Sx128x instance over a generic Hal implementation
     pub fn new(hal: Hal, settings: Settings) -> Result<Self, Error<CommsError, PinError>> {
@@ -122,35 +147,110 @@ where
         Ok(sx128x)
     }
 
-    pub(crate) fn reset(&mut self) -> Result<(), Error<CommsError, PinError>> {
-        self.hal.reset()
-    }
-
-    pub(crate) fn build(hal: Hal, _settings: Settings) -> Self {
+    pub(crate) fn build(hal: Hal, settings: Settings) -> Self {
         Sx128x { 
             hal,
-            #[cfg(feature = "ffi")]
-            c: None, 
-            #[cfg(feature = "ffi")]
-            err: None,
+            settings,
+            _ce: PhantomData,
+            _pe: PhantomData,
         }
     }
 
-    pub fn status(&mut self) -> Result<u8, Error<CommsError, PinError>> {
+    pub fn get_status(&mut self) -> Result<u8, Error<CommsError, PinError>> {
         let mut d = [0u8; 1];
-        self.hal.read_cmd(sx1280::RadioCommands_u_RADIO_GET_STATUS as u8, &mut d)?;
+        self.hal.read_cmd(Commands::GetStatus as u8, &mut d)?;
         Ok(d[0])
     }
 
     pub fn firmware_version(&mut self) -> Result<u16, Error<CommsError, PinError>> {
         let mut d = [0u8; 2];
 
-        self.hal.read_regs(sx1280::REG_LR_FIRMWARE_VERSION_MSB as u16, &mut d)?;
+        self.hal.read_regs(Registers::LrFirmwareVersionMsb as u16, &mut d)?;
 
         Ok((d[0] as u16) << 8 | (d[1] as u16))
     }
+
+    pub fn set_frequency(&mut self, f: u32) -> Result<(), Error<CommsError, PinError>> {
+        let c = self.settings.freq_to_steps(f as f32) as u32;
+
+        let data: [u8; 3] = [
+            (c >> 16) as u8,
+            (c >> 8) as u8,
+            (c >> 0) as u8,
+        ];
+
+        self.hal.write_cmd(Commands::SetRfFrequency as u8, &data)
+    }
+
+    pub fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError>> {
+        // Limit to -18 to +13 dBm
+        let power = core::cmp::min(power, -18);
+        let power = core::cmp::max(power, 13);
+        let power = (power + 18) as u8;
+
+        self.hal.write_cmd(Commands::SetTxParams as u8, &[power])
+    }
 }
 
+impl<Hal, CommsError, PinError> Channel for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    type Channel = ();
+    type Error = Error<CommsError, PinError>;
+
+    fn set_channel(&mut self, ch: &Self::Channel) -> Result<(), Self::Error> {
+        unimplemented!()
+    }
+}
+
+impl<Hal, CommsError, PinError> Interrupts for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    type Irq = ();
+    type Error = Error<CommsError, PinError>;
+
+    fn get_interrupts(&mut self, clear: bool) -> Result<Self::Irq, Self::Error> {
+        unimplemented!()
+    }
+}
+
+impl<Hal, CommsError, PinError> Transmit for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    type Error = Error<CommsError, PinError>;
+
+    fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
+        unimplemented!()
+    }
+
+    fn check_transmit(&mut self) -> Result<bool, Self::Error> {
+        unimplemented!()
+    }
+}
+
+impl<Hal, CommsError, PinError> Receive for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    type Info = ();
+    type Error = Error<CommsError, PinError>;
+
+    fn start_receive(&mut self) -> Result<(), Self::Error> {
+        unimplemented!()
+    }
+
+    fn check_receive(&mut self, restart: bool) -> Result<bool, Self::Error> {
+        unimplemented!()
+    }
+
+    fn get_received<'a>(&mut self, info: &mut Self::Info, data: &'a mut [u8]) -> Result<usize, Self::Error> {
+        unimplemented!()
+    }
+
+}
 
 #[cfg(test)]
 mod tests {
@@ -180,7 +280,7 @@ mod tests {
         let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
 
         m.expect(vectors::status(&spi, &sdn, &delay));
-        radio.status().unwrap();
+        radio.get_status().unwrap();
         m.finalise();
     }
 
