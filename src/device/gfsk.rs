@@ -29,7 +29,7 @@ pub struct GfskPacketConfig {
     pub whitening: WhiteningModes
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum GfskSyncWordLength {
     /// Sync word length: 1 byte
     GFSK_SYNCWORD_LENGTH_1_BYTE              = 0x00,

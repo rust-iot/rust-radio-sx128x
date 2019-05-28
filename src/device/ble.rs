@@ -23,7 +23,7 @@ pub struct BlePacketConfig {
 
 
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum BleConnectionStates {
     BLE_PAYLOAD_LENGTH_MAX_31_BYTES         = 0x00,
     BLE_PAYLOAD_LENGTH_MAX_37_BYTES         = 0x20,
@@ -31,13 +31,13 @@ pub enum BleConnectionStates {
     BLE_PAYLOAD_LENGTH_MAX_255_BYTES        = 0x80,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum BleCrcFields {
     BLE_CRC_OFF                             = 0x00,
     BLE_CRC_3B                              = 0x10,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum BlePacketTypes {
     /// Pseudo Random Binary Sequence based on 9th degree polynomial
     BLE_PRBS_9                              = 0x00,

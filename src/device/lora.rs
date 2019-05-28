@@ -21,7 +21,7 @@ impl Default for LoRaConfig {
 #[derive(Clone, PartialEq, Debug)]
 pub struct LoRaPacketConfig {
     pub preamble_length: u8,
-    pub header_type: LoraHeader,
+    pub header_type: LoRaHeader,
     pub payload_length: u8,
     pub crc_mode: LoRaCrc,
     pub invert_iq: LoRaIq,
@@ -29,7 +29,7 @@ pub struct LoRaPacketConfig {
 
 
 /// Spreading factor for LoRa mode
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LoRaSpreadingFactor {
     Sf5   = 0x50,
     Sf6   = 0x60,
@@ -42,7 +42,7 @@ pub enum LoRaSpreadingFactor {
 }
 
 /// Bandwidth for LoRa mode
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LoRaBandwidth {
     Bw0200  = 0x34,
     Bw0400  = 0x26,
@@ -51,7 +51,7 @@ pub enum LoRaBandwidth {
 }
 
 /// Coding rates for LoRa mode
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LoRaCodingRate {
     Cr4_5    = 0x01,
     Cr4_6    = 0x02,
@@ -63,22 +63,22 @@ pub enum LoRaCodingRate {
 }
 
 /// CRC mode for LoRa packet types
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LoRaCrc {
     On = 0x20,
     Off = 0x00,
 }
 
 /// IQ mode for LoRa packet types
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LoRaIq {
     Normal = 0x40,
     Inverted = 0x00,
 }
 
 /// Header configuration for LoRa packet types
-#[derive(Clone, PartialEq, Debug)]
-pub enum LoraHeader {
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum LoRaHeader {
     // Variable length packets, header included
     Explicit = 0x00,
     /// Constant length packets, no header included

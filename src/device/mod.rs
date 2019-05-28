@@ -18,6 +18,7 @@ pub mod common;
 pub struct Config {
     pub regulator_mode: RegulatorMode,
     pub ramp_time: RampTime,
+    pub packet_type: PacketType,
     pub mode: OperatingMode,
 }
 
@@ -26,6 +27,7 @@ impl Default for Config {
         Config{
             regulator_mode: RegulatorMode::Ldo,
             ramp_time: RampTime::Ramp04Us,
+            packet_type: PacketType::None,
             mode: OperatingMode::None,
         }
     }
@@ -42,31 +44,35 @@ pub enum OperatingMode {
 }
 
 impl OperatingMode {
-    fn packet_type(&mut self) -> PacketType {
-        match &self {
+    pub fn packet_type(&mut self) -> PacketType {
+        match self {
             OperatingMode::Gfsk(_, _) => PacketType::Gfsk,
             OperatingMode::LoRa(_, _) => PacketType::LoRa,
             OperatingMode::Flrc(_, _) => PacketType::Flrc,
             OperatingMode::Ble(_, _) => PacketType::Ble,
+            OperatingMode::Ranging(_, _) => PacketType::LoRa,
+            OperatingMode::None => PacketType::None,
         }
     }
 
-    fn modulation_config(&self) -> ModulationConfig {
-         match &self {
+    pub fn modulation_config(&self) -> ModulationConfig {
+         match self {
             OperatingMode::Gfsk(m, _p) => ModulationConfig::Gfsk(m),
             OperatingMode::LoRa(m, _p) => ModulationConfig::LoRa(m),
             OperatingMode::Flrc(m, _p) => ModulationConfig::Flrc(m),
             OperatingMode::Ble(m, _p) => ModulationConfig::Ble(m),
+            OperatingMode::Ranging(m, p_) => ModulationConfig::LoRa(m),
             OperatingMode::None => unimplemented!()
         }
     }
 
-    fn packet_config(&self) -> PacketConfig {
-         match &self {
+    pub fn packet_config(&self) -> PacketConfig {
+         match self {
             OperatingMode::Gfsk(_m, p) => PacketConfig::Gfsk(p),
             OperatingMode::LoRa(_m, p) => PacketConfig::LoRa(p),
             OperatingMode::Flrc(_m, p) => PacketConfig::Flrc(p),
             OperatingMode::Ble(_m, p) => PacketConfig::Ble(p),
+            OperatingMode::Ranging(_m, p) => PacketConfig::LoRa(p),
             OperatingMode::None => PacketConfig::None,
         }
     }
@@ -174,7 +180,7 @@ pub enum PacketType {
 #[derive(Clone, PartialEq, Debug)]
 pub enum Commands {
     GetStatus                = 0xC0,
-    WiteRegister            = 0x18,
+    WiteRegister             = 0x18,
     ReadRegister             = 0x19,
     WriteBuffer              = 0x1A,
     ReadBuffer               = 0x1B,
@@ -213,7 +219,7 @@ pub enum Commands {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Registers {
-    LrFirmwareVersionMsb             = 0x0153,
+    LrFirmwareVersionMsb               = 0x0153,
     LrCrcSeedBaseAddr                  = 0x09C8,
     LrCrcPolyBaseAddr                  = 0x09C6,
     LrWhitSeedBaseAddr                 = 0x09C5,
@@ -233,7 +239,6 @@ pub enum Registers {
     LrSyncWordBaseAddress2             = 0x09D3,
     LrSyncWordBaseAddress3             = 0x09D8,
     LrEstimatedFrequencyErrorMsb       = 0x0954,
-    LrEstimatedFrequencyErrorMask      = 0x0FFFFF,
     LrSyncWordTolerance                = 0x09CD,
     LrBleAccessAddress                 = 0x09CF,
     LnaRegime                          = 0x0891,
@@ -242,12 +247,23 @@ pub enum Registers {
     ManualGainValue                    = 0x089E,
 }
 
-pub const MASK_RANGINGMUXSEL: u8        = 0xCF;
-pub const MASK_LNA_REGIME: u8           = 0xC0;
-pub const MASK_MANUAL_GAIN_CONTROL: u8  = 0x80;
-pub const MASK_DEMOD_DETECTION: u8      = 0xFE;
-pub const MASK_MANUAL_GAIN_VALUE: u8    = 0xF0;
+pub const MASK_RANGINGMUXSEL: u8       = 0xCF;
+pub const MASK_LNA_REGIME: u8          = 0xC0;
+pub const MASK_MANUAL_GAIN_CONTROL: u8 = 0x80;
+pub const MASK_DEMOD_DETECTION: u8     = 0xFE;
+pub const MASK_MANUAL_GAIN_VALUE: u8   = 0xF0;
 
+pub const MASK_LR_ESTIMATED_FREQUENCY_ERROR: u32 = 0x0FFFFF;
+
+pub const AUTO_RX_TX_OFFSET: u16 = 33;
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum AutoTx {
+    /// Enable AutoTX with the provided timeout in microseconds (uS)
+    Enabled(u16),
+    /// Disable AutoTx
+    Disabled,
+}
 
 bitflags! {
     /// Interrupt flags register 
@@ -268,5 +284,53 @@ bitflags! {
         const CAD_ACTIVITY_DETECTED               = 0x2000;
         const RX_TX_TIMEOUT                       = 0x4000;
         const PREAMBLE_DETECTED                   = 0x8000;
+    }
+}
+
+
+bitflags! {
+    /// Packet status register
+    pub struct PacketStatus: u8 {
+        const SYNC_ERROR            = 1 >> 6;
+        const LENGTH_ERROR          = 1 >> 5;
+        const CRC_ERROR             = 1 >> 4;
+        const ABORT_ERROR           = 1 >> 3;
+        const HEADER_RECEIVED       = 1 >> 2;
+        const PACKET_RECEIVED       = 1 >> 1;
+        const PACKET_CONTROLER_BUSY = 1 >> 0;
+    }
+}
+
+
+bitflags! {
+    /// TxRx status register
+    pub struct TxRxStatus: u8 {
+        const SYNC_ERROR            = 1 >> 6;
+        const LENGTH_ERROR          = 1 >> 5;
+        const CRC_ERROR             = 1 >> 4;
+        const ABORT_ERROR           = 1 >> 3;
+        const HEADER_RECEIVED       = 1 >> 2;
+        const PACKET_RECEIVED       = 1 >> 1;
+        const PACKET_CONTROLER_BUSY = 1 >> 0;
+    }
+}
+
+bitflags! {
+    /// TxRx status register
+    pub struct SyncAddrStatus: u8 {
+        const SYNC_ERROR            = 1 >> 6;
+    }
+}
+
+
+bitflags! {
+    /// Radio calibration parameters
+    pub struct CalibrationParams: u8 {
+        const ADCBulkPEnable    = (1 >> 5);
+        const ADCBulkNEnable    = (1 >> 4);
+        const ADCPulseEnable    = (1 >> 3);
+        const PLLEnable         = (1 >> 2);
+        const RC13MEnable       = (1 >> 1);
+        const RC64KEnable       = (1 >> 0);
     }
 }

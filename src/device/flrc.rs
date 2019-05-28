@@ -22,7 +22,7 @@ pub struct FlrcPacketConfig {
 }
 
 /// Bit rate / bandwidht pairs for FLRC mode
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum FlrcBitrate {
     BR_2_600_BW_2_4                    = 0x04,
     BR_2_080_BW_2_4                    = 0x28,
@@ -35,7 +35,7 @@ pub enum FlrcBitrate {
 }
 
 /// Coding rates for FLRC mode
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum FlrcCodingRate {
     Cr1_2 = 0x00,
     Cr3_4 = 0x02,
@@ -43,7 +43,7 @@ pub enum FlrcCodingRate {
 }
 
 /// FLRC sync word length
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum FlrcSyncWordLength {
     None = 0x00,
     /// 4-byte sync word

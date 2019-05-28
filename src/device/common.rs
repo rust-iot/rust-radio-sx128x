@@ -1,7 +1,7 @@
 
 
 /// Modulation shaping parameter for GFSK, FLRC and BLE modes
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ModShaping {
     /// No filtering
     BtOFF                = 0x00,
@@ -10,7 +10,7 @@ pub enum ModShaping {
 }
 
 /// Preamble lengths for GFSK, FLRC modes
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum PreambleLength {
     /// Preamble length: 04 bits
     PreambleLength04                 = 0x00,
@@ -30,7 +30,7 @@ pub enum PreambleLength {
     PreambleLength32                 = 0x70,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum GfskBleBitrate {
     GFSK_BLE_BR_2_000_BW_2_4                 = 0x04,
     GFSK_BLE_BR_1_600_BW_2_4                 = 0x28,
@@ -47,7 +47,7 @@ pub enum GfskBleBitrate {
     GFSK_BLE_BR_0_125_BW_0_3                 = 0xEF,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum GfskBleModIndex {
     GFSK_BLE_MOD_IND_0_35                    =  0,
     GFSK_BLE_MOD_IND_0_50                    =  1,
@@ -67,13 +67,13 @@ pub enum GfskBleModIndex {
     GFSK_BLE_MOD_IND_4_00                    = 15,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum WhiteningModes {
     RADIO_WHITENING_ON                      = 0x00,
     RADIO_WHITENING_OFF                     = 0x08,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum SyncWordRxMatch {
     /// No correlator turned on, i.e. do not search for SyncWord
     RADIO_RX_MATCH_SYNCWORD_OFF             = 0x00,
@@ -86,7 +86,7 @@ pub enum SyncWordRxMatch {
     RADIO_RX_MATCH_SYNCWORD_1_2_3           = 0x70,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum GfskFlrcPacketLength {
     /// Fixed length, no header included
     Fixed = 0x00,
@@ -94,7 +94,7 @@ pub enum GfskFlrcPacketLength {
     Variable = 0x20,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum GfskFlrcCrcModes {
     /// CRC disabled
     RADIO_CRC_OFF                           = 0x00, 

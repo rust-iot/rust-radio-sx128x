@@ -56,10 +56,6 @@ pub struct Settings {
     pub xtal_freq: u32,
 }
 
-pub struct Config {
-    pub packet_type: PacketType,
-}
-
 impl Default for Settings {
     fn default() -> Self {
         Self {
@@ -154,7 +150,7 @@ where
 
     pub(crate) fn build(hal: Hal, settings: Settings) -> Self {
         Sx128x { 
-            config: Config{ packet_type: PacketType::None },
+            config: Config::default(),
             hal,
             settings,
             _ce: PhantomData,
@@ -203,12 +199,12 @@ where
         // First update packet type
         let packet_type = PacketType::from(&modulation);
         if self.config.packet_type != packet_type {
-            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type as u8 ] )?;
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
             self.config.packet_type = packet_type;
         }
 
         // Then write modulation configuration
-        let data = match modulation {
+        let data = match &modulation {
             Gfsk(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
             LoRa(c) => [c.spreading_factor as u8, c.bandwidth as u8, c.coding_rate as u8],
             Flrc(c) => [c.bitrate_bandwidth as u8, c.coding_rate as u8, c.modulation_shaping as u8],
@@ -224,11 +220,11 @@ where
         // First update packet type
         let packet_type = PacketType::from(&packet);
         if self.config.packet_type != packet_type {
-            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type as u8 ] )?;
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
             self.config.packet_type = packet_type;
         }
 
-        let data = match packet {
+        let data = match &packet {
             Gfsk(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
             LoRa(c) => [c.preamble_length as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.invert_iq as u8, 0u8, 0u8],
             Flrc(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
@@ -239,15 +235,108 @@ where
     }
 
     pub(crate) fn get_rx_buffer_status(&mut self) -> Result<(), Error<CommsError, PinError>> {
+        use device::lora::LoRaHeader;
+
         let mut status = [0u8; 2];
 
         self.hal.read_cmd(Commands::GetRxBufferStatus as u8, &mut status)?;
 
+        let len = match self.config.mode.packet_config() {
+            PacketConfig::LoRa(c) => {
+                match c.header_type {
+                    LoRaHeader::Implicit => self.hal.read_reg(Registers::LrPayloadLength as u8)?,
+                    LoRaHeader::Explicit => status[0],
+                }
+            },
+            // BLE status[0] does not include 2-byte PDU header
+            PacketConfig::Ble(_) => status[0] + 2,
+            _ => status[0]
+        };
 
+        let _rx_buff_ptr = status[1];
 
-
-        unimplemented!();
+        Ok(())
     }
+
+    
+    pub(crate) fn get_packet_info(&mut self, info: &mut Info) -> Result<(), Error<CommsError, PinError>> {
+
+        let mut data = [0u8; 5];
+        self.hal.read_cmd(Commands::GetPacketStatus as u8, &mut data)?;
+
+        info.packet_status = PacketStatus::from_bits(data[2]).unwrap();
+        info.tx_rx_status = TxRxStatus::from_bits(data[3]).unwrap();
+        info.sync_addr_status = data[4] & 0x70;
+
+        match self.config.mode.packet_type() {
+            PacketType::Gfsk | PacketType::Flrc | PacketType::Ble => {
+                info.rssi = -(data[0] as i16) / 2;
+                info.rssi_sync = Some(-(data[1] as i16) / 2);
+            },
+            PacketType::LoRa | PacketType::Ranging => {
+                info.rssi = -(data[0] as i16) / 2;
+                info.snr = Some(match data[1] < 128 {
+                    true => data[1] as i16 / 4,
+                    false => ( data[1] as i16 - 256 ) / 4
+                });
+            },
+            PacketType::None => unimplemented!(),
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn get_rssi(&mut self) -> Result<i16, Error<CommsError, PinError>> {
+        let mut raw = [0u8; 1];
+        self.hal.read_cmd(Commands::GetRssiInst as u8, &mut raw)?;
+        Ok(-(raw[0] as i16) / 2)
+    }
+
+    pub(crate) fn get_irq(&mut self, clear: bool) -> Result<Irq, Error<CommsError, PinError>> {
+        let mut raw = [0u8; 2];
+        // Read IRQ flags
+        self.hal.read_cmd(Commands::GetIrqStatus as u8, &mut raw)?;
+        let irq = Irq::from_bits((raw[0] as u16) << 8 | (raw[1] as u16)).unwrap();
+        // Clear register if requested
+        if clear {
+            self.hal.write_cmd(Commands::ClearIrqStatus as u8, &raw)?;
+        }
+        // Return IRQ object
+        Ok(irq)
+    }
+
+    pub(crate) fn calibrate(&mut self, c: CalibrationParams) -> Result<(), Error<CommsError, PinError>> {
+        self.hal.write_cmd(Commands::Calibrate as u8, &[ c.bits() ])
+    }
+
+    pub(crate) fn set_regulator_mode(&mut self, r: RegulatorMode) -> Result<(), Error<CommsError, PinError>> {
+        self.hal.write_cmd(Commands::SetRegulatorMode as u8, &[ r as u8 ])
+    }
+
+    pub(crate) fn set_auto_tx(&mut self, a: AutoTx) -> Result<(), Error<CommsError, PinError>> {
+        let data = match a {
+            AutoTx::Enabled(timeout_us) => {
+                let compensated = timeout_us - AUTO_RX_TX_OFFSET;
+                [(compensated >> 8) as u8, (compensated & 0xff) as u8]
+            },
+            AutoTx::Disabled => [0u8; 2],
+        };
+        self.hal.write_cmd(Commands::SetAutoTx as u8, &data)
+    }
+
+
+
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Info {
+    rssi: i16,
+    rssi_sync: Option<i16>,
+    snr: Option<i16>,
+
+    packet_status: PacketStatus,
+    tx_rx_status: TxRxStatus,
+    sync_addr_status: u8,
 }
 
 impl<Hal, CommsError, PinError> Channel for Sx128x<Hal, CommsError, PinError>
