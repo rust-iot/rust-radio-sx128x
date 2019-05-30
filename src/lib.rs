@@ -185,7 +185,7 @@ where
 
         // Update power amplifier configuration
         if self.config.pa_config != config.pa_config || force {
-            self.set_power(config.pa_config.ramp_time, config.pa_config.power)?;
+            self.set_power_ramp(config.pa_config.ramp_time, config.pa_config.power)?;
             self.config.pa_config = config.pa_config.clone();
         }
 
@@ -245,7 +245,18 @@ where
         self.hal.write_cmd(Commands::SetRfFrequency as u8, &data)
     }
 
-    pub fn set_power(&mut self, ramp: RampTime, power: i8) -> Result<(), Error<CommsError, PinError>> {
+    pub fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Setting TX power ({} dBm)", power);
+
+        // Limit to -18 to +13 dBm
+        let power = core::cmp::min(power, -18);
+        let power = core::cmp::max(power, 13);
+        let power = (power + 18) as u8;
+
+        self.hal.write_cmd(Commands::SetTxParams as u8, &[ power ])
+    }
+
+    pub (crate) fn set_power_ramp(&mut self, ramp: RampTime, power: i8) -> Result<(), Error<CommsError, PinError>> {
         debug!("Setting TX power ({:?}, {} dBm)", ramp, power);
 
         // Limit to -18 to +13 dBm

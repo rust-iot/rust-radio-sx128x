@@ -91,6 +91,10 @@ pub struct Transmit {
     #[structopt(long = "continuous")]
     continuous: bool,
 
+    /// Power in dBm
+    #[structopt(long = "power", default_value="13")]
+    power: i8,
+
     /// Specify period for transmission
     #[structopt(long = "period", default_value="1s")]
     pub period: Duration,
@@ -181,7 +185,9 @@ fn main() {
             let version = radio.firmware_version().expect("error fetching firmware version");
             info!("Firmware version: 0x{:X}", version);
         },
-                Command::Transmit(config) => {
+        Command::Transmit(config) => {
+            radio.set_power(config.power).expect("error setting power");
+
             loop {
                 radio.start_transmit( config.data.as_bytes() ).expect("error starting send");
                 loop {
