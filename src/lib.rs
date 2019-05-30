@@ -4,9 +4,11 @@
 #![no_std]
 
 use core::marker::PhantomData;
+use core::convert::TryFrom;
 
 extern crate libc;
 
+#[macro_use]
 extern crate log;
 
 #[cfg(test)]
@@ -26,13 +28,14 @@ extern crate embedded_spi;
 use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
 extern crate radio;
-use radio::{Transmit, Receive, Channel, Interrupts};
+pub use radio::{Transmit, Receive, Channel, Interrupts, Rssi};
 
 pub mod base;
 use base::Hal;
 
 pub mod device;
 use device::*;
+pub use device::Config;
 
 /// Sx128x Spi operating mode
 pub const SPI_MODE: SpiMode = SpiMode {
@@ -41,7 +44,6 @@ pub const SPI_MODE: SpiMode = SpiMode {
 };
 
 /// Sx128x device object
-#[repr(C)]
 pub struct Sx128x<Base, CommsError, PinError> {
     config: Config,
     
@@ -52,6 +54,7 @@ pub struct Sx128x<Base, CommsError, PinError> {
     _pe: PhantomData<PinError>,
 }
 
+#[derive(Clone, PartialEq, Debug)]
 pub struct Settings {
     pub xtal_freq: u32,
 }
@@ -92,6 +95,14 @@ pub enum Error<CommsError, PinError> {
     Pin(PinError),
     /// Transaction aborted
     Aborted,
+    /// Timeout by device
+    Timeout,
+    /// CRC error on received message
+    InvalidCrc,
+    /// Radio returned an invalid device firmware version
+    InvalidDevice(u16),
+    /// Radio returned an invalid response
+    InvalidResponse(u8),
 }
 
 impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<CommsError, PinError> {
@@ -112,13 +123,13 @@ where
     Delay: delay::DelayMs<u32>,
 {
     /// Create an Sx128x with the provided `Spi` implementation and pins
-    pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, settings: Settings) -> Result<Self, Error<CommsError, PinError>> {
+    pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, settings: Settings, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
         // Create SpiWrapper over spi/cs/busy
         let mut hal = SpiWrapper::new(spi, cs, delay);
         hal.with_busy(busy);
         hal.with_reset(sdn);
         // Create instance with new hal
-        Self::new(hal, settings)
+        Self::new(hal, settings, config)
     }
 }
 
@@ -128,22 +139,27 @@ where
     Hal: base::Hal<CommsError, PinError>,
 {
     /// Create a new Sx128x instance over a generic Hal implementation
-    pub fn new(hal: Hal, settings: Settings) -> Result<Self, Error<CommsError, PinError>> {
+    pub fn new(hal: Hal, settings: Settings, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
 
         let mut sx128x = Self::build(hal, settings);
 
         // Reset IC
         sx128x.hal.reset()?;
 
-        // Calibrate RX chain
-        //sx1280::RxChainCalibration(&sx128x.c);
+        // Check communication with the radio
+        let firmware_version = sx128x.firmware_version()?;
+        if firmware_version != 0xA9B5 {
+            return Err(Error::InvalidDevice(firmware_version));
+        }
 
-        // Init IRQs (..?)
+        // TODO: do we need to calibrate things here?
+        //sx128x.calibrate(CalibrationParams::default())?;
 
-        // Confiure modem(s)
+        // Configure device prior to use
+        sx128x.configure(config, true)?;
 
         // Set state to idle
-
+        sx128x.hal.write_cmd(Commands::SetStandby as u8, &[])?;
 
         Ok(sx128x)
     }
@@ -158,10 +174,55 @@ where
         }
     }
 
-    pub fn get_status(&mut self) -> Result<u8, Error<CommsError, PinError>> {
+    pub fn configure(&mut self, config: &Config, force: bool) -> Result<(), Error<CommsError, PinError>> {
+        // Update regulator mode
+        if self.config.regulator_mode != config.regulator_mode || force {
+            self.set_regulator_mode(config.regulator_mode)?;
+            self.config.regulator_mode = config.regulator_mode;
+        }
+
+        // Set frequency
+        self.set_frequency(config.frequency)?;
+
+        // Update power amplifier configuration
+        if self.config.pa_config != config.pa_config || force {
+            self.set_power(config.pa_config.ramp_time, config.pa_config.power)?;
+            self.config.pa_config = config.pa_config.clone();
+        }
+
+        // Update modulation and packet configuration
+        if self.config.modulation_config != config.modulation_config || force {
+            self.set_modulation_mode(&config.modulation_config)?;
+            self.config.modulation_config = config.modulation_config.clone();
+        }
+
+        if self.config.packet_config != config.packet_config || force {
+            self.set_packet_mode(&config.packet_config)?;
+            self.config.packet_config = config.packet_config.clone();
+        }
+
+        Ok(())
+    }
+
+    pub fn get_mode(&mut self) -> Result<Mode, Error<CommsError, PinError>> {
         let mut d = [0u8; 1];
         self.hal.read_cmd(Commands::GetStatus as u8, &mut d)?;
-        Ok(d[0])
+        let m = Mode::try_from(d[0]).map_err(|_| Error::InvalidResponse(d[0]) )?;
+        Ok(m)
+    }
+
+    pub fn set_mode(&mut self, mode: Mode) -> Result<(), Error<CommsError, PinError>> {
+        let command = match mode {
+            Mode::Tx => Commands::SetTx,
+            Mode::Rx => Commands::SetRx,
+            Mode::Cad => Commands::SetCad,
+            Mode::Fs => Commands::SetFs,
+            Mode::StandbyRc | Mode::StandbyXosc => Commands::SetStandby,
+            Mode::Sleep => Commands::SetSleep,
+            _ => unimplemented!()
+        };
+
+        self.hal.write_cmd(command as u8, &[])
     }
 
     pub fn firmware_version(&mut self) -> Result<u16, Error<CommsError, PinError>> {
@@ -175,6 +236,8 @@ where
     pub fn set_frequency(&mut self, f: u32) -> Result<(), Error<CommsError, PinError>> {
         let c = self.settings.freq_to_steps(f as f32) as u32;
 
+        debug!("Setting frequency ({:?} MHz, {} index)", f / 1000 / 1000, c);
+
         let data: [u8; 3] = [
             (c >> 16) as u8,
             (c >> 8) as u8,
@@ -184,29 +247,39 @@ where
         self.hal.write_cmd(Commands::SetRfFrequency as u8, &data)
     }
 
-    pub fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError>> {
+    pub fn set_power(&mut self, ramp: RampTime, power: i8) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Setting TX power ({:?}, {} dBm)", ramp, power);
+
         // Limit to -18 to +13 dBm
         let power = core::cmp::min(power, -18);
         let power = core::cmp::max(power, 13);
         let power = (power + 18) as u8;
 
-        self.hal.write_cmd(Commands::SetTxParams as u8, &[power])
+        self.hal.write_cmd(Commands::SetTxParams as u8, &[ power, ramp as u8 ])
     }
 
-    pub(crate) fn write_modulation_params(&mut self, modulation: ModulationConfig) -> Result<(), Error<CommsError, PinError>> {
-        use ModulationConfig::*;
+    pub fn set_irq_mask(&mut self, irq: Irq) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Setting IRQ mask {:?}", irq);
+        let raw = irq.bits();
+        self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
+    }
+
+    pub(crate) fn set_modulation_mode(&mut self, modulation: &ModulationMode) -> Result<(), Error<CommsError, PinError>> {
+        use ModulationMode::*;
+
+        debug!("Setting modulation config: {:?}", modulation);
 
         // First update packet type
-        let packet_type = PacketType::from(&modulation);
+        let packet_type = PacketType::from(modulation);
         if self.config.packet_type != packet_type {
             self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
             self.config.packet_type = packet_type;
         }
 
         // Then write modulation configuration
-        let data = match &modulation {
+        let data = match modulation {
             Gfsk(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
-            LoRa(c) => [c.spreading_factor as u8, c.bandwidth as u8, c.coding_rate as u8],
+            LoRa(c) | Ranging(c) => [c.spreading_factor as u8, c.bandwidth as u8, c.coding_rate as u8],
             Flrc(c) => [c.bitrate_bandwidth as u8, c.coding_rate as u8, c.modulation_shaping as u8],
             Ble(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
         };
@@ -214,19 +287,21 @@ where
         self.hal.write_cmd(Commands::SetModulationParams as u8, &data)
     }
 
-    pub(crate) fn write_packet_params(&mut self, packet: PacketConfig) -> Result<(), Error<CommsError, PinError>> {
-        use PacketConfig::*;
+    pub(crate) fn set_packet_mode(&mut self, packet: &PacketMode) -> Result<(), Error<CommsError, PinError>> {
+        use PacketMode::*;
+
+        debug!("Setting packet config: {:?}", packet);
 
         // First update packet type
-        let packet_type = PacketType::from(&packet);
+        let packet_type = PacketType::from(packet);
         if self.config.packet_type != packet_type {
             self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
             self.config.packet_type = packet_type;
         }
 
-        let data = match &packet {
+        let data = match packet {
             Gfsk(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
-            LoRa(c) => [c.preamble_length as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.invert_iq as u8, 0u8, 0u8],
+            LoRa(c) | Ranging(c) => [c.preamble_length as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.invert_iq as u8, 0u8, 0u8],
             Flrc(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
             Ble(c) => [c.connection_state as u8, c.crc_field as u8, c.packet_type as u8, c.whitening as u8, 0u8, 0u8, 0u8],
             None => [0u8; 7],
@@ -234,28 +309,30 @@ where
         self.hal.write_cmd(Commands::SetPacketParams as u8, &data)
     }
 
-    pub(crate) fn get_rx_buffer_status(&mut self) -> Result<(), Error<CommsError, PinError>> {
+    pub(crate) fn get_rx_buffer_status(&mut self) -> Result<(u8, u8), Error<CommsError, PinError>> {
         use device::lora::LoRaHeader;
 
         let mut status = [0u8; 2];
 
         self.hal.read_cmd(Commands::GetRxBufferStatus as u8, &mut status)?;
 
-        let len = match self.config.mode.packet_config() {
-            PacketConfig::LoRa(c) => {
+        let len = match &self.config.packet_config {
+            PacketMode::LoRa(c) => {
                 match c.header_type {
                     LoRaHeader::Implicit => self.hal.read_reg(Registers::LrPayloadLength as u8)?,
                     LoRaHeader::Explicit => status[0],
                 }
             },
             // BLE status[0] does not include 2-byte PDU header
-            PacketConfig::Ble(_) => status[0] + 2,
+            PacketMode::Ble(_) => status[0] + 2,
             _ => status[0]
         };
 
-        let _rx_buff_ptr = status[1];
+        let rx_buff_ptr = status[1];
 
-        Ok(())
+        debug!("RX buffer ptr: {} len: {}", rx_buff_ptr, len);
+
+        Ok((rx_buff_ptr, len))
     }
 
     
@@ -268,7 +345,7 @@ where
         info.tx_rx_status = TxRxStatus::from_bits(data[3]).unwrap();
         info.sync_addr_status = data[4] & 0x70;
 
-        match self.config.mode.packet_type() {
+        match self.config.packet_type {
             PacketType::Gfsk | PacketType::Flrc | PacketType::Ble => {
                 info.rssi = -(data[0] as i16) / 2;
                 info.rssi_sync = Some(-(data[1] as i16) / 2);
@@ -283,33 +360,18 @@ where
             PacketType::None => unimplemented!(),
         }
 
+        debug!("RX packet info {:?}", info);
+
         Ok(())
     }
 
-    pub(crate) fn get_rssi(&mut self) -> Result<i16, Error<CommsError, PinError>> {
-        let mut raw = [0u8; 1];
-        self.hal.read_cmd(Commands::GetRssiInst as u8, &mut raw)?;
-        Ok(-(raw[0] as i16) / 2)
-    }
-
-    pub(crate) fn get_irq(&mut self, clear: bool) -> Result<Irq, Error<CommsError, PinError>> {
-        let mut raw = [0u8; 2];
-        // Read IRQ flags
-        self.hal.read_cmd(Commands::GetIrqStatus as u8, &mut raw)?;
-        let irq = Irq::from_bits((raw[0] as u16) << 8 | (raw[1] as u16)).unwrap();
-        // Clear register if requested
-        if clear {
-            self.hal.write_cmd(Commands::ClearIrqStatus as u8, &raw)?;
-        }
-        // Return IRQ object
-        Ok(irq)
-    }
-
     pub(crate) fn calibrate(&mut self, c: CalibrationParams) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Calibrate {:?}", c);
         self.hal.write_cmd(Commands::Calibrate as u8, &[ c.bits() ])
     }
 
     pub(crate) fn set_regulator_mode(&mut self, r: RegulatorMode) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Set regulator mode {:?}", r);
         self.hal.write_cmd(Commands::SetRegulatorMode as u8, &[ r as u8 ])
     }
 
@@ -324,8 +386,10 @@ where
         self.hal.write_cmd(Commands::SetAutoTx as u8, &data)
     }
 
-
-
+    pub(crate) fn set_buff_base_addr(&mut self, tx: u8, rx: u8) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Set buff base address (tx: {}, rx: {})", tx, rx);
+        self.hal.write_cmd(Commands::SetBufferBaseAddress as u8, &[ tx, rx ])
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -339,6 +403,19 @@ pub struct Info {
     sync_addr_status: u8,
 }
 
+impl Default for Info {
+    fn default() -> Self {
+        Self {
+            rssi: -100,
+            rssi_sync: None,
+            snr: None,
+            packet_status: PacketStatus::empty(),
+            tx_rx_status: TxRxStatus::empty(),
+            sync_addr_status: 0,
+        }
+    }
+}
+
 impl<Hal, CommsError, PinError> Channel for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
@@ -346,7 +423,7 @@ where
     type Channel = ();
     type Error = Error<CommsError, PinError>;
 
-    fn set_channel(&mut self, ch: &Self::Channel) -> Result<(), Self::Error> {
+    fn set_channel(&mut self, _ch: &Self::Channel) -> Result<(), Self::Error> {
         unimplemented!()
     }
 }
@@ -355,11 +432,20 @@ impl<Hal, CommsError, PinError> Interrupts for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
-    type Irq = ();
+    type Irq = Irq;
     type Error = Error<CommsError, PinError>;
 
     fn get_interrupts(&mut self, clear: bool) -> Result<Self::Irq, Self::Error> {
-        unimplemented!()
+        let mut data = [0u8; 2];
+
+        self.hal.read_cmd(Commands::GetIrqStatus as u8, &mut data)?;
+        let irq = Irq::from_bits((data[0] as u16) << 8 | data[1] as u16).unwrap();
+
+        if clear && !irq.is_empty() {
+            self.hal.write_cmd(Commands::ClearIrqStatus as u8, &data)?;
+        }
+
+        Ok(irq)
     }
 }
 
@@ -370,11 +456,53 @@ where
     type Error = Error<CommsError, PinError>;
 
     fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
-        unimplemented!()
+        info!("TX start");
+
+        // Set packet mode
+        let mut config = self.config.packet_config.clone();
+        config.set_payload_len(data.len() as u8);
+        self.set_packet_mode(&config)?;
+
+        // Reset buffer addr
+        self.set_buff_base_addr(0, 0)?;
+        
+        // Write data to be sent
+        self.hal.write_buff(0, data)?;
+        
+        // Configure ranging if used
+        if PacketType::Ranging == self.config.packet_type {
+            self.hal.write_cmd(Commands::SetRangingRole as u8, &[ RangingRole::Initiator as u8 ])?;
+        }
+
+        // Setup timout
+        let config = [
+            self.config.timeout.step() as u8,
+            (( self.config.timeout.count() >> 8 ) & 0x00FF ) as u8,
+            (self.config.timeout.count() & 0x00FF ) as u8,
+        ];
+        
+        // Enable IRQs
+        self.set_irq_mask(Irq::TX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
+
+        // Enter transmit mode
+        self.hal.write_cmd(Commands::SetTx as u8, &config)?;
+
+        Ok(())
     }
 
     fn check_transmit(&mut self) -> Result<bool, Self::Error> {
-        unimplemented!()
+        let irq = self.get_interrupts(true)?;
+
+        if irq.contains(Irq::TX_DONE) {
+            debug!("TX complete");
+            Ok(true)
+        } else if irq.contains(Irq::RX_TX_TIMEOUT) {
+            debug!("TX timeout");
+            Err(Error::Timeout)
+        } else {
+            trace!("TX poll (irq: {:?}", irq);
+            Ok(false)
+        }
     }
 }
 
@@ -382,21 +510,99 @@ impl<Hal, CommsError, PinError> Receive for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
-    type Info = ();
+    type Info = Info;
     type Error = Error<CommsError, PinError>;
 
     fn start_receive(&mut self) -> Result<(), Self::Error> {
-        unimplemented!()
+        debug!("RX start");
+
+        // Reset buffer addr
+        self.set_buff_base_addr(0, 0)?;
+        
+        // Set packet mode
+        let config = self.config.packet_config.clone();
+        self.set_packet_mode(&config)?;
+
+        // Configure ranging if used
+        if PacketType::Ranging == self.config.packet_type {
+            self.hal.write_cmd(Commands::SetRangingRole as u8, &[ RangingRole::Responder as u8 ])?;
+        }
+
+        // Setup timout
+        let config = [
+            self.config.timeout.step() as u8,
+            (( self.config.timeout.count() >> 8 ) & 0x00FF ) as u8,
+            (self.config.timeout.count() & 0x00FF ) as u8,
+        ];
+        
+        // Enable IRQs
+        self.set_irq_mask(Irq::RX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
+
+        // Enter transmit mode
+        self.hal.write_cmd(Commands::SetRx as u8, &config)?;
+
+        Ok(())
     }
 
     fn check_receive(&mut self, restart: bool) -> Result<bool, Self::Error> {
-        unimplemented!()
+        let irq = self.get_interrupts(true)?;
+        let mut res = Ok(false);
+       
+        // Process flags
+        if irq.contains(Irq::RX_DONE) {
+            debug!("RX complete");
+            res = Ok(true);
+        } else if irq.contains(Irq::CRC_ERROR) {
+            debug!("RX CRC error");
+            res = Err(Error::InvalidCrc);
+        } else if irq.contains(Irq::RX_TX_TIMEOUT) {
+            debug!("RX timeout");
+            res = Err(Error::Timeout);
+        } else   {
+            trace!("RX poll (irq: {:?})", irq);
+        }
+
+        match (restart, res) {
+            (true, Err(_)) => {
+                debug!("RX restarting");
+                self.start_receive()?;
+                Ok(false)
+            },
+            (_, r) => r
+        }
     }
 
     fn get_received<'a>(&mut self, info: &mut Self::Info, data: &'a mut [u8]) -> Result<usize, Self::Error> {
-        unimplemented!()
+        // Fetch RX buffer information
+        let (ptr, len) = self.get_rx_buffer_status()?;
+
+        debug!("RX get received, ptr: {} len: {}", ptr, len);
+
+        // Read from the buffer at the provided pointer
+        self.hal.read_buff(ptr, &mut data[..len as usize])?;
+
+        // Fetch related information
+        self.get_packet_info(info)?;
+
+        debug!("RX info: {:?}", info);
+
+        // Return read length
+        Ok(len as usize)
     }
 
+}
+
+impl<Hal, CommsError, PinError> Rssi for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    type Error = Error<CommsError, PinError>;
+
+    fn poll_rssi(&mut self) -> Result<i16, Error<CommsError, PinError>> {
+        let mut raw = [0u8; 1];
+        self.hal.read_cmd(Commands::GetRssiInst as u8, &mut raw)?;
+        Ok(-(raw[0] as i16) / 2)
+    }
 }
 
 #[cfg(test)]
@@ -427,7 +633,7 @@ mod tests {
         let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
 
         m.expect(vectors::status(&spi, &sdn, &delay));
-        radio.get_status().unwrap();
+        radio.get_mode().unwrap();
         m.finalise();
     }
 

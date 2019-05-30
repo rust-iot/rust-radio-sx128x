@@ -16,110 +16,87 @@ pub mod common;
 /// Sx128x configuration object
 #[derive(Clone, PartialEq, Debug)]
 pub struct Config {
+    pub frequency: u32,
     pub regulator_mode: RegulatorMode,
-    pub ramp_time: RampTime,
-    pub packet_type: PacketType,
-    pub mode: OperatingMode,
+    pub pa_config: PaConfig,
+    pub(crate) packet_type: PacketType,
+    pub modulation_config: ModulationMode,
+    pub packet_config: PacketMode,
+    pub timeout: Timeout,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Config{
-            regulator_mode: RegulatorMode::Ldo,
-            ramp_time: RampTime::Ramp04Us,
+            frequency: 2.4e9 as u32,
+            regulator_mode: RegulatorMode::Dcdc,
+            pa_config: PaConfig{ power: 10, ramp_time: RampTime::Ramp20Us },
             packet_type: PacketType::None,
-            mode: OperatingMode::None,
+            modulation_config: ModulationMode::LoRa(LoRaConfig::default()),
+            packet_config: PacketMode::LoRa(LoRaPacketConfig::default()),
+            //timeout: Timeout::Configurable{ step: TickSize::TickSize1000us, count: 1000 },
+            timeout: Timeout::Single,
         }
     }
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub enum OperatingMode {
-    Gfsk(GfskConfig, GfskPacketConfig),
-    LoRa(LoRaConfig, LoRaPacketConfig),
-    Flrc(FlrcConfig, FlrcPacketConfig),
-    Ble(BleConfig, BlePacketConfig),
-    Ranging(LoRaConfig, LoRaPacketConfig),
+pub struct PaConfig {
+    pub power: i8,
+    pub ramp_time: RampTime,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum ModulationMode {
+    Gfsk(GfskConfig),
+    LoRa(LoRaConfig),
+    Flrc(FlrcConfig),
+    Ble(BleConfig),
+    Ranging(LoRaConfig),
+}
+
+impl From<&ModulationMode> for PacketType {
+    fn from(m: &ModulationMode) -> Self {
+         match m {
+            ModulationMode::Gfsk(_) => PacketType::Gfsk,
+            ModulationMode::LoRa(_) => PacketType::LoRa,
+            ModulationMode::Ranging(_) => PacketType::LoRa,
+            ModulationMode::Flrc(_) => PacketType::Flrc,
+            ModulationMode::Ble(_) => PacketType::Ble,
+        }
+    }
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum PacketMode {
+    Gfsk(GfskPacketConfig),
+    LoRa(LoRaPacketConfig),
+    Flrc(FlrcPacketConfig),
+    Ble(BlePacketConfig),
+    Ranging(LoRaPacketConfig),
     None,
 }
 
-impl OperatingMode {
-    pub fn packet_type(&mut self) -> PacketType {
+impl PacketMode {
+    pub fn set_payload_len(&mut self, len: u8) {
         match self {
-            OperatingMode::Gfsk(_, _) => PacketType::Gfsk,
-            OperatingMode::LoRa(_, _) => PacketType::LoRa,
-            OperatingMode::Flrc(_, _) => PacketType::Flrc,
-            OperatingMode::Ble(_, _) => PacketType::Ble,
-            OperatingMode::Ranging(_, _) => PacketType::LoRa,
-            OperatingMode::None => PacketType::None,
-        }
-    }
-
-    pub fn modulation_config(&self) -> ModulationConfig {
-         match self {
-            OperatingMode::Gfsk(m, _p) => ModulationConfig::Gfsk(m),
-            OperatingMode::LoRa(m, _p) => ModulationConfig::LoRa(m),
-            OperatingMode::Flrc(m, _p) => ModulationConfig::Flrc(m),
-            OperatingMode::Ble(m, _p) => ModulationConfig::Ble(m),
-            OperatingMode::Ranging(m, p_) => ModulationConfig::LoRa(m),
-            OperatingMode::None => unimplemented!()
-        }
-    }
-
-    pub fn packet_config(&self) -> PacketConfig {
-         match self {
-            OperatingMode::Gfsk(_m, p) => PacketConfig::Gfsk(p),
-            OperatingMode::LoRa(_m, p) => PacketConfig::LoRa(p),
-            OperatingMode::Flrc(_m, p) => PacketConfig::Flrc(p),
-            OperatingMode::Ble(_m, p) => PacketConfig::Ble(p),
-            OperatingMode::Ranging(_m, p) => PacketConfig::LoRa(p),
-            OperatingMode::None => PacketConfig::None,
+            PacketMode::Gfsk(c) => c.payload_length = len,
+            PacketMode::LoRa(c) => c.payload_length = len,
+            PacketMode::Flrc(c) => c.payload_length = len,
+            _ => (),
         }
     }
 }
 
-/// Device modulation configuration
-#[derive(Clone, PartialEq, Debug)]
-pub enum ModulationConfig<'a> {
-    Gfsk(&'a GfskConfig),
-    LoRa(&'a LoRaConfig),
-    Flrc(&'a FlrcConfig),
-    Ble(&'a BleConfig),
-}
-
-impl <'a> From<&ModulationConfig<'a>> for PacketType {
-    fn from(c: &ModulationConfig) -> PacketType {
-        use ModulationConfig::*;
-        
-        match c {
-            Gfsk(_) => PacketType::Gfsk,
-            LoRa(_) => PacketType::LoRa,
-            Flrc(_) => PacketType::Flrc,
-            Ble(_) => PacketType::Ble,
-        }
-    }
-}
-
-/// Device packet configuration
-#[derive(Clone, PartialEq, Debug)]
-pub enum PacketConfig<'a> {
-    Gfsk(&'a GfskPacketConfig),
-    LoRa(&'a LoRaPacketConfig),
-    Flrc(&'a FlrcPacketConfig),
-    Ble(&'a BlePacketConfig),
-    None,
-}
-
-impl <'a> From<&PacketConfig<'a>> for PacketType {
-    fn from(c: &PacketConfig) -> PacketType {
-        use PacketConfig::*;
-        
-        match c {
-            Gfsk(_) => PacketType::Gfsk,
-            LoRa(_) => PacketType::LoRa,
-            Flrc(_) => PacketType::Flrc,
-            Ble(_) => PacketType::Ble,
-            None => PacketType::None,
+impl From<&PacketMode> for PacketType {
+    fn from(m: &PacketMode) -> Self {
+         match m {
+            PacketMode::Gfsk(_) => PacketType::Gfsk,
+            PacketMode::LoRa(_) => PacketType::LoRa,
+            PacketMode::Ranging(_) => PacketType::LoRa,
+            PacketMode::Flrc(_) => PacketType::Flrc,
+            PacketMode::Ble(_) => PacketType::Ble,
+            PacketMode::None => PacketType::None,
         }
     }
 }
@@ -139,22 +116,39 @@ pub enum State {
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Mode {
-    Sleep = 0x00,
-    StandbyRc,
-    StandbyXosc,
-    Fs,
-    Tx,
-    Rx,
-    Cad,
+    Sleep       = 0x00,
+    StandbyRc   = 0x01,
+    StandbyXosc = 0x02,
+    Fs          = 0x03,
+    Tx          = 0x04,
+    Rx          = 0x05,
+    Cad         = 0x06,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+impl core::convert::TryFrom<u8> for Mode {
+    type Error = ();
+
+    fn try_from(v: u8) -> Result<Mode, ()> {
+        match v {
+            0x00 => Ok(Mode::Sleep),
+            0x01 => Ok(Mode::StandbyRc),
+            0x02 => Ok(Mode::StandbyXosc),
+            0x03 => Ok(Mode::Fs),
+            0x04 => Ok(Mode::Tx),
+            0x05 => Ok(Mode::Rx),
+            0x06 => Ok(Mode::Cad),
+            _ => Err(())
+        }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum RegulatorMode {
     Ldo  = 0x00,
     Dcdc = 0x01,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum RampTime {
     Ramp02Us = 0x00,
     Ramp04Us = 0x20,
@@ -166,7 +160,7 @@ pub enum RampTime {
     Ramp20Us = 0xE0,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug)]
 pub enum PacketType {
     Gfsk     = 0x00,
     LoRa     = 0x01,
@@ -175,7 +169,6 @@ pub enum PacketType {
     Ble      = 0x04,
     None     = 0x0F,
 }
-
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Commands {
@@ -332,5 +325,47 @@ bitflags! {
         const PLLEnable         = (1 >> 2);
         const RC13MEnable       = (1 >> 1);
         const RC64KEnable       = (1 >> 0);
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum RangingRole {
+    Responder = 0x00,
+    Initiator = 0x01,
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum TickSize {
+    TickSize0015us   = 0x00,
+    TickSize0062us   = 0x01,
+    TickSize1000us   = 0x02,
+    TickSize4000us   = 0x03,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum Timeout {
+    Single,
+    Configurable {
+        step: TickSize,
+        count: u16,
+    },
+    Continuous,
+}
+
+impl Timeout {
+    pub fn step(&self) -> TickSize  {
+        match self {
+            Timeout::Single          => TickSize::TickSize0015us,
+            Timeout::Configurable{step, count: _} => *step,
+            Timeout::Continuous      => TickSize::TickSize0015us,
+        }
+    }
+
+    pub fn count(&self) -> u16 {
+        match self {
+            Timeout::Single          => 0x0000,
+            Timeout::Configurable{step, count} => *count,
+            Timeout::Continuous      => 0xFFFF,
+        }
     }
 }

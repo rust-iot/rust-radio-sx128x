@@ -21,8 +21,6 @@ pub struct BlePacketConfig {
     pub whitening: WhiteningModes,
 }
 
-
-
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum BleConnectionStates {
     BLE_PAYLOAD_LENGTH_MAX_31_BYTES         = 0x00,

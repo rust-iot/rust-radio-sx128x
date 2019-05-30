@@ -6,13 +6,18 @@ use simplelog::{TermLogger, LevelFilter};
 extern crate structopt;
 use structopt::StructOpt;
 
+extern crate humantime;
+use humantime::Duration;
+
 extern crate linux_embedded_hal;
 use linux_embedded_hal::{spidev, Spidev, Pin as PinDev, Delay};
 use linux_embedded_hal::sysfs_gpio::Direction;
 
+extern crate radio;
+use radio::{Transmit as _, Receive as _, Rssi as _};
 
 extern crate radio_sx128x;
-use radio_sx128x::{Sx128x, Settings};
+use radio_sx128x::{Sx128x, Info, Settings, Config};
 
 #[derive(StructOpt)]
 #[structopt(name = "Sx128x-util", about = "A Command Line Interface (CLI) for interacting with a local Sx128x radio device")]
@@ -62,7 +67,61 @@ pub enum Command {
     #[structopt(name="firmware-version")]
     /// Fetch the device firmware version
     FirmwareVersion,
+
+    #[structopt(name="tx")]
+    /// Transmit a (string) packet
+    Transmit(Transmit),
+
+    #[structopt(name="rx")]
+    /// Receive a (string) packet
+    Receive(Receive),
+
+    #[structopt(name="rssi")]
+    /// Poll for RSSI on the specified channel
+    Rssi(Rssi),
 }
+
+#[derive(StructOpt, PartialEq, Debug)]
+pub struct Transmit {
+    /// Data to be transmitted
+    #[structopt(long = "data")]
+    data: String,
+
+    /// Run continuously
+    #[structopt(long = "continuous")]
+    continuous: bool,
+
+    /// Specify period for transmission
+    #[structopt(long = "period", default_value="1s")]
+    pub period: Duration,
+
+    /// Specify period for polling for device status
+    #[structopt(long = "poll-interval", default_value="10ms")]
+    poll_interval: Duration,
+}
+
+#[derive(StructOpt, PartialEq, Debug)]
+pub struct Receive {
+    /// Run continuously
+    #[structopt(long = "continuous")]
+    continuous: bool,
+
+    /// Specify period for polling for device status
+    #[structopt(long = "poll-interval", default_value="10ms")]
+    poll_interval: Duration,
+}
+
+#[derive(StructOpt, PartialEq, Debug)]
+pub struct Rssi {
+    /// Specify period for RSSI polling
+    #[structopt(long = "period", default_value="1s")]
+    pub period: Duration,
+
+    /// Run continuously
+    #[structopt(long = "continuous")]
+    continuous: bool,
+}
+
 
 fn main() {
     // Load options
@@ -107,7 +166,12 @@ fn main() {
     debug!("Creating radio instance");
 
     let settings = Settings::default();
-    let mut radio = Sx128x::spi(spi, cs, busy, rst, Delay{}, settings).expect("error creating device");
+    let config = Config::default();
+
+    debug!("Settings: {:?}", settings);
+    debug!("Config: {:?}", config);
+
+    let mut radio = Sx128x::spi(spi, cs, busy, rst, Delay{}, settings, &config).expect("error creating device");
 
     debug!("Executing command");
 
@@ -116,6 +180,61 @@ fn main() {
         Command::FirmwareVersion => {
             let version = radio.firmware_version().expect("error fetching firmware version");
             info!("Firmware version: 0x{:X}", version);
+        },
+                Command::Transmit(config) => {
+            loop {
+                radio.start_transmit( config.data.as_bytes() ).expect("error starting send");
+                loop {
+                    let tx = radio.check_transmit().expect("error checking send");
+                    if tx {
+                        info!("Send complete");
+                        break;
+                    }
+                    std::thread::sleep(*config.poll_interval);
+                }
+
+                if !config.continuous {
+                    break;
+                }
+
+                std::thread::sleep(*config.period);
+            }
+        },
+        Command::Receive(config) => {
+            radio.start_receive().expect("error starting receive");
+            loop {
+                let rx = radio.check_receive(true).expect("error checking receive");
+                if rx {
+                    let mut buff = [0u8; 255];
+                    let mut info = Info::default();
+                    let n = radio.get_received(&mut info, &mut buff).expect("error fetching received data");
+
+                    debug!("received data: {:?}", &buff[0..n as usize]);
+
+                    let d = std::str::from_utf8(&buff[0..n as usize]).expect("error converting response to string");
+
+                    info!("Received: '{}'", d);
+
+                    if !config.continuous {
+                        break
+                    }
+                }
+                std::thread::sleep(*config.poll_interval);
+            }
+        },
+        Command::Rssi(config) => {
+            radio.start_receive().expect("error starting receive");
+            loop {
+                let rssi = radio.poll_rssi().expect("error fetching RSSI");
+
+                info!("rssi: {}", rssi);
+
+                std::thread::sleep(*config.period);
+
+                if !config.continuous {
+                    break
+                }
+            }
         }
         //_ => warn!("unsuppored command: {:?}", opts.command),
     }

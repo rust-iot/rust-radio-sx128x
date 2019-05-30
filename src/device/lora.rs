@@ -1,3 +1,4 @@
+use super::common::*;
 
 /// LoRa mode configuration
 #[derive(Clone, PartialEq, Debug)]
@@ -10,8 +11,8 @@ pub struct LoRaConfig {
 impl Default for LoRaConfig {
     fn default() -> Self {
         Self {
-            spreading_factor: LoRaSpreadingFactor::Sf7,
-            bandwidth: LoRaBandwidth::Bw0400,
+            spreading_factor: LoRaSpreadingFactor::Sf8,
+            bandwidth: LoRaBandwidth::Bw0200,
             coding_rate: LoRaCodingRate::Cr4_5,
         }
     }
@@ -27,6 +28,17 @@ pub struct LoRaPacketConfig {
     pub invert_iq: LoRaIq,
 }
 
+impl Default for LoRaPacketConfig {
+    fn default() -> Self {
+        Self {
+            preamble_length: 08,
+            header_type: LoRaHeader::Explicit,
+            payload_length: 0x40,
+            crc_mode: LoRaCrc::Enabled,
+            invert_iq: LoRaIq::Inverted,
+        }
+    }
+}
 
 /// Spreading factor for LoRa mode
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -44,10 +56,26 @@ pub enum LoRaSpreadingFactor {
 /// Bandwidth for LoRa mode
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LoRaBandwidth {
+    /// 200 kHz bandwidth mode (actually 203.125 kHz)
     Bw0200  = 0x34,
+    /// 400 kHz bandwidth mode (actually 406.250 kHz)
     Bw0400  = 0x26,
+    /// 800 kHz bandwidth mode (actually 812.500 kHz)
     Bw0800  = 0x18,
+    /// 1600 kHz bandwidth mode (actually 1625.000 kHz)
     Bw1600  = 0x0A,
+}
+
+impl LoRaBandwidth {
+    /// Fetch the bandwidth in Hz for a given bandwidth configuration
+    pub fn get_bw_hz(&self) -> u32 {
+        match self {
+            LoRaBandwidth::Bw0200 => 203125,
+            LoRaBandwidth::Bw0400 => 406250,
+            LoRaBandwidth::Bw0800 => 812500,
+            LoRaBandwidth::Bw1600 => 1625000,
+        }
+    }
 }
 
 /// Coding rates for LoRa mode
@@ -65,8 +93,8 @@ pub enum LoRaCodingRate {
 /// CRC mode for LoRa packet types
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum LoRaCrc {
-    On = 0x20,
-    Off = 0x00,
+    Enabled = 0x20,
+    Disabled = 0x00,
 }
 
 /// IQ mode for LoRa packet types
