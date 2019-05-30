@@ -235,6 +235,8 @@ fn main() {
 
                 info!("rssi: {}", rssi);
 
+                radio.check_receive(true).expect("error checking receive");
+
                 std::thread::sleep(*config.period);
 
                 if !config.continuous {
