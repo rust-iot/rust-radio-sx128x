@@ -364,7 +364,7 @@ impl Timeout {
     pub fn count(&self) -> u16 {
         match self {
             Timeout::Single          => 0x0000,
-            Timeout::Configurable{step, count} => *count,
+            Timeout::Configurable{step: _, count} => *count,
             Timeout::Continuous      => 0xFFFF,
         }
     }

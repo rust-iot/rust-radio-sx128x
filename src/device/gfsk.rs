@@ -1,3 +1,5 @@
+//! Gfsk mode device configuration definitions
+
 
 use super::common::*;
 

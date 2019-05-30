@@ -1,12 +1,11 @@
 //! Basic HAL functions for communicating with the radio device
 
 use hal::blocking::delay::DelayMs;
-use hal::digital::v2::{InputPin, OutputPin};
 
 use embedded_spi::{Transactional, Reset, Busy, PinState};
 use embedded_spi::{Error as WrapError};
 
-use crate::{Sx128x, Error};
+use crate::{Error};
 use crate::device::*;
 
 /// Comms implementation can be generic over SPI or UART connections

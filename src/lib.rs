@@ -31,7 +31,6 @@ extern crate radio;
 pub use radio::{Transmit, Receive, Channel, Interrupts, Rssi};
 
 pub mod base;
-use base::Hal;
 
 pub mod device;
 use device::*;
@@ -219,7 +218,6 @@ where
             Mode::Fs => Commands::SetFs,
             Mode::StandbyRc | Mode::StandbyXosc => Commands::SetStandby,
             Mode::Sleep => Commands::SetSleep,
-            _ => unimplemented!()
         };
 
         self.hal.write_cmd(command as u8, &[])
@@ -365,7 +363,7 @@ where
         Ok(())
     }
 
-    pub(crate) fn calibrate(&mut self, c: CalibrationParams) -> Result<(), Error<CommsError, PinError>> {
+    pub fn calibrate(&mut self, c: CalibrationParams) -> Result<(), Error<CommsError, PinError>> {
         debug!("Calibrate {:?}", c);
         self.hal.write_cmd(Commands::Calibrate as u8, &[ c.bits() ])
     }
@@ -375,6 +373,7 @@ where
         self.hal.write_cmd(Commands::SetRegulatorMode as u8, &[ r as u8 ])
     }
 
+    // TODO: this could got into a mode config object maybe?
     pub(crate) fn set_auto_tx(&mut self, a: AutoTx) -> Result<(), Error<CommsError, PinError>> {
         let data = match a {
             AutoTx::Enabled(timeout_us) => {

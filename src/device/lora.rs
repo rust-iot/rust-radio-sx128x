@@ -1,4 +1,4 @@
-use super::common::*;
+//! LoRa device configuration definitions
 
 /// LoRa mode configuration
 #[derive(Clone, PartialEq, Debug)]
