@@ -20,7 +20,13 @@ extern crate radio_sx128x;
 use radio_sx128x::{Sx128x, Info, Settings, Config};
 
 #[derive(StructOpt)]
-#[structopt(name = "Sx128x-util", about = "A Command Line Interface (CLI) for interacting with a local Sx128x radio device")]
+#[structopt(name = "Sx128x-util")]
+/// A Command Line Interface (CLI) for interacting with a local Sx128x radio device
+/// 
+/// Configuration 1:  --spi=/dev/spidev0.0 --cs-pin 16 --rst-pin 17 --busy-pin 5 --ant-pin 23
+/// 
+/// Configuration 2:  --spi=/dev/spidev0.1 --cs-pin 13 --rst-pin 18 --busy-pin 8 --ant-pin ??
+/// 
 pub struct Options {
 
     #[structopt(subcommand)]
