@@ -284,6 +284,8 @@ bitflags! {
 bitflags! {
     /// Packet status register
     pub struct PacketStatus: u8 {
+        /// Top flag value unknown due to lack of complete datasheet
+        const UNKNOWN               = 1 >> 7;
         const SYNC_ERROR            = 1 >> 6;
         const LENGTH_ERROR          = 1 >> 5;
         const CRC_ERROR             = 1 >> 4;
@@ -298,6 +300,8 @@ bitflags! {
 bitflags! {
     /// TxRx status register
     pub struct TxRxStatus: u8 {
+        /// Top flag value unknown due to lack of complete datasheet
+        const UNKNOWN               = 1 >> 7;
         const SYNC_ERROR            = 1 >> 6;
         const LENGTH_ERROR          = 1 >> 5;
         const CRC_ERROR             = 1 >> 4;
