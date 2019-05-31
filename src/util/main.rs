@@ -54,10 +54,6 @@ pub struct Options {
     #[structopt(long = "busy-pin", default_value = "5", env = "SX128X_BUSY")]
     busy: u64,
 
-    /// DIO1 pin
-    #[structopt(long = "dio1-pin", default_value = "20", env = "SX128X_DIO1")]
-    dio1: u64,
-
     /// Baud rate setting
     #[structopt(long = "baud", default_value = "1000000", env = "SX128X_BAUD")]
     baud: u32,
@@ -145,7 +141,7 @@ fn main() {
     // Connect to hardware
     let mut spi = Spidev::open(opts.spi).expect("error opening spi device");
     let mut config = spidev::SpidevOptions::new();
-    config.mode(spidev::SPI_MODE_0);
+    config.mode(spidev::SPI_MODE_0 | spidev::SPI_NO_CS);
     config.max_speed_hz(opts.baud);
     spi.configure(&config).expect("error configuring spi device");
 
@@ -168,10 +164,6 @@ fn main() {
     let busy = PinDev::new(opts.busy);
     busy.export().expect("error exporting busy pin");
     busy.set_direction(Direction::Out).expect("error setting busy pin direction");
-
-    let dio1 = PinDev::new(opts.dio1);
-    dio1.export().expect("error exporting dio1 pin");
-    dio1.set_direction(Direction::Out).expect("error setting dio1 pin direction");
 
     debug!("Creating radio instance");
 

@@ -260,8 +260,8 @@ where
         debug!("Setting TX power ({:?}, {} dBm)", ramp, power);
 
         // Limit to -18 to +13 dBm
-        let power = core::cmp::min(power, -18);
-        let power = core::cmp::max(power, 13);
+        let power = core::cmp::max(power, -18);
+        let power = core::cmp::min(power, 13);
         let power = (power + 18) as u8;
 
         self.hal.write_cmd(Commands::SetTxParams as u8, &[ power, ramp as u8 ])

@@ -10,11 +10,11 @@ use std::vec::Vec;
 
 use crate::device::*;
 
-pub fn reset(_spi: &Spi, sdn: &Pin, delay: &Delay) -> Vec<Mt> {
+pub fn reset(spi: &Spi, sdn: &Pin, delay: &Delay) -> Vec<Mt> {
     vec![
-        Mt::set_low(sdn),
+        Mt::reset(spi, PinState::Low),
         Mt::delay_ms(1),
-        Mt::set_high(sdn),
+        Mt::reset(spi, PinState::High),
         Mt::delay_ms(10),
     ]
 }
