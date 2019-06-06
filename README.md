@@ -8,7 +8,7 @@ A rust driver (and command line utility) for the [Semtech SX128x](https://www.se
 WIP. Basic LoRa functionality working.
 
 [![GitHub tag](https://img.shields.io/github/tag/ryankurte/rust-radio-sx128x.svg)](https://github.com/ryankurte/rust-radio-sx128x)
-[![Travis Build Status](https://travis-ci.com/ryankurte/rust-radio-sx128x.svg?branch=master](https://travis-ci.com/ryankurte/rust-radio-sx128x)
+[![Travis Build Status](https://travis-ci.com/ryankurte/rust-radio-sx128x.svg?branch=master)](https://travis-ci.com/ryankurte/rust-radio-sx128x)
 [![BuildKite Build Status](https://badge.buildkite.com/a8caa71f875a6ec62091a5dda4dbf7dc0e35eb4e02c8d0933b.svg)](https://buildkite.com/ryankurte/rust-radio-sx128x)
 [![Crates.io](https://img.shields.io/crates/v/radio-sx128x.svg)](https://crates.io/crates/radio-sx128x)
 [![Docs.rs](https://docs.rs/radio-sx128x/badge.svg)](https://docs.rs/radio-sx128x)
