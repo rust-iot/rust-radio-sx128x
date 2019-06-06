@@ -13,6 +13,9 @@ extern crate linux_embedded_hal;
 use linux_embedded_hal::{spidev, Spidev, Pin as PinDev, Delay};
 use linux_embedded_hal::sysfs_gpio::Direction;
 
+extern crate embedded_hal;
+use embedded_hal::digital::v2::OutputPin;
+
 extern crate radio;
 use radio::{Transmit as _, Receive as _, Rssi as _};
 
@@ -155,9 +158,10 @@ fn main() {
     rst.export().expect("error exporting rst pin");
     rst.set_direction(Direction::Out).expect("error setting rst pin direction");
 
-    let ant = PinDev::new(opts.ant);
+    let mut ant = PinDev::new(opts.ant);
     ant.export().expect("error exporting rst ant");
     ant.set_direction(Direction::Out).expect("error setting ant pin direction");
+    ant.set_high().expect("error setting ANT pin state");
 
     // TODO: set ant output
 
@@ -217,7 +221,7 @@ fn main() {
 
                     let d = std::str::from_utf8(&buff[0..n as usize]).expect("error converting response to string");
 
-                    info!("Received: '{}'", d);
+                    info!("Received: '{}' info: {:?}", d, info);
 
                     if !config.continuous {
                         break
