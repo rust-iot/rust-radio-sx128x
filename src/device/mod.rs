@@ -14,7 +14,7 @@ pub mod common;
 
 
 /// Sx128x configuration object
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Config {
     pub frequency: u32,
     pub regulator_mode: RegulatorMode,
@@ -40,13 +40,13 @@ impl Default for Config {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct PaConfig {
     pub power: i8,
     pub ramp_time: RampTime,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum ModulationMode {
     Gfsk(GfskConfig),
     LoRa(LoRaConfig),
@@ -67,7 +67,7 @@ impl From<&ModulationMode> for PacketType {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum PacketMode {
     Gfsk(GfskPacketConfig),
     LoRa(LoRaPacketConfig),
@@ -101,12 +101,12 @@ impl From<&PacketMode> for PacketType {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Channel {
 
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum State {
     Idle = 0x00,
     Rx,
@@ -114,7 +114,7 @@ pub enum State {
     Cad,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Mode {
     Sleep       = 0x00,
     StandbyRc   = 0x01,
@@ -142,13 +142,13 @@ impl core::convert::TryFrom<u8> for Mode {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RegulatorMode {
     Ldo  = 0x00,
     Dcdc = 0x01,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RampTime {
     Ramp02Us = 0x00,
     Ramp04Us = 0x20,
@@ -160,7 +160,7 @@ pub enum RampTime {
     Ramp20Us = 0xE0,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum PacketType {
     Gfsk     = 0x00,
     LoRa     = 0x01,
@@ -170,7 +170,7 @@ pub enum PacketType {
     None     = 0x0F,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Commands {
     GetStatus                = 0xC0,
     WiteRegister             = 0x18,
@@ -210,7 +210,7 @@ pub enum Commands {
     SetRangingRole           = 0xA3,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Registers {
     LrFirmwareVersionMsb               = 0x0153,
     LrCrcSeedBaseAddr                  = 0x09C8,
@@ -250,7 +250,7 @@ pub const MASK_LR_ESTIMATED_FREQUENCY_ERROR: u32 = 0x0FFFFF;
 
 pub const AUTO_RX_TX_OFFSET: u16 = 33;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum AutoTx {
     /// Enable AutoTX with the provided timeout in microseconds (uS)
     Enabled(u16),
@@ -332,13 +332,13 @@ bitflags! {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RangingRole {
     Responder = 0x00,
     Initiator = 0x01,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum TickSize {
     TickSize0015us   = 0x00,
     TickSize0062us   = 0x01,
@@ -346,7 +346,7 @@ pub enum TickSize {
     TickSize4000us   = 0x03,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Timeout {
     Single,
     Configurable {

@@ -3,7 +3,7 @@
 use super::common::*;
 
 /// FLRC configuration structure
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct FlrcConfig {
     pub bitrate_bandwidth: FlrcBitrate,
     pub coding_rate: FlrcCodingRate,
@@ -11,7 +11,7 @@ pub struct FlrcConfig {
 }
 
 /// FLRC packet configuration structure
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct FlrcPacketConfig {
     pub preamble_length: PreambleLength,
     pub sync_word_length: FlrcSyncWordLength,
@@ -23,7 +23,7 @@ pub struct FlrcPacketConfig {
 }
 
 /// Bit rate / bandwidht pairs for FLRC mode
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum FlrcBitrate {
     BR_2_600_BW_2_4                    = 0x04,
     BR_2_080_BW_2_4                    = 0x28,
@@ -36,7 +36,7 @@ pub enum FlrcBitrate {
 }
 
 /// Coding rates for FLRC mode
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum FlrcCodingRate {
     Cr1_2 = 0x00,
     Cr3_4 = 0x02,
@@ -44,7 +44,7 @@ pub enum FlrcCodingRate {
 }
 
 /// FLRC sync word length
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum FlrcSyncWordLength {
     None = 0x00,
     /// 4-byte sync word

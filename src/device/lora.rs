@@ -1,7 +1,7 @@
 //! LoRa device configuration definitions
 
 /// LoRa mode configuration
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct LoRaConfig {
     pub spreading_factor: LoRaSpreadingFactor,
     pub bandwidth: LoRaBandwidth,
@@ -19,7 +19,7 @@ impl Default for LoRaConfig {
 }
 
 /// LoRa packet configuration
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct LoRaPacketConfig {
     pub preamble_length: u8,
     pub header_type: LoRaHeader,
@@ -41,7 +41,7 @@ impl Default for LoRaPacketConfig {
 }
 
 /// Spreading factor for LoRa mode
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaSpreadingFactor {
     Sf5   = 0x50,
     Sf6   = 0x60,
@@ -54,7 +54,7 @@ pub enum LoRaSpreadingFactor {
 }
 
 /// Bandwidth for LoRa mode
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaBandwidth {
     /// 200 kHz bandwidth mode (actually 203.125 kHz)
     Bw0200  = 0x34,
@@ -79,7 +79,7 @@ impl LoRaBandwidth {
 }
 
 /// Coding rates for LoRa mode
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaCodingRate {
     Cr4_5    = 0x01,
     Cr4_6    = 0x02,
@@ -91,21 +91,21 @@ pub enum LoRaCodingRate {
 }
 
 /// CRC mode for LoRa packet types
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaCrc {
     Enabled = 0x20,
     Disabled = 0x00,
 }
 
 /// IQ mode for LoRa packet types
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaIq {
     Normal = 0x40,
     Inverted = 0x00,
 }
 
 /// Header configuration for LoRa packet types
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaHeader {
     // Variable length packets, header included
     Explicit = 0x00,

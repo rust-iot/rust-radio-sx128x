@@ -3,14 +3,14 @@
 use super::common::*;
 
 /// Configuration for BLE mode
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BleConfig {
     pub bitrate_bandwidth: GfskBleBitrate,
     pub modulation_index: GfskBleModIndex,
     pub modulation_shaping: ModShaping,
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BlePacketConfig {
     /// BLE connection state
     pub connection_state: BleConnectionStates,
@@ -22,7 +22,7 @@ pub struct BlePacketConfig {
     pub whitening: WhiteningModes,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum BleConnectionStates {
     BLE_PAYLOAD_LENGTH_MAX_31_BYTES         = 0x00,
     BLE_PAYLOAD_LENGTH_MAX_37_BYTES         = 0x20,
@@ -30,13 +30,13 @@ pub enum BleConnectionStates {
     BLE_PAYLOAD_LENGTH_MAX_255_BYTES        = 0x80,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum BleCrcFields {
     BLE_CRC_OFF                             = 0x00,
     BLE_CRC_3B                              = 0x10,
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum BlePacketTypes {
     /// Pseudo Random Binary Sequence based on 9th degree polynomial
     BLE_PRBS_9                              = 0x00,

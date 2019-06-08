@@ -11,6 +11,9 @@ extern crate libc;
 #[macro_use]
 extern crate log;
 
+#[macro_use]
+extern crate serde;
+
 #[cfg(test)]
 #[macro_use]
 extern crate std;

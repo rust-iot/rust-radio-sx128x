@@ -3,7 +3,7 @@
 
 use super::common::*;
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct GfskConfig {
     pub bitrate_bandwidth: GfskBleBitrate,
     pub modulation_index: GfskBleModIndex,
@@ -20,7 +20,7 @@ impl Default for GfskConfig {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct GfskPacketConfig {
     pub preamble_length: PreambleLength,
     pub sync_word_length: GfskSyncWordLength,
@@ -31,7 +31,7 @@ pub struct GfskPacketConfig {
     pub whitening: WhiteningModes
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum GfskSyncWordLength {
     /// Sync word length: 1 byte
     GFSK_SYNCWORD_LENGTH_1_BYTE              = 0x00,
