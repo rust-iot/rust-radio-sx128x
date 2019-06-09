@@ -31,7 +31,7 @@ extern crate embedded_spi;
 use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
 extern crate radio;
-pub use radio::{Transmit, Receive, Channel, Interrupts, Rssi};
+pub use radio::{Transmit, Receive, Channel, Power, Interrupts, Rssi};
 
 pub mod base;
 
@@ -248,17 +248,6 @@ where
         self.hal.write_cmd(Commands::SetRfFrequency as u8, &data)
     }
 
-    pub fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Setting TX power ({} dBm)", power);
-
-        // Limit to -18 to +13 dBm
-        let power = core::cmp::min(power, -18);
-        let power = core::cmp::max(power, 13);
-        let power = (power + 18) as u8;
-
-        self.hal.write_cmd(Commands::SetTxParams as u8, &[ power ])
-    }
-
     pub (crate) fn set_power_ramp(&mut self, ramp: RampTime, power: i8) -> Result<(), Error<CommsError, PinError>> {
         debug!("Setting TX power ({:?}, {} dBm)", ramp, power);
 
@@ -438,6 +427,23 @@ where
 
     fn set_channel(&mut self, _ch: &Self::Channel) -> Result<(), Self::Error> {
         unimplemented!()
+    }
+}
+
+impl<Hal, CommsError, PinError> Power for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    type Error = Error<CommsError, PinError>;
+    fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Setting TX power ({} dBm)", power);
+
+        // Limit to -18 to +13 dBm
+        let power = core::cmp::min(power, -18);
+        let power = core::cmp::max(power, 13);
+        let power = (power + 18) as u8;
+
+        self.hal.write_cmd(Commands::SetTxParams as u8, &[ power ])
     }
 }
 
