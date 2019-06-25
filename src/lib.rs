@@ -349,8 +349,8 @@ where
         let mut data = [0u8; 5];
         self.hal.read_cmd(Commands::GetPacketStatus as u8, &mut data)?;
 
-        info.packet_status = PacketStatus::from_bits(data[2]).unwrap();
-        info.tx_rx_status = TxRxStatus::from_bits(data[3]).unwrap();
+        info.packet_status = PacketStatus::from_bits_truncate(data[2]);
+        info.tx_rx_status = TxRxStatus::from_bits_truncate(data[3]);
         info.sync_addr_status = data[4] & 0x70;
 
         match self.config.packet_type {
