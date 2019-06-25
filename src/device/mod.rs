@@ -285,14 +285,14 @@ bitflags! {
     /// Packet status register
     pub struct PacketStatus: u8 {
         /// Top flag value unknown due to lack of complete datasheet
-        const UNKNOWN               = 1 >> 7;
-        const SYNC_ERROR            = 1 >> 6;
-        const LENGTH_ERROR          = 1 >> 5;
-        const CRC_ERROR             = 1 >> 4;
-        const ABORT_ERROR           = 1 >> 3;
-        const HEADER_RECEIVED       = 1 >> 2;
-        const PACKET_RECEIVED       = 1 >> 1;
-        const PACKET_CONTROLER_BUSY = 1 >> 0;
+        const UNKNOWN               = (1 << 7);
+        const SYNC_ERROR            = (1 << 6);
+        const LENGTH_ERROR          = (1 << 5);
+        const CRC_ERROR             = (1 << 4);
+        const ABORT_ERROR           = (1 << 3);
+        const HEADER_RECEIVED       = (1 << 2);
+        const PACKET_RECEIVED       = (1 << 1);
+        const PACKET_CONTROLER_BUSY = (1 << 0);
     }
 }
 
@@ -301,21 +301,21 @@ bitflags! {
     /// TxRx status register
     pub struct TxRxStatus: u8 {
         /// Top flag value unknown due to lack of complete datasheet
-        const UNKNOWN               = 1 >> 7;
-        const SYNC_ERROR            = 1 >> 6;
-        const LENGTH_ERROR          = 1 >> 5;
-        const CRC_ERROR             = 1 >> 4;
-        const ABORT_ERROR           = 1 >> 3;
-        const HEADER_RECEIVED       = 1 >> 2;
-        const PACKET_RECEIVED       = 1 >> 1;
-        const PACKET_CONTROLER_BUSY = 1 >> 0;
+        const UNKNOWN               = (1 << 7);
+        const SYNC_ERROR            = (1 << 6);
+        const LENGTH_ERROR          = (1 << 5);
+        const CRC_ERROR             = (1 << 4);
+        const ABORT_ERROR           = (1 << 3);
+        const HEADER_RECEIVED       = (1 << 2);
+        const PACKET_RECEIVED       = (1 << 1);
+        const PACKET_CONTROLER_BUSY = (1 << 0);
     }
 }
 
 bitflags! {
     /// TxRx status register
     pub struct SyncAddrStatus: u8 {
-        const SYNC_ERROR            = 1 >> 6;
+        const SYNC_ERROR            = (1 << 6);
     }
 }
 
@@ -323,12 +323,12 @@ bitflags! {
 bitflags! {
     /// Radio calibration parameters
     pub struct CalibrationParams: u8 {
-        const ADCBulkPEnable    = (1 >> 5);
-        const ADCBulkNEnable    = (1 >> 4);
-        const ADCPulseEnable    = (1 >> 3);
-        const PLLEnable         = (1 >> 2);
-        const RC13MEnable       = (1 >> 1);
-        const RC64KEnable       = (1 >> 0);
+        const ADCBulkPEnable    = (1 << 5);
+        const ADCBulkNEnable    = (1 << 4);
+        const ADCPulseEnable    = (1 << 3);
+        const PLLEnable         = (1 << 2);
+        const RC13MEnable       = (1 << 1);
+        const RC64KEnable       = (1 << 0);
     }
 }
 
