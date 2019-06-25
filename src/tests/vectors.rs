@@ -39,3 +39,17 @@ pub fn firmware_version(spi: &Spi, _sdn: &Pin, _delay: &Delay, version: u16) -> 
         Mt::busy(&spi, PinState::Low),
     ]
 }
+
+
+pub fn set_power_ramp(spi: &Spi, _sdn: &Pin, _delay: &Delay, power_reg: u8, ramp_reg: u8) -> Vec<Mt> {
+    vec![
+        Mt::busy(&spi, PinState::Low),
+        Mt::spi_write(&spi, &[
+            Commands::SetTxParams as u8,
+        ], &[
+            power_reg, 
+            ramp_reg,
+        ]),
+        Mt::busy(&spi, PinState::Low),
+    ]
+}

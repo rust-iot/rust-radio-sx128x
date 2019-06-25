@@ -188,7 +188,7 @@ where
 
         // Update power amplifier configuration
         if self.config.pa_config != config.pa_config || force {
-            self.set_power_ramp(config.pa_config.ramp_time, config.pa_config.power)?;
+            self.set_power_ramp(config.pa_config.power, config.pa_config.ramp_time)?;
             self.config.pa_config = config.pa_config.clone();
         }
 
@@ -248,15 +248,22 @@ where
         self.hal.write_cmd(Commands::SetRfFrequency as u8, &data)
     }
 
-    pub (crate) fn set_power_ramp(&mut self, ramp: RampTime, power: i8) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Setting TX power ({:?}, {} dBm)", ramp, power);
+    pub (crate) fn set_power_ramp(&mut self, power: i8, ramp: RampTime) -> Result<(), Error<CommsError, PinError>> {
+        
+        if power > 13 || power < -18 {
+            warn!("TX power out of range (-18 < p < 13)");
+        }
 
         // Limit to -18 to +13 dBm
-        let power = core::cmp::max(power, -18);
-        let power = core::cmp::min(power, 13);
-        let power = (power + 18) as u8;
+        let power = core::cmp::min(power, -18);
+        let power = core::cmp::max(power, 13);
+        let power_reg = (power + 18) as u8;
 
-        self.hal.write_cmd(Commands::SetTxParams as u8, &[ power, ramp as u8 ])
+        debug!("Setting TX power to {} dBm {:?} ramp ({}, {})", power, ramp, power_reg, ramp as u8);
+        self.config.pa_config.power = power;
+        self.config.pa_config.ramp_time = ramp;
+
+        self.hal.write_cmd(Commands::SetTxParams as u8, &[ power_reg, ramp as u8 ])
     }
 
     pub fn set_irq_mask(&mut self, irq: Irq) -> Result<(), Error<CommsError, PinError>> {
@@ -435,15 +442,10 @@ where
     Hal: base::Hal<CommsError, PinError>,
 {
     type Error = Error<CommsError, PinError>;
+
     fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Setting TX power ({} dBm)", power);
-
-        // Limit to -18 to +13 dBm
-        let power = core::cmp::min(power, -18);
-        let power = core::cmp::max(power, 13);
-        let power = (power + 18) as u8;
-
-        self.hal.write_cmd(Commands::SetTxParams as u8, &[ power ])
+        let ramp_time = self.config.pa_config.ramp_time;
+        self.set_power_ramp(power, ramp_time)
     }
 }
 
@@ -628,6 +630,7 @@ where
 mod tests {
     use crate::{Sx128x, Settings};
     use crate::base::Hal;
+    use crate::device::RampTime;
 
     extern crate embedded_spi;
     use self::embedded_spi::mock::{Mock, Spi, Pin};
@@ -666,5 +669,16 @@ mod tests {
         let version = radio.firmware_version().unwrap();
         m.finalise();
         assert_eq!(version, 16);
+    }
+
+    #[test]
+    fn test_api_power_ramp() {
+        let mut m = Mock::new();
+        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
+
+        m.expect(vectors::set_power_ramp(&spi, &sdn, &delay, 0x1f, 0xe0));
+        let version = radio.set_power_ramp(13, RampTime::Ramp20Us).unwrap();
+        m.finalise();
     }
 }

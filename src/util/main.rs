@@ -101,9 +101,9 @@ pub struct Transmit {
     #[structopt(long = "continuous")]
     continuous: bool,
 
-    /// Power in dBm
-    #[structopt(long = "power", default_value="13")]
-    power: i8,
+    /// Power in dBm (range -18dBm to 13dBm)
+    #[structopt(long = "power")]
+    power: Option<i8>,
 
     /// Specify period for transmission
     #[structopt(long = "period", default_value="1s")]
@@ -142,9 +142,9 @@ pub struct Repeat {
     #[structopt(long = "continuous")]
     continuous: bool,
     
-    /// Power in dBm
-    #[structopt(long = "power", default_value="13")]
-    power: i8,
+    /// Power in dBm (range -18dBm to 13dBm)
+    #[structopt(long = "power")]
+    power: Option<i8>,
 
     /// Specify period for polling for device status
     #[structopt(long = "poll-interval", default_value="1ms")]
@@ -241,12 +241,14 @@ fn main() {
 }
 
 
-fn do_transmit<T, E>(mut radio: T, data: &[u8], power: i8, continuous: bool, period: Duration, poll_interval: Duration) -> Result<(), E> 
+fn do_transmit<T, E>(mut radio: T, data: &[u8], power: Option<i8>, continuous: bool, period: Duration, poll_interval: Duration) -> Result<(), E> 
 where
     T: radio::Transmit<Error=E> + radio::Power<Error=E>
 {
-    // Set output power
-    radio.set_power(power)?;
+    // Set output power if specified
+    if let Some(p) = power {
+        radio.set_power(p)?;
+    }
 
     loop {
         radio.start_transmit(data)?;
@@ -315,13 +317,15 @@ where
     Ok(())
 }
 
-fn do_repeat<T, I, E>(mut radio: T, mut buff: &mut [u8], mut info: &mut I, power: i8, continuous: bool, delay: Duration, poll_interval: Duration) -> Result<usize, E> 
+fn do_repeat<T, I, E>(mut radio: T, mut buff: &mut [u8], mut info: &mut I, power: Option<i8>, continuous: bool, delay: Duration, poll_interval: Duration) -> Result<usize, E> 
 where
     T: radio::Receive<Info=I, Error=E> + radio::Transmit<Error=E> + radio::Power<Error=E>,
     I: std::fmt::Debug,
 {
-    // Set TX power
-    radio.set_power(power)?;
+     // Set output power if specified
+    if let Some(p) = power {
+        radio.set_power(p)?;
+    }
 
     // Start receive mode
     radio.start_receive()?;
