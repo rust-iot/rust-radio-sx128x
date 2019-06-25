@@ -425,6 +425,7 @@ impl Default for Info {
     }
 }
 
+/// `radio::Channel` implementation for the SX128x
 impl<Hal, CommsError, PinError> Channel for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
@@ -432,23 +433,27 @@ where
     type Channel = ();
     type Error = Error<CommsError, PinError>;
 
+    /// Set operating channel
     fn set_channel(&mut self, _ch: &Self::Channel) -> Result<(), Self::Error> {
         unimplemented!()
     }
 }
 
+/// `radio::Power` implementation for the SX128x
 impl<Hal, CommsError, PinError> Power for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
     type Error = Error<CommsError, PinError>;
 
+    /// Set TX power in dBm
     fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError>> {
         let ramp_time = self.config.pa_config.ramp_time;
         self.set_power_ramp(power, ramp_time)
     }
 }
 
+/// `radio::Interrupts` implementation for the SX128x
 impl<Hal, CommsError, PinError> Interrupts for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
@@ -456,6 +461,7 @@ where
     type Irq = Irq;
     type Error = Error<CommsError, PinError>;
 
+    /// Fetch (and optionally clear) current interrupts
     fn get_interrupts(&mut self, clear: bool) -> Result<Self::Irq, Self::Error> {
         let mut data = [0u8; 2];
 
@@ -470,12 +476,14 @@ where
     }
 }
 
+/// `radio::Transmit` implementation for the SX128x
 impl<Hal, CommsError, PinError> Transmit for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
     type Error = Error<CommsError, PinError>;
 
+    /// Start transmitting a packet
     fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
         info!("TX start");
 
@@ -511,6 +519,7 @@ where
         Ok(())
     }
 
+    /// Check for transmit completion
     fn check_transmit(&mut self) -> Result<bool, Self::Error> {
         let irq = self.get_interrupts(true)?;
 
@@ -527,13 +536,18 @@ where
     }
 }
 
+/// `radio::Receive` implementation for the SX128x
 impl<Hal, CommsError, PinError> Receive for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
+    /// Receive info structure
     type Info = Info;
+
+    /// RF Error object
     type Error = Error<CommsError, PinError>;
 
+    /// Start radio in receive mode
     fn start_receive(&mut self) -> Result<(), Self::Error> {
         debug!("RX start");
 
@@ -565,6 +579,7 @@ where
         Ok(())
     }
 
+    /// Check for a received packet
     fn check_receive(&mut self, restart: bool) -> Result<bool, Self::Error> {
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
@@ -593,6 +608,7 @@ where
         }
     }
 
+    /// Fetch a received packet
     fn get_received<'a>(&mut self, info: &mut Self::Info, data: &'a mut [u8]) -> Result<usize, Self::Error> {
         // Fetch RX buffer information
         let (ptr, len) = self.get_rx_buffer_status()?;
@@ -613,12 +629,15 @@ where
 
 }
 
+/// `radio::Rssi` implementation for the SX128x
 impl<Hal, CommsError, PinError> Rssi for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
     type Error = Error<CommsError, PinError>;
 
+    /// Poll for the current channel RSSI
+    /// This should only be called when in receive mode
     fn poll_rssi(&mut self) -> Result<i16, Error<CommsError, PinError>> {
         let mut raw = [0u8; 1];
         self.hal.read_cmd(Commands::GetRssiInst as u8, &mut raw)?;
