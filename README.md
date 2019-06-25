@@ -12,8 +12,19 @@ WIP. Basic LoRa functionality working.
 [![BuildKite Build Status](https://badge.buildkite.com/a8caa71f875a6ec62091a5dda4dbf7dc0e35eb4e02c8d0933b.svg)](https://buildkite.com/ryankurte/rust-radio-sx128x)
 [![Crates.io](https://img.shields.io/crates/v/radio-sx128x.svg)](https://crates.io/crates/radio-sx128x)
 [![Docs.rs](https://docs.rs/radio-sx128x/badge.svg)](https://docs.rs/radio-sx128x)
+[![Snap Status](https://build.snapcraft.io/badge/ryankurte/rust-radio-sx128x.svg)](https://build.snapcraft.io/user/ryankurte/rust-radio-sx128x)
 
 [Open Issues](https://github.com/ryankurte/rust-radio-sx127x/issues)
+
+## Usage
+
+Add to your project with `cargo add radio-sx128x`
+
+Install the utility with one of the following methods:
+
+- using a pre-packaged snap with `snap install sx128x-util`
+- using a precompiled binary from the [releases](https://github.com/ryankurte/rust-radio-sx128x/releases/) page
+- from source using cargo with `cargo install radio-sx128x`
 
 
 ## Useful Resources
