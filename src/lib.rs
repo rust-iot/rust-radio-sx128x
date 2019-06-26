@@ -161,8 +161,8 @@ where
         // Configure device prior to use
         sx128x.configure(config, true)?;
 
-        // Set state to idle
-        sx128x.hal.write_cmd(Commands::SetStandby as u8, &[])?;
+        // Ensure state is idle
+        sx128x.set_mode(Mode::StandbyRc)?;
 
         Ok(sx128x)
     }
@@ -227,7 +227,7 @@ where
             Mode::Sleep => Commands::SetSleep,
         };
 
-        self.hal.write_cmd(command as u8, &[])
+        self.hal.write_cmd(command as u8, &[ 0u8 ])
     }
 
     pub fn firmware_version(&mut self) -> Result<u16, Error<CommsError, PinError>> {
@@ -280,9 +280,6 @@ where
         use ModulationMode::*;
 
         debug!("Setting modulation config: {:?}", modulation);
-
-        // Switch to sleep mode
-        self.set_mode(Mode::Sleep)?;
 
         // First update packet type
         let packet_type = PacketType::from(modulation);
