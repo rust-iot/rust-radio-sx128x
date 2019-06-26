@@ -187,9 +187,6 @@ where
             self.config.regulator_mode = config.regulator_mode;
         }
 
-        // Switch to sleep mode
-        self.set_mode(Mode::Sleep)?;
-
         // Update modulation and packet configuration
         if self.config.modulation_config != config.modulation_config || force {
             self.set_modulation_mode(&config.modulation_config)?;
@@ -283,6 +280,9 @@ where
         use ModulationMode::*;
 
         debug!("Setting modulation config: {:?}", modulation);
+
+        // Switch to sleep mode
+        self.set_mode(Mode::Sleep)?;
 
         // First update packet type
         let packet_type = PacketType::from(modulation);
