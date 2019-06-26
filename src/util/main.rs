@@ -21,7 +21,7 @@ use embedded_hal::digital::v2::OutputPin;
 extern crate radio;
 
 extern crate radio_sx128x;
-use radio_sx128x::{Sx128x, Info, Settings, Config};
+use radio_sx128x::{Sx128x, Info, Mode, Settings, Config};
 
 #[derive(StructOpt)]
 #[structopt(name = "Sx128x-util")]
@@ -215,33 +215,35 @@ fn main() {
             info!("Firmware version: 0x{:X}", version);
         },
         Command::Transmit(config) => {
-            do_transmit(radio, config.data.as_bytes(), config.power, config.continuous, *config.period, *config.poll_interval)
+            do_transmit(&mut radio, config.data.as_bytes(), config.power, config.continuous, *config.period, *config.poll_interval)
                 .expect("Transmit error")
         },
         Command::Receive(config) => {
             let mut buff = [0u8; 255];
             let mut info = Info::default();
 
-            do_receive(radio, &mut buff, &mut info, config.continuous, *config.poll_interval)
+            do_receive(&mut radio, &mut buff, &mut info, config.continuous, *config.poll_interval)
                 .expect("Receive error");
         },
         Command::Repeat(config) => {
             let mut buff = [0u8; 255];
             let mut info = Info::default();
 
-            do_repeat(radio, &mut buff, &mut info, config.power, config.continuous, *config.delay, *config.poll_interval)
+            do_repeat(&mut radio, &mut buff, &mut info, config.power, config.continuous, *config.delay, *config.poll_interval)
                 .expect("Repeat error");
         }
         Command::Rssi(config) => {
-            do_rssi(radio, config.continuous, *config.period)
+            do_rssi(&mut radio, config.continuous, *config.period)
                 .expect("RSSI error");
         }
         //_ => warn!("unsuppored command: {:?}", opts.command),
     }
+
+    radio.set_mode(Mode::Sleep).expect("Error setting sleep mode");
 }
 
 
-fn do_transmit<T, E>(mut radio: T, data: &[u8], power: Option<i8>, continuous: bool, period: Duration, poll_interval: Duration) -> Result<(), E> 
+fn do_transmit<T, E>(radio: &mut T, data: &[u8], power: Option<i8>, continuous: bool, period: Duration, poll_interval: Duration) -> Result<(), E> 
 where
     T: radio::Transmit<Error=E> + radio::Power<Error=E>
 {
@@ -267,7 +269,7 @@ where
     Ok(())
 }
 
-fn do_receive<T, I, E>(mut radio: T, mut buff: &mut [u8], mut info: &mut I, continuous: bool, poll_interval: Duration) -> Result<usize, E> 
+fn do_receive<T, I, E>(radio: &mut T, mut buff: &mut [u8], mut info: &mut I, continuous: bool, poll_interval: Duration) -> Result<usize, E> 
 where
     T: radio::Receive<Info=I, Error=E>,
     I: std::fmt::Debug,
@@ -291,7 +293,7 @@ where
     }
 }
 
-fn do_rssi<T, I, E>(mut radio: T, continuous: bool, period: Duration) -> Result<(), E> 
+fn do_rssi<T, I, E>(radio: &mut T, continuous: bool, period: Duration) -> Result<(), E> 
 where
     T: radio::Receive<Info=I, Error=E> + radio::Rssi<Error=E>,
     I: std::fmt::Debug,
@@ -317,7 +319,7 @@ where
     Ok(())
 }
 
-fn do_repeat<T, I, E>(mut radio: T, mut buff: &mut [u8], mut info: &mut I, power: Option<i8>, continuous: bool, delay: Duration, poll_interval: Duration) -> Result<usize, E> 
+fn do_repeat<T, I, E>(radio: &mut T, mut buff: &mut [u8], mut info: &mut I, power: Option<i8>, continuous: bool, delay: Duration, poll_interval: Duration) -> Result<usize, E> 
 where
     T: radio::Receive<Info=I, Error=E> + radio::Transmit<Error=E> + radio::Power<Error=E>,
     I: std::fmt::Debug,

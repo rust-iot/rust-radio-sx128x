@@ -36,6 +36,7 @@ pub use radio::{Transmit, Receive, Channel, Power, Interrupts, Rssi};
 pub mod base;
 
 pub mod device;
+pub use device::Mode;
 use device::*;
 pub use device::Config;
 
@@ -177,20 +178,17 @@ where
     }
 
     pub fn configure(&mut self, config: &Config, force: bool) -> Result<(), Error<CommsError, PinError>> {
+        // Switch to standby mode
+        self.set_mode(Mode::StandbyRc)?;
+
         // Update regulator mode
         if self.config.regulator_mode != config.regulator_mode || force {
             self.set_regulator_mode(config.regulator_mode)?;
             self.config.regulator_mode = config.regulator_mode;
         }
 
-        // Set frequency
-        self.set_frequency(config.frequency)?;
-
-        // Update power amplifier configuration
-        if self.config.pa_config != config.pa_config || force {
-            self.set_power_ramp(config.pa_config.power, config.pa_config.ramp_time)?;
-            self.config.pa_config = config.pa_config.clone();
-        }
+        // Switch to sleep mode
+        self.set_mode(Mode::Sleep)?;
 
         // Update modulation and packet configuration
         if self.config.modulation_config != config.modulation_config || force {
@@ -201,6 +199,15 @@ where
         if self.config.packet_config != config.packet_config || force {
             self.set_packet_mode(&config.packet_config)?;
             self.config.packet_config = config.packet_config.clone();
+        }
+
+        // Set frequency
+        self.set_frequency(config.frequency)?;
+
+        // Update power amplifier configuration
+        if self.config.pa_config != config.pa_config || force {
+            self.set_power_ramp(config.pa_config.power, config.pa_config.ramp_time)?;
+            self.config.pa_config = config.pa_config.clone();
         }
 
         Ok(())
