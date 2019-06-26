@@ -259,8 +259,8 @@ where
         }
 
         // Limit to -18 to +13 dBm
-        let power = core::cmp::min(power, -18);
-        let power = core::cmp::max(power, 13);
+        let power = core::cmp::max(power, -18);
+        let power = core::cmp::min(power, 13);
         let power_reg = (power + 18) as u8;
 
         debug!("Setting TX power to {} dBm {:?} ramp ({}, {})", power, ramp, power_reg, ramp as u8);
