@@ -1,7 +1,7 @@
 [package]
 name = "radio-sx128x"
 description = "Driver for the Semtec sx1280 2.4GHz RF IC"
-version = "0.2.9"
+version = "0.3.0"
 authors = ["Ryan Kurte <ryankurte@gmail.com>"]
 license = "MPL-2.0"
 
