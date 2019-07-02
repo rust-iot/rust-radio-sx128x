@@ -31,12 +31,12 @@ extern crate embedded_spi;
 use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
 extern crate radio;
-pub use radio::{Transmit, Receive, Channel, Power, Interrupts, Rssi};
+pub use radio::{State as _, Interrupts as _};
 
 pub mod base;
 
 pub mod device;
-pub use device::Mode;
+pub use device::State;
 use device::*;
 pub use device::Config;
 
@@ -162,7 +162,7 @@ where
         sx128x.configure(config, true)?;
 
         // Ensure state is idle
-        sx128x.set_mode(Mode::StandbyRc)?;
+        sx128x.set_state(State::StandbyRc)?;
 
         Ok(sx128x)
     }
@@ -179,7 +179,7 @@ where
 
     pub fn configure(&mut self, config: &Config, force: bool) -> Result<(), Error<CommsError, PinError>> {
         // Switch to standby mode
-        self.set_mode(Mode::StandbyRc)?;
+        self.set_state(State::StandbyRc)?;
 
         // Update regulator mode
         if self.config.regulator_mode != config.regulator_mode || force {
@@ -210,25 +210,7 @@ where
         Ok(())
     }
 
-    pub fn get_mode(&mut self) -> Result<Mode, Error<CommsError, PinError>> {
-        let mut d = [0u8; 1];
-        self.hal.read_cmd(Commands::GetStatus as u8, &mut d)?;
-        let m = Mode::try_from(d[0]).map_err(|_| Error::InvalidResponse(d[0]) )?;
-        Ok(m)
-    }
-
-    pub fn set_mode(&mut self, mode: Mode) -> Result<(), Error<CommsError, PinError>> {
-        let command = match mode {
-            Mode::Tx => Commands::SetTx,
-            Mode::Rx => Commands::SetRx,
-            Mode::Cad => Commands::SetCad,
-            Mode::Fs => Commands::SetFs,
-            Mode::StandbyRc | Mode::StandbyXosc => Commands::SetStandby,
-            Mode::Sleep => Commands::SetSleep,
-        };
-
-        self.hal.write_cmd(command as u8, &[ 0u8 ])
-    }
+    
 
     pub fn firmware_version(&mut self) -> Result<u16, Error<CommsError, PinError>> {
         let mut d = [0u8; 2];
@@ -407,13 +389,13 @@ where
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Info {
-    rssi: i16,
-    rssi_sync: Option<i16>,
-    snr: Option<i16>,
+    pub rssi: i16,
+    pub rssi_sync: Option<i16>,
+    pub snr: Option<i16>,
 
-    packet_status: PacketStatus,
-    tx_rx_status: TxRxStatus,
-    sync_addr_status: u8,
+    pub packet_status: PacketStatus,
+    pub tx_rx_status: TxRxStatus,
+    pub sync_addr_status: u8,
 }
 
 impl Default for Info {
@@ -429,8 +411,39 @@ impl Default for Info {
     }
 }
 
+/// `radio::State` implementation for the SX128x
+impl<Hal, CommsError, PinError> radio::State for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    type State = State;
+    type Error = Error<CommsError, PinError>;
+
+    /// Fetch device state
+    fn get_state(&mut self) -> Result<Self::State, Self::Error> {
+        let mut d = [0u8; 1];
+        self.hal.read_cmd(Commands::GetStatus as u8, &mut d)?;
+        let m = State::try_from(d[0]).map_err(|_| Error::InvalidResponse(d[0]) )?;
+        Ok(m)
+    }
+
+    /// Set device state
+    fn set_state(&mut self, state: Self::State) -> Result<(), Self::Error> {
+        let command = match state {
+            State::Tx => Commands::SetTx,
+            State::Rx => Commands::SetRx,
+            State::Cad => Commands::SetCad,
+            State::Fs => Commands::SetFs,
+            State::StandbyRc | State::StandbyXosc => Commands::SetStandby,
+            State::Sleep => Commands::SetSleep,
+        };
+
+        self.hal.write_cmd(command as u8, &[ 0u8 ])
+    }
+}
+
 /// `radio::Channel` implementation for the SX128x
-impl<Hal, CommsError, PinError> Channel for Sx128x<Hal, CommsError, PinError>
+impl<Hal, CommsError, PinError> radio::Channel for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
@@ -444,7 +457,7 @@ where
 }
 
 /// `radio::Power` implementation for the SX128x
-impl<Hal, CommsError, PinError> Power for Sx128x<Hal, CommsError, PinError>
+impl<Hal, CommsError, PinError> radio::Power for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
@@ -458,7 +471,7 @@ where
 }
 
 /// `radio::Interrupts` implementation for the SX128x
-impl<Hal, CommsError, PinError> Interrupts for Sx128x<Hal, CommsError, PinError>
+impl<Hal, CommsError, PinError> radio::Interrupts for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
@@ -481,7 +494,7 @@ where
 }
 
 /// `radio::Transmit` implementation for the SX128x
-impl<Hal, CommsError, PinError> Transmit for Sx128x<Hal, CommsError, PinError>
+impl<Hal, CommsError, PinError> radio::Transmit for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
@@ -541,7 +554,7 @@ where
 }
 
 /// `radio::Receive` implementation for the SX128x
-impl<Hal, CommsError, PinError> Receive for Sx128x<Hal, CommsError, PinError>
+impl<Hal, CommsError, PinError> radio::Receive for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
@@ -634,7 +647,7 @@ where
 }
 
 /// `radio::Rssi` implementation for the SX128x
-impl<Hal, CommsError, PinError> Rssi for Sx128x<Hal, CommsError, PinError>
+impl<Hal, CommsError, PinError> radio::Rssi for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
 {
@@ -658,6 +671,8 @@ mod tests {
     extern crate embedded_spi;
     use self::embedded_spi::mock::{Mock, Spi, Pin};
 
+    use radio::{State as _};
+
     pub mod vectors;
 
     #[test]
@@ -678,7 +693,7 @@ mod tests {
         let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
 
         m.expect(vectors::status(&spi, &sdn, &delay));
-        radio.get_mode().unwrap();
+        radio.get_state().unwrap();
         m.finalise();
     }
 

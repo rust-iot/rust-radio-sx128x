@@ -108,14 +108,6 @@ pub struct Channel {
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum State {
-    Idle = 0x00,
-    Rx,
-    Tx,
-    Cad,
-}
-
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum Mode {
     Sleep       = 0x00,
     StandbyRc   = 0x01,
     StandbyXosc = 0x02,
@@ -125,18 +117,18 @@ pub enum Mode {
     Cad         = 0x06,
 }
 
-impl core::convert::TryFrom<u8> for Mode {
+impl core::convert::TryFrom<u8> for State {
     type Error = ();
 
-    fn try_from(v: u8) -> Result<Mode, ()> {
+    fn try_from(v: u8) -> Result<State, ()> {
         match v {
-            0x00 => Ok(Mode::Sleep),
-            0x01 => Ok(Mode::StandbyRc),
-            0x02 => Ok(Mode::StandbyXosc),
-            0x03 => Ok(Mode::Fs),
-            0x04 => Ok(Mode::Tx),
-            0x05 => Ok(Mode::Rx),
-            0x06 => Ok(Mode::Cad),
+            0x00 => Ok(State::Sleep),
+            0x01 => Ok(State::StandbyRc),
+            0x02 => Ok(State::StandbyXosc),
+            0x03 => Ok(State::Fs),
+            0x04 => Ok(State::Tx),
+            0x05 => Ok(State::Rx),
+            0x06 => Ok(State::Cad),
             _ => Err(())
         }
     }

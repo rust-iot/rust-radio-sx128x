@@ -19,9 +19,10 @@ extern crate embedded_hal;
 use embedded_hal::digital::v2::OutputPin;
 
 extern crate radio;
+use radio::{State as _};
 
 extern crate radio_sx128x;
-use radio_sx128x::{Sx128x, Info, Mode, Settings, Config};
+use radio_sx128x::{Sx128x, Info, State, Settings, Config};
 
 #[derive(StructOpt)]
 #[structopt(name = "Sx128x-util")]
@@ -239,7 +240,7 @@ fn main() {
         //_ => warn!("unsuppored command: {:?}", opts.command),
     }
 
-    radio.set_mode(Mode::Sleep).expect("Error setting sleep mode");
+    radio.set_state(State::Sleep).expect("Error setting sleep mode");
 }
 
 
