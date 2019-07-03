@@ -447,12 +447,23 @@ impl<Hal, CommsError, PinError> radio::Channel for Sx128x<Hal, CommsError, PinEr
 where
     Hal: base::Hal<CommsError, PinError>,
 {
-    type Channel = ();
+    /// Channel consists of an operating frequency and packet mode
+    type Channel = (u32, PacketMode);
+    
     type Error = Error<CommsError, PinError>;
 
     /// Set operating channel
-    fn set_channel(&mut self, _ch: &Self::Channel) -> Result<(), Self::Error> {
-        unimplemented!()
+    fn set_channel(&mut self, ch: &Self::Channel) -> Result<(), Self::Error> {
+        // Update frequency if required
+        if ch.0 != self.config.frequency {
+            self.set_frequency(ch.0)?;
+            self.config.frequency = ch.0
+        }
+        
+        // Set packet mode
+        self.set_packet_mode(&ch.1)?;
+        
+        Ok(())
     }
 }
 
