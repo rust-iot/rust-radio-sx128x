@@ -3,6 +3,7 @@
 /// LoRa mode configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct LoRaConfig {
+    pub frequency: u32,
     pub spreading_factor: LoRaSpreadingFactor,
     pub bandwidth: LoRaBandwidth,
     pub coding_rate: LoRaCodingRate,
@@ -11,6 +12,7 @@ pub struct LoRaConfig {
 impl Default for LoRaConfig {
     fn default() -> Self {
         Self {
+            frequency: 2.4e9 as u32,
             spreading_factor: LoRaSpreadingFactor::Sf8,
             bandwidth: LoRaBandwidth::Bw0200,
             coding_rate: LoRaCodingRate::Cr4_5,

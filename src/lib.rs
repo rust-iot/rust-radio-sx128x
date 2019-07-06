@@ -49,6 +49,8 @@ pub const SPI_MODE: SpiMode = SpiMode {
 /// Sx128x device object
 pub struct Sx128x<Base, CommsError, PinError> {
     config: Config,
+
+    packet_type: PacketType,
     
     hal: Base,
     settings: Settings,
@@ -170,6 +172,7 @@ where
     pub(crate) fn build(hal: Hal, settings: Settings) -> Self {
         Sx128x { 
             config: Config::default(),
+            packet_type: PacketType::None,
             hal,
             settings,
             _ce: PhantomData,
@@ -197,9 +200,6 @@ where
             self.set_packet_mode(&config.packet_config)?;
             self.config.packet_config = config.packet_config.clone();
         }
-
-        // Set frequency
-        self.set_frequency(config.frequency)?;
 
         // Update power amplifier configuration
         if self.config.pa_config != config.pa_config || force {
@@ -262,14 +262,17 @@ where
         use ModulationMode::*;
 
         debug!("Setting modulation config: {:?}", modulation);
+        
+        // Set frequency
+        self.set_frequency(modulation.frequency())?;
 
-        // First update packet type
+        // First update packet type (if required)
         let packet_type = PacketType::from(modulation);
-        if self.config.packet_type != packet_type {
+        if self.packet_type != packet_type {
             self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
-            self.config.packet_type = packet_type;
+            self.packet_type = packet_type;
         }
-
+        
         // Then write modulation configuration
         let data = match modulation {
             Gfsk(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
@@ -286,11 +289,11 @@ where
 
         debug!("Setting packet config: {:?}", packet);
 
-        // First update packet type
+        // First update packet type (if required)
         let packet_type = PacketType::from(packet);
-        if self.config.packet_type != packet_type {
+        if self.packet_type != packet_type {
             self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
-            self.config.packet_type = packet_type;
+            self.packet_type = packet_type;
         }
 
         let data = match packet {
@@ -448,20 +451,14 @@ where
     Hal: base::Hal<CommsError, PinError>,
 {
     /// Channel consists of an operating frequency and packet mode
-    type Channel = (u32, PacketMode);
+    type Channel = ModulationMode;
     
     type Error = Error<CommsError, PinError>;
 
     /// Set operating channel
     fn set_channel(&mut self, ch: &Self::Channel) -> Result<(), Self::Error> {
-        // Update frequency if required
-        if ch.0 != self.config.frequency {
-            self.set_frequency(ch.0)?;
-            self.config.frequency = ch.0
-        }
-        
         // Set packet mode
-        self.set_packet_mode(&ch.1)?;
+        self.set_modulation_mode(ch)?;
         
         Ok(())
     }

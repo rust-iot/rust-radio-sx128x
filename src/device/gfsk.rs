@@ -5,6 +5,7 @@ use super::common::*;
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct GfskConfig {
+    pub frequency: u32,
     pub bitrate_bandwidth: GfskBleBitrate,
     pub modulation_index: GfskBleModIndex,
     pub modulation_shaping: ModShaping,
@@ -13,6 +14,7 @@ pub struct GfskConfig {
 impl Default for GfskConfig {
     fn default() -> Self {
         Self {
+            frequency: 2.4e9 as u32,
             bitrate_bandwidth: GfskBleBitrate::GFSK_BLE_BR_0_250_BW_0_3,
             modulation_index: GfskBleModIndex::GFSK_BLE_MOD_IND_0_35,
             modulation_shaping: ModShaping::BtOFF,

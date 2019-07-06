@@ -5,6 +5,7 @@ use super::common::*;
 /// Configuration for BLE mode
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BleConfig {
+    pub frequency: u32,
     pub bitrate_bandwidth: GfskBleBitrate,
     pub modulation_index: GfskBleModIndex,
     pub modulation_shaping: ModShaping,

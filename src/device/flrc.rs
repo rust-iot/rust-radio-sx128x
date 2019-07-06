@@ -5,6 +5,7 @@ use super::common::*;
 /// FLRC configuration structure
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct FlrcConfig {
+    pub frequency: u32,
     pub bitrate_bandwidth: FlrcBitrate,
     pub coding_rate: FlrcCodingRate,
     pub modulation_shaping: ModShaping,

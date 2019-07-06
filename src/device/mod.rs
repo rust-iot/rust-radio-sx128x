@@ -16,7 +16,6 @@ pub mod common;
 /// Sx128x configuration object
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Config {
-    pub frequency: u32,
     pub regulator_mode: RegulatorMode,
     pub pa_config: PaConfig,
     pub(crate) packet_type: PacketType,
@@ -28,7 +27,6 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config{
-            frequency: 2.4e9 as u32,
             regulator_mode: RegulatorMode::Dcdc,
             pa_config: PaConfig{ power: 10, ramp_time: RampTime::Ramp20Us },
             packet_type: PacketType::None,
@@ -55,14 +53,31 @@ pub enum ModulationMode {
     Ranging(LoRaConfig),
 }
 
+impl ModulationMode {
+    /// Fetch frequency for a given modulation configuration
+    pub fn frequency(&self) -> u32 {
+        use ModulationMode::*;
+
+        match self {
+            Gfsk(c) => c.frequency,
+            LoRa(c) => c.frequency,
+            Flrc(c) => c.frequency,
+            Ble(c) => c.frequency,
+            Ranging(c) => c.frequency,
+        }
+    }
+}
+
 impl From<&ModulationMode> for PacketType {
     fn from(m: &ModulationMode) -> Self {
-         match m {
-            ModulationMode::Gfsk(_) => PacketType::Gfsk,
-            ModulationMode::LoRa(_) => PacketType::LoRa,
-            ModulationMode::Ranging(_) => PacketType::LoRa,
-            ModulationMode::Flrc(_) => PacketType::Flrc,
-            ModulationMode::Ble(_) => PacketType::Ble,
+        use ModulationMode::*;
+
+        match m {
+            Gfsk(_) => PacketType::Gfsk,
+            LoRa(_) => PacketType::LoRa,
+            Ranging(_) => PacketType::LoRa,
+            Flrc(_) => PacketType::Flrc,
+            Ble(_) => PacketType::Ble,
         }
     }
 }
