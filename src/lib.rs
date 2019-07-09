@@ -342,7 +342,7 @@ where
         info.tx_rx_status = TxRxStatus::from_bits_truncate(data[3]);
         info.sync_addr_status = data[4] & 0x70;
 
-        match self.config.packet_type {
+        match self.packet_type {
             PacketType::Gfsk | PacketType::Flrc | PacketType::Ble => {
                 info.rssi = -(data[0] as i16) / 2;
                 info.rssi_sync = Some(-(data[1] as i16) / 2);
@@ -510,7 +510,7 @@ where
 
     /// Start transmitting a packet
     fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
-        info!("TX start");
+        debug!("TX start");
 
         // Set packet mode
         let mut config = self.config.packet_config.clone();
@@ -524,7 +524,7 @@ where
         self.hal.write_buff(0, data)?;
         
         // Configure ranging if used
-        if PacketType::Ranging == self.config.packet_type {
+        if PacketType::Ranging == self.packet_type {
             self.hal.write_cmd(Commands::SetRangingRole as u8, &[ RangingRole::Initiator as u8 ])?;
         }
 
@@ -584,7 +584,7 @@ where
         self.set_packet_mode(&config)?;
 
         // Configure ranging if used
-        if PacketType::Ranging == self.config.packet_type {
+        if PacketType::Ranging == self.packet_type {
             self.hal.write_cmd(Commands::SetRangingRole as u8, &[ RangingRole::Responder as u8 ])?;
         }
 
