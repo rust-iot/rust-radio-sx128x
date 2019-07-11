@@ -5,11 +5,27 @@ use super::common::*;
 /// FLRC configuration structure
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct FlrcConfig {
-    pub frequency: u32,
-    pub bitrate_bandwidth: FlrcBitrate,
-    pub coding_rate: FlrcCodingRate,
-    pub modulation_shaping: ModShaping,
+    /// Operating frequency
+    pub freq: u32,
+    /// Bitrate bandwidth
+    pub br_bw: FlrcBitrate,
+    /// Coding rate
+    pub cr: FlrcCodingRate,
+    /// Modulation shaping
+    pub ms: ModShaping,
 }
+
+impl Default for FlrcConfig {
+    fn default() -> Self {
+        Self {
+            freq: 2.4e9 as u32,
+            br_bw: FlrcBitrate::BR_2_080_BW_2_4,
+            cr: FlrcCodingRate::Cr3_4,
+            ms: ModShaping::BtOFF,
+        }   
+    }
+}
+
 
 /// FLRC packet configuration structure
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -23,7 +39,7 @@ pub struct FlrcPacketConfig {
     pub whitening: WhiteningModes
 }
 
-/// Bit rate / bandwidht pairs for FLRC mode
+/// Bit rate / bandwidth pairs for FLRC mode
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum FlrcBitrate {
     BR_2_600_BW_2_4                    = 0x04,
@@ -47,6 +63,7 @@ pub enum FlrcCodingRate {
 /// FLRC sync word length
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum FlrcSyncWordLength {
+    /// No sync word
     None = 0x00,
     /// 4-byte sync word
     Length4 = 0x04,

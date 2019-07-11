@@ -2,15 +2,20 @@
 
 use super::common::*;
 
-/// Configuration for BLE mode
+/// BLE operating mode channel configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BleConfig {
-    pub frequency: u32,
-    pub bitrate_bandwidth: GfskBleBitrate,
-    pub modulation_index: GfskBleModIndex,
-    pub modulation_shaping: ModShaping,
+    /// Operating frequency
+    pub freq: u32,
+    /// Bitrate bandwidth
+    pub br_bw: GfskBleBitrateBandwidth,
+    /// Modulation index
+    pub mi: GfskBleModIndex,
+    /// Modulation shaping
+    pub ms: ModShaping,
 }
 
+/// BLE operating mode packet configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct BlePacketConfig {
     /// BLE connection state
@@ -25,18 +30,26 @@ pub struct BlePacketConfig {
 
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum BleConnectionStates {
+    // TODO
     BLE_PAYLOAD_LENGTH_MAX_31_BYTES         = 0x00,
+    // TODO
     BLE_PAYLOAD_LENGTH_MAX_37_BYTES         = 0x20,
+    /// Transmit test mode
     BLE_TX_TEST_MODE                        = 0x40,
+    /// TODO
     BLE_PAYLOAD_LENGTH_MAX_255_BYTES        = 0x80,
 }
 
+/// BLE CRC field configuration
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum BleCrcFields {
+    /// CRC disabled
     BLE_CRC_OFF                             = 0x00,
+    /// CRC 3B
     BLE_CRC_3B                              = 0x10,
 }
 
+/// BLE mode packet types
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum BlePacketTypes {
     /// Pseudo Random Binary Sequence based on 9th degree polynomial

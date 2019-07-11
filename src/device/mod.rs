@@ -12,8 +12,7 @@ use lora::{LoRaConfig, LoRaPacketConfig};
 pub mod common;
 
 
-
-/// Sx128x configuration object
+/// Sx128x general configuration object
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Config {
     pub regulator_mode: RegulatorMode,
@@ -38,12 +37,16 @@ impl Default for Config {
     }
 }
 
+/// Power Amplifier configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct PaConfig {
+    /// Power in dBm
     pub power: i8,
+    /// Ramp time for power amplifier
     pub ramp_time: RampTime,
 }
 
+/// Radio modulation modes
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum ModulationMode {
     Gfsk(GfskConfig),
@@ -59,11 +62,11 @@ impl ModulationMode {
         use ModulationMode::*;
 
         match self {
-            Gfsk(c) => c.frequency,
-            LoRa(c) => c.frequency,
-            Flrc(c) => c.frequency,
-            Ble(c) => c.frequency,
-            Ranging(c) => c.frequency,
+            Gfsk(c) => c.freq,
+            LoRa(c) => c.freq,
+            Flrc(c) => c.freq,
+            Ble(c) => c.freq,
+            Ranging(c) => c.freq,
         }
     }
 }
@@ -82,6 +85,7 @@ impl From<&ModulationMode> for PacketType {
     }
 }
 
+/// Radio packet modes
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum PacketMode {
     Gfsk(GfskPacketConfig),
@@ -116,11 +120,8 @@ impl From<&PacketMode> for PacketType {
     }
 }
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct Channel {
 
-}
-
+/// Radio state
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum State {
     Sleep       = 0x00,
@@ -149,24 +150,37 @@ impl core::convert::TryFrom<u8> for State {
     }
 }
 
+/// Regulator operating mode
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RegulatorMode {
+    /// Internal LDO
     Ldo  = 0x00,
+    /// Internal DC/DC converter
     Dcdc = 0x01,
 }
 
+/// Power amplifier ramp time
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RampTime {
+    /// Ramp over 2us
     Ramp02Us = 0x00,
+    /// Ramp over 4us
     Ramp04Us = 0x20,
+    /// Ramp over 6us
     Ramp06Us = 0x40,
+    /// Ramp over 8us
     Ramp08Us = 0x60,
+    /// Ramp over 10us
     Ramp10Us = 0x80,
+    /// Ramp over 12us
     Ramp12Us = 0xA0,
+    /// Ramp over 16us
     Ramp16Us = 0xC0,
+    /// Ramp over 20us
     Ramp20Us = 0xE0,
 }
 
+/// Packet type enumeration
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum PacketType {
     Gfsk     = 0x00,
@@ -177,6 +191,7 @@ pub enum PacketType {
     None     = 0x0F,
 }
 
+/// Radio commands
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Commands {
     GetStatus                = 0xC0,
@@ -217,6 +232,7 @@ pub enum Commands {
     SetRangingRole           = 0xA3,
 }
 
+/// Radio registers
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Registers {
     LrFirmwareVersionMsb               = 0x0153,
@@ -339,31 +355,46 @@ bitflags! {
     }
 }
 
+/// Ranging mode role
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum RangingRole {
+    /// Responder listens for ranging requests and responds
     Responder = 0x00,
+    /// Initiator sends ranging requests and awaits responses
     Initiator = 0x01,
 }
 
+/// TickSize for timeout calculations
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum TickSize {
+    // 15us tick size
     TickSize0015us   = 0x00,
+    // 62us tick size
     TickSize0062us   = 0x01,
+    // 1000us tick size
     TickSize1000us   = 0x02,
+    // 4000us tick size
     TickSize4000us   = 0x03,
 }
 
+/// Timeout confguration for autonomous radio operations
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Timeout {
+    /// Single tx/rx mode
     Single,
+    // Configurable timeout
     Configurable {
+        /// Timeout step size
         step: TickSize,
+        /// Number of steps to timeout
         count: u16,
     },
+    /// Continuous rx/tx mode
     Continuous,
 }
 
 impl Timeout {
+    /// Fetch the TickSize from a timeout configuration
     pub fn step(&self) -> TickSize  {
         match self {
             Timeout::Single          => TickSize::TickSize0015us,
@@ -372,6 +403,7 @@ impl Timeout {
         }
     }
 
+    /// Fetch the step count for a timeout configuration
     pub fn count(&self) -> u16 {
         match self {
             Timeout::Single          => 0x0000,

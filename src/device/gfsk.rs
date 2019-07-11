@@ -1,38 +1,51 @@
 //! Gfsk mode device configuration definitions
 
-
 use super::common::*;
 
+/// GFSK operating mode configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct GfskConfig {
-    pub frequency: u32,
-    pub bitrate_bandwidth: GfskBleBitrate,
-    pub modulation_index: GfskBleModIndex,
-    pub modulation_shaping: ModShaping,
+    /// Operating frequency
+    pub freq: u32,
+    /// Bitrate bandwidth
+    pub br_bw: GfskBleBitrateBandwidth,
+    /// Modulation index
+    pub mi: GfskBleModIndex,
+    /// Modulation shaping
+    pub ms: ModShaping,
 }
 
 impl Default for GfskConfig {
     fn default() -> Self {
         Self {
-            frequency: 2.4e9 as u32,
-            bitrate_bandwidth: GfskBleBitrate::GFSK_BLE_BR_0_250_BW_0_3,
-            modulation_index: GfskBleModIndex::GFSK_BLE_MOD_IND_0_35,
-            modulation_shaping: ModShaping::BtOFF,
+            freq: 2.4e9 as u32,
+            br_bw: GfskBleBitrateBandwidth::GFSK_BLE_BR_0_250_BW_0_3,
+            mi: GfskBleModIndex::GFSK_BLE_MOD_IND_0_35,
+            ms: ModShaping::BtOFF,
         }   
     }
 }
 
+/// GFSK packet configuration 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct GfskPacketConfig {
+    /// Preamble length
     pub preamble_length: PreambleLength,
+    /// Sync word length
     pub sync_word_length: GfskSyncWordLength,
+    /// Sync words to match
     pub sync_word_match: SyncWordRxMatch,
+    /// Header type (implicit or explicit)
     pub header_type: GfskFlrcPacketLength,
+    /// Payload length
     pub payload_length: u8,
+    /// CRC mode
     pub crc_type: GfskFlrcCrcModes,
+    /// Packet whitening
     pub whitening: WhiteningModes
 }
 
+/// GFSK sync word length configuration
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum GfskSyncWordLength {
     /// Sync word length: 1 byte

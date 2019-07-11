@@ -30,8 +30,9 @@ pub enum PreambleLength {
     PreambleLength32                 = 0x70,
 }
 
+/// Bitrate-Bandwidth for GFSK and BLE modes
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum GfskBleBitrate {
+pub enum GfskBleBitrateBandwidth {
     GFSK_BLE_BR_2_000_BW_2_4                 = 0x04,
     GFSK_BLE_BR_1_600_BW_2_4                 = 0x28,
     GFSK_BLE_BR_1_000_BW_2_4                 = 0x4C,
@@ -47,6 +48,7 @@ pub enum GfskBleBitrate {
     GFSK_BLE_BR_0_125_BW_0_3                 = 0xEF,
 }
 
+/// Modulation Index for GFSK and BLE modes
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum GfskBleModIndex {
     GFSK_BLE_MOD_IND_0_35                    =  0,
@@ -67,6 +69,7 @@ pub enum GfskBleModIndex {
     GFSK_BLE_MOD_IND_4_00                    = 15,
 }
 
+/// Common radio whitening mode
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum WhiteningModes {
     RADIO_WHITENING_ON                      = 0x00,

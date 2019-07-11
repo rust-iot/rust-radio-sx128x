@@ -1,26 +1,30 @@
 //! LoRa device configuration definitions
 
-/// LoRa mode configuration
+/// LoRa mode channel configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct LoRaConfig {
-    pub frequency: u32,
-    pub spreading_factor: LoRaSpreadingFactor,
-    pub bandwidth: LoRaBandwidth,
-    pub coding_rate: LoRaCodingRate,
+    /// Operating frequency in Hz
+    pub freq: u32,
+    /// LoRa Spreading Factor
+    pub sf: LoRaSpreadingFactor,
+    /// LoRa channel bandwidth
+    pub bw: LoRaBandwidth,
+    /// LoRa Coding rate
+    pub cr: LoRaCodingRate,
 }
 
 impl Default for LoRaConfig {
     fn default() -> Self {
         Self {
-            frequency: 2.4e9 as u32,
-            spreading_factor: LoRaSpreadingFactor::Sf8,
-            bandwidth: LoRaBandwidth::Bw0200,
-            coding_rate: LoRaCodingRate::Cr4_5,
+            freq: 2.4e9 as u32,
+            sf: LoRaSpreadingFactor::Sf8,
+            bw: LoRaBandwidth::Bw200kHz,
+            cr: LoRaCodingRate::Cr4_5,
         }
     }
 }
 
-/// LoRa packet configuration
+/// LoRa mode packet configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct LoRaPacketConfig {
     pub preamble_length: u8,
@@ -59,23 +63,23 @@ pub enum LoRaSpreadingFactor {
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaBandwidth {
     /// 200 kHz bandwidth mode (actually 203.125 kHz)
-    Bw0200  = 0x34,
+    Bw200kHz  = 0x34,
     /// 400 kHz bandwidth mode (actually 406.250 kHz)
-    Bw0400  = 0x26,
+    Bw400kHz  = 0x26,
     /// 800 kHz bandwidth mode (actually 812.500 kHz)
-    Bw0800  = 0x18,
+    Bw800kHz  = 0x18,
     /// 1600 kHz bandwidth mode (actually 1625.000 kHz)
-    Bw1600  = 0x0A,
+    Bw1600kHz  = 0x0A,
 }
 
 impl LoRaBandwidth {
     /// Fetch the bandwidth in Hz for a given bandwidth configuration
     pub fn get_bw_hz(&self) -> u32 {
         match self {
-            LoRaBandwidth::Bw0200 => 203125,
-            LoRaBandwidth::Bw0400 => 406250,
-            LoRaBandwidth::Bw0800 => 812500,
-            LoRaBandwidth::Bw1600 => 1625000,
+            LoRaBandwidth::Bw200kHz => 203125,
+            LoRaBandwidth::Bw400kHz => 406250,
+            LoRaBandwidth::Bw800kHz => 812500,
+            LoRaBandwidth::Bw1600kHz => 1625000,
         }
     }
 }
@@ -83,10 +87,15 @@ impl LoRaBandwidth {
 /// Coding rates for LoRa mode
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaCodingRate {
+    /// LoRa coding rate 4/5
     Cr4_5    = 0x01,
+    /// LoRa coding rate 4/6
     Cr4_6    = 0x02,
+    /// LoRa coding rate 4/7
     Cr4_7    = 0x03,
+    /// LoRa coding rate 4/8
     Cr4_8    = 0x04,
+
     CrLI_4_5 = 0x05,
     CrLI_4_6 = 0x06,
     CrLI_4_7 = 0x07,
@@ -109,9 +118,9 @@ pub enum LoRaIq {
 /// Header configuration for LoRa packet types
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum LoRaHeader {
-    // Variable length packets, header included
+    /// Variable length packets, length header included in packet
     Explicit = 0x00,
-    /// Constant length packets, no header included
+    /// Constant length packets, no length header included in packet
     Implicit = 0x80,
 }
 

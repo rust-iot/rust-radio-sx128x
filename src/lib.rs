@@ -78,16 +78,8 @@ impl Settings {
         self.xtal_freq >> 18
     }
 
-    fn freq_stepf(&self) -> f32 {
-        self.xtal_freq as f32 / 2f32.powi(18)
-    }
-
     fn freq_to_steps(&self, f: f32) -> f32 {
-        f / self.freq_stepf()
-    }
-
-    fn steps_to_freq(&self, s: f32) -> f32 {
-        s * self.freq_stepf()
+        f / self.freq_step() as f32
     }
 }
 
@@ -275,10 +267,10 @@ where
         
         // Then write modulation configuration
         let data = match modulation {
-            Gfsk(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
-            LoRa(c) | Ranging(c) => [c.spreading_factor as u8, c.bandwidth as u8, c.coding_rate as u8],
-            Flrc(c) => [c.bitrate_bandwidth as u8, c.coding_rate as u8, c.modulation_shaping as u8],
-            Ble(c) => [c.bitrate_bandwidth as u8, c.modulation_index as u8, c.modulation_shaping as u8],
+            Gfsk(c) => [c.br_bw as u8, c.mi as u8, c.ms as u8],
+            LoRa(c) | Ranging(c) => [c.sf as u8, c.bw as u8, c.cr as u8],
+            Flrc(c) => [c.br_bw as u8, c.cr as u8, c.ms as u8],
+            Ble(c) => [c.br_bw as u8, c.mi as u8, c.ms as u8],
         };
 
         self.hal.write_cmd(Commands::SetModulationParams as u8, &data)
@@ -373,6 +365,7 @@ where
     }
 
     // TODO: this could got into a mode config object maybe?
+    #[allow(dead_code)]
     pub(crate) fn set_auto_tx(&mut self, a: AutoTx) -> Result<(), Error<CommsError, PinError>> {
         let data = match a {
             AutoTx::Enabled(timeout_us) => {
@@ -677,7 +670,7 @@ mod tests {
     use crate::device::RampTime;
 
     extern crate embedded_spi;
-    use self::embedded_spi::mock::{Mock, Spi, Pin};
+    use self::embedded_spi::mock::{Mock, Spi};
 
     use radio::{State as _};
 
@@ -686,7 +679,7 @@ mod tests {
     #[test]
     fn test_api_reset() {
         let mut m = Mock::new();
-        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
         let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
 
         m.expect(vectors::reset(&spi, &sdn, &delay));
@@ -697,7 +690,7 @@ mod tests {
     #[test]
     fn test_api_status() {
         let mut m = Mock::new();
-        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
         let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
 
         m.expect(vectors::status(&spi, &sdn, &delay));
@@ -708,7 +701,7 @@ mod tests {
     #[test]
     fn test_api_firmware_version() {
         let mut m = Mock::new();
-        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
         let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
 
         m.expect(vectors::firmware_version(&spi, &sdn, &delay, 16));
@@ -720,11 +713,11 @@ mod tests {
     #[test]
     fn test_api_power_ramp() {
         let mut m = Mock::new();
-        let (spi, sdn, busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
+        let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
         let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
 
         m.expect(vectors::set_power_ramp(&spi, &sdn, &delay, 0x1f, 0xe0));
-        let version = radio.set_power_ramp(13, RampTime::Ramp20Us).unwrap();
+        radio.set_power_ramp(13, RampTime::Ramp20Us).unwrap();
         m.finalise();
     }
 }
