@@ -36,9 +36,11 @@ pub use radio::{State as _, Interrupts as _};
 pub mod base;
 
 pub mod device;
-pub use device::State;
 use device::*;
+
+pub use device::State;
 pub use device::Config;
+pub use device::Info;
 
 /// Sx128x Spi operating mode
 pub const SPI_MODE: SpiMode = SpiMode {
@@ -183,9 +185,9 @@ where
         }
 
         // Update modulation and packet configuration
-        if self.config.modulation_config != config.modulation_config || force {
-            self.set_modulation_mode(&config.modulation_config)?;
-            self.config.modulation_config = config.modulation_config.clone();
+        if self.config.channel != config.channel || force {
+            self.set_modulation_mode(&config.channel)?;
+            self.config.channel = config.channel.clone();
         }
 
         if self.config.packet_config != config.packet_config || force {
@@ -250,8 +252,8 @@ where
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
     }
 
-    pub(crate) fn set_modulation_mode(&mut self, modulation: &ModulationMode) -> Result<(), Error<CommsError, PinError>> {
-        use ModulationMode::*;
+    pub(crate) fn set_modulation_mode(&mut self, modulation: &Channel) -> Result<(), Error<CommsError, PinError>> {
+        use Channel::*;
 
         debug!("Setting modulation config: {:?}", modulation);
         
@@ -276,8 +278,8 @@ where
         self.hal.write_cmd(Commands::SetModulationParams as u8, &data)
     }
 
-    pub(crate) fn set_packet_mode(&mut self, packet: &PacketMode) -> Result<(), Error<CommsError, PinError>> {
-        use PacketMode::*;
+    pub(crate) fn set_packet_mode(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
+        use Modem::*;
 
         debug!("Setting packet config: {:?}", packet);
 
@@ -306,14 +308,14 @@ where
         self.hal.read_cmd(Commands::GetRxBufferStatus as u8, &mut status)?;
 
         let len = match &self.config.packet_config {
-            PacketMode::LoRa(c) => {
+            Modem::LoRa(c) => {
                 match c.header_type {
                     LoRaHeader::Implicit => self.hal.read_reg(Registers::LrPayloadLength as u8)?,
                     LoRaHeader::Explicit => status[0],
                 }
             },
             // BLE status[0] does not include 2-byte PDU header
-            PacketMode::Ble(_) => status[0] + 2,
+            Modem::Ble(_) => status[0] + 2,
             _ => status[0]
         };
 
@@ -383,29 +385,6 @@ where
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Info {
-    pub rssi: i16,
-    pub rssi_sync: Option<i16>,
-    pub snr: Option<i16>,
-
-    pub packet_status: PacketStatus,
-    pub tx_rx_status: TxRxStatus,
-    pub sync_addr_status: u8,
-}
-
-impl Default for Info {
-    fn default() -> Self {
-        Self {
-            rssi: -100,
-            rssi_sync: None,
-            snr: None,
-            packet_status: PacketStatus::empty(),
-            tx_rx_status: TxRxStatus::empty(),
-            sync_addr_status: 0,
-        }
-    }
-}
 
 /// `radio::State` implementation for the SX128x
 impl<Hal, CommsError, PinError> radio::State for Sx128x<Hal, CommsError, PinError>
@@ -444,7 +423,7 @@ where
     Hal: base::Hal<CommsError, PinError>,
 {
     /// Channel consists of an operating frequency and packet mode
-    type Channel = ModulationMode;
+    type Channel = Channel;
     
     type Error = Error<CommsError, PinError>;
 

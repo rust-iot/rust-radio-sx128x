@@ -4,7 +4,7 @@
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum ModShaping {
     /// No filtering
-    BtOFF                = 0x00,
+    Off                  = 0x00,
     Bt1_0                = 0x10,
     Bt0_5                = 0x20,
 }
@@ -33,40 +33,40 @@ pub enum PreambleLength {
 /// Bitrate-Bandwidth for GFSK and BLE modes
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum GfskBleBitrateBandwidth {
-    GFSK_BLE_BR_2_000_BW_2_4                 = 0x04,
-    GFSK_BLE_BR_1_600_BW_2_4                 = 0x28,
-    GFSK_BLE_BR_1_000_BW_2_4                 = 0x4C,
-    GFSK_BLE_BR_1_000_BW_1_2                 = 0x45,
-    GFSK_BLE_BR_0_800_BW_2_4                 = 0x70,
-    GFSK_BLE_BR_0_800_BW_1_2                 = 0x69,
-    GFSK_BLE_BR_0_500_BW_1_2                 = 0x8D,
-    GFSK_BLE_BR_0_500_BW_0_6                 = 0x86,
-    GFSK_BLE_BR_0_400_BW_1_2                 = 0xB1,
-    GFSK_BLE_BR_0_400_BW_0_6                 = 0xAA,
-    GFSK_BLE_BR_0_250_BW_0_6                 = 0xCE,
-    GFSK_BLE_BR_0_250_BW_0_3                 = 0xC7,
-    GFSK_BLE_BR_0_125_BW_0_3                 = 0xEF,
+    BR_2_000_BW_2_4                 = 0x04,
+    BR_1_600_BW_2_4                 = 0x28,
+    BR_1_000_BW_2_4                 = 0x4C,
+    BR_1_000_BW_1_2                 = 0x45,
+    BR_0_800_BW_2_4                 = 0x70,
+    BR_0_800_BW_1_2                 = 0x69,
+    BR_0_500_BW_1_2                 = 0x8D,
+    BR_0_500_BW_0_6                 = 0x86,
+    BR_0_400_BW_1_2                 = 0xB1,
+    BR_0_400_BW_0_6                 = 0xAA,
+    BR_0_250_BW_0_6                 = 0xCE,
+    BR_0_250_BW_0_3                 = 0xC7,
+    BR_0_125_BW_0_3                 = 0xEF,
 }
 
 /// Modulation Index for GFSK and BLE modes
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum GfskBleModIndex {
-    GFSK_BLE_MOD_IND_0_35                    =  0,
-    GFSK_BLE_MOD_IND_0_50                    =  1,
-    GFSK_BLE_MOD_IND_0_75                    =  2,
-    GFSK_BLE_MOD_IND_1_00                    =  3,
-    GFSK_BLE_MOD_IND_1_25                    =  4,
-    GFSK_BLE_MOD_IND_1_50                    =  5,
-    GFSK_BLE_MOD_IND_1_75                    =  6,
-    GFSK_BLE_MOD_IND_2_00                    =  7,
-    GFSK_BLE_MOD_IND_2_25                    =  8,
-    GFSK_BLE_MOD_IND_2_50                    =  9,
-    GFSK_BLE_MOD_IND_2_75                    = 10,
-    GFSK_BLE_MOD_IND_3_00                    = 11,
-    GFSK_BLE_MOD_IND_3_25                    = 12,
-    GFSK_BLE_MOD_IND_3_50                    = 13,
-    GFSK_BLE_MOD_IND_3_75                    = 14,
-    GFSK_BLE_MOD_IND_4_00                    = 15,
+    MOD_IND_0_35                    =  0,
+    MOD_IND_0_50                    =  1,
+    MOD_IND_0_75                    =  2,
+    MOD_IND_1_00                    =  3,
+    MOD_IND_1_25                    =  4,
+    MOD_IND_1_50                    =  5,
+    MOD_IND_1_75                    =  6,
+    MOD_IND_2_00                    =  7,
+    MOD_IND_2_25                    =  8,
+    MOD_IND_2_50                    =  9,
+    MOD_IND_2_75                    = 10,
+    MOD_IND_3_00                    = 11,
+    MOD_IND_3_25                    = 12,
+    MOD_IND_3_50                    = 13,
+    MOD_IND_3_75                    = 14,
+    MOD_IND_4_00                    = 15,
 }
 
 /// Common radio whitening mode
