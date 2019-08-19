@@ -31,16 +31,15 @@ extern crate embedded_spi;
 use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
 extern crate radio;
-pub use radio::{State as _, Interrupts as _};
+pub use radio::{State as _, Interrupts as _, Channel as _};
 
 pub mod base;
 
 pub mod device;
+pub use device::{State, Config};
 use device::*;
 
-pub use device::State;
-pub use device::Config;
-pub use device::Info;
+pub mod prelude;
 
 /// Sx128x Spi operating mode
 pub const SPI_MODE: SpiMode = SpiMode {
@@ -184,15 +183,15 @@ where
             self.config.regulator_mode = config.regulator_mode;
         }
 
-        // Update modulation and packet configuration
+        // Update modem and channel configuration
         if self.config.channel != config.channel || force {
-            self.set_modulation_mode(&config.channel)?;
+            self.set_channel(&config.channel)?;
             self.config.channel = config.channel.clone();
         }
 
-        if self.config.packet_config != config.packet_config || force {
-            self.set_packet_mode(&config.packet_config)?;
-            self.config.packet_config = config.packet_config.clone();
+        if self.config.modem != config.modem || force {
+            self.configure_modem(&config.modem)?;
+            self.config.modem = config.modem.clone();
         }
 
         // Update power amplifier configuration
@@ -203,8 +202,6 @@ where
 
         Ok(())
     }
-
-    
 
     pub fn firmware_version(&mut self) -> Result<u16, Error<CommsError, PinError>> {
         let mut d = [0u8; 2];
@@ -252,36 +249,10 @@ where
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
     }
 
-    pub(crate) fn set_modulation_mode(&mut self, modulation: &Channel) -> Result<(), Error<CommsError, PinError>> {
-        use Channel::*;
-
-        debug!("Setting modulation config: {:?}", modulation);
-        
-        // Set frequency
-        self.set_frequency(modulation.frequency())?;
-
-        // First update packet type (if required)
-        let packet_type = PacketType::from(modulation);
-        if self.packet_type != packet_type {
-            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
-            self.packet_type = packet_type;
-        }
-        
-        // Then write modulation configuration
-        let data = match modulation {
-            Gfsk(c) => [c.br_bw as u8, c.mi as u8, c.ms as u8],
-            LoRa(c) | Ranging(c) => [c.sf as u8, c.bw as u8, c.cr as u8],
-            Flrc(c) => [c.br_bw as u8, c.cr as u8, c.ms as u8],
-            Ble(c) => [c.br_bw as u8, c.mi as u8, c.ms as u8],
-        };
-
-        self.hal.write_cmd(Commands::SetModulationParams as u8, &data)
-    }
-
-    pub(crate) fn set_packet_mode(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
+    pub(crate) fn configure_modem(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
         use Modem::*;
 
-        debug!("Setting packet config: {:?}", packet);
+        debug!("Setting modem config: {:?}", packet);
 
         // First update packet type (if required)
         let packet_type = PacketType::from(packet);
@@ -307,7 +278,7 @@ where
 
         self.hal.read_cmd(Commands::GetRxBufferStatus as u8, &mut status)?;
 
-        let len = match &self.config.packet_config {
+        let len = match &self.config.modem {
             Modem::LoRa(c) => {
                 match c.header_type {
                     LoRaHeader::Implicit => self.hal.read_reg(Registers::LrPayloadLength as u8)?,
@@ -327,7 +298,7 @@ where
     }
 
     
-    pub(crate) fn get_packet_info(&mut self, info: &mut Info) -> Result<(), Error<CommsError, PinError>> {
+    pub(crate) fn get_packet_info(&mut self, info: &mut PacketInfo) -> Result<(), Error<CommsError, PinError>> {
 
         let mut data = [0u8; 5];
         self.hal.read_cmd(Commands::GetPacketStatus as u8, &mut data)?;
@@ -429,10 +400,29 @@ where
 
     /// Set operating channel
     fn set_channel(&mut self, ch: &Self::Channel) -> Result<(), Self::Error> {
-        // Set packet mode
-        self.set_modulation_mode(ch)?;
+        use Channel::*;
+
+        debug!("Setting channel config: {:?}", ch);
         
-        Ok(())
+        // Set frequency
+        self.set_frequency(ch.frequency())?;
+
+        // First update packet type (if required)
+        let packet_type = PacketType::from(ch);
+        if self.packet_type != packet_type {
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
+            self.packet_type = packet_type;
+        }
+        
+        // Then write modulation configuration
+        let data = match ch {
+            Gfsk(c) => [c.br_bw as u8, c.mi as u8, c.ms as u8],
+            LoRa(c) | Ranging(c) => [c.sf as u8, c.bw as u8, c.cr as u8],
+            Flrc(c) => [c.br_bw as u8, c.cr as u8, c.ms as u8],
+            Ble(c) => [c.br_bw as u8, c.mi as u8, c.ms as u8],
+        };
+
+        self.hal.write_cmd(Commands::SetModulationParams as u8, &data)
     }
 }
 
@@ -485,9 +475,9 @@ where
         debug!("TX start");
 
         // Set packet mode
-        let mut config = self.config.packet_config.clone();
-        config.set_payload_len(data.len() as u8);
-        self.set_packet_mode(&config)?;
+        let mut modem_config = self.config.modem.clone();
+        modem_config.set_payload_len(data.len() as u8);
+        self.configure_modem(&modem_config)?;
 
         // Reset buffer addr
         self.set_buff_base_addr(0, 0)?;
@@ -539,7 +529,7 @@ where
     Hal: base::Hal<CommsError, PinError>,
 {
     /// Receive info structure
-    type Info = Info;
+    type Info = PacketInfo;
 
     /// RF Error object
     type Error = Error<CommsError, PinError>;
@@ -552,8 +542,8 @@ where
         self.set_buff_base_addr(0, 0)?;
         
         // Set packet mode
-        let config = self.config.packet_config.clone();
-        self.set_packet_mode(&config)?;
+        let config = self.config.modem.clone();
+        self.configure_modem(&config)?;
 
         // Configure ranging if used
         if PacketType::Ranging == self.packet_type {

@@ -45,6 +45,20 @@ pub struct GfskConfig {
     pub whitening: WhiteningModes
 }
 
+impl Default for GfskConfig {
+    fn default() -> Self {
+        Self {
+            preamble_length: PreambleLength::PreambleLength16,
+            sync_word_length: GfskSyncWordLength::GFSK_SYNCWORD_LENGTH_2_BYTE,
+            sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_2,
+            header_type: GfskFlrcPacketLength::Variable,
+            payload_length: 0x40,
+            crc_type: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
+            whitening: WhiteningModes::RADIO_WHITENING_ON,
+        }   
+    }
+}
+
 /// GFSK sync word length configuration
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum GfskSyncWordLength {

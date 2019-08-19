@@ -17,21 +17,22 @@ pub mod common;
 pub struct Config {
     /// Regulator mode configuration
     pub regulator_mode: RegulatorMode,
+
     /// Power amplifier configuration
     pub pa_config: PaConfig,
 
     /// Internal packet type field to track configurations
     pub(crate) packet_type: PacketType,
-    
-    /// RF Modulation configuration
+        
+    /// RF Modem configuration
+    /// 
+    /// (note this must match the modulation configuration)
+    pub modem: Modem,
+
+    /// RF Modulation / Channel configuration
     /// 
     /// (note this must match the packet configuration)
     pub channel: Channel,
-    
-    /// RF Packet configuration
-    /// 
-    /// (note this must match the modulation configuration)
-    pub packet_config: Modem,
     
     pub timeout: Timeout,
 }
@@ -42,8 +43,8 @@ impl Default for Config {
             regulator_mode: RegulatorMode::Dcdc,
             pa_config: PaConfig{ power: 10, ramp_time: RampTime::Ramp20Us },
             packet_type: PacketType::None,
+            modem: Modem::LoRa(LoRaConfig::default()),
             channel: Channel::LoRa(LoRaChannel::default()),
-            packet_config: Modem::LoRa(LoRaConfig::default()),
             //timeout: Timeout::Configurable{ step: TickSize::TickSize1000us, count: 1000 },
             timeout: Timeout::Single,
         }
@@ -193,6 +194,30 @@ pub struct PaConfig {
     pub ramp_time: RampTime,
 }
 
+/// Receive packet information
+#[derive(Clone, Debug, PartialEq)]
+pub struct PacketInfo {
+    pub rssi: i16,
+    pub rssi_sync: Option<i16>,
+    pub snr: Option<i16>,
+
+    pub packet_status: PacketStatus,
+    pub tx_rx_status: TxRxStatus,
+    pub sync_addr_status: u8,
+}
+
+impl Default for PacketInfo {
+    fn default() -> Self {
+        Self {
+            rssi: -100,
+            rssi_sync: None,
+            snr: None,
+            packet_status: PacketStatus::empty(),
+            tx_rx_status: TxRxStatus::empty(),
+            sync_addr_status: 0,
+        }
+    }
+}
 
 /// Regulator operating mode
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
