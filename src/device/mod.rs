@@ -51,31 +51,6 @@ impl Default for Config {
     }
 }
 
-/// RF packet information
-#[derive(Clone, Debug, PartialEq)]
-pub struct Info {
-    pub rssi: i16,
-    pub rssi_sync: Option<i16>,
-    pub snr: Option<i16>,
-
-    pub packet_status: PacketStatus,
-    pub tx_rx_status: TxRxStatus,
-    pub sync_addr_status: u8,
-}
-
-impl Default for Info {
-    fn default() -> Self {
-        Self {
-            rssi: -100,
-            rssi_sync: None,
-            snr: None,
-            packet_status: PacketStatus::empty(),
-            tx_rx_status: TxRxStatus::empty(),
-            sync_addr_status: 0,
-        }
-    }
-}
-
 /// Radio modem configuration contains fields for each modem mode
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub enum Modem {
