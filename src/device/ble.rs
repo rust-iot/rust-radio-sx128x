@@ -4,7 +4,7 @@ use super::common::*;
 
 /// BLE operating mode channel configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct BleConfig {
+pub struct BleChannel {
     /// Operating frequency
     pub freq: u32,
     /// Bitrate bandwidth
@@ -17,7 +17,7 @@ pub struct BleConfig {
 
 /// BLE operating mode packet configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct BlePacketConfig {
+pub struct BleConfig {
     /// BLE connection state
     pub connection_state: BleConnectionStates,
     /// Size of the CRC block in the BLE packet

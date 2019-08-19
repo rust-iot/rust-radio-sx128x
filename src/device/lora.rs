@@ -1,40 +1,21 @@
 //! LoRa device configuration definitions
 
-/// LoRa mode channel configuration
+/// LoRa mode radio configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct LoRaConfig {
-    /// Operating frequency in Hz
-    pub freq: u32,
-    /// LoRa Spreading Factor
-    pub sf: LoRaSpreadingFactor,
-    /// LoRa channel bandwidth
-    pub bw: LoRaBandwidth,
-    /// LoRa Coding rate
-    pub cr: LoRaCodingRate,
-}
-
-impl Default for LoRaConfig {
-    fn default() -> Self {
-        Self {
-            freq: 2.4e9 as u32,
-            sf: LoRaSpreadingFactor::Sf8,
-            bw: LoRaBandwidth::Bw200kHz,
-            cr: LoRaCodingRate::Cr4_5,
-        }
-    }
-}
-
-/// LoRa mode packet configuration
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct LoRaPacketConfig {
+    // Preamble length in symbols (defaults to 8)
     pub preamble_length: u8,
+    /// LoRa header configuration, defaults to variable packet length with explicit headers
     pub header_type: LoRaHeader,
+    /// Payload length configuration (or maximum length for variable mode)
     pub payload_length: u8,
+    /// Payload RX CRC configuration (defaults to enabled)
     pub crc_mode: LoRaCrc,
+    /// IQ inversion configuration (defaults to disabled)
     pub invert_iq: LoRaIq,
 }
 
-impl Default for LoRaPacketConfig {
+impl Default for LoRaConfig {
     fn default() -> Self {
         Self {
             preamble_length: 08,
@@ -42,6 +23,30 @@ impl Default for LoRaPacketConfig {
             payload_length: 0x40,
             crc_mode: LoRaCrc::Enabled,
             invert_iq: LoRaIq::Inverted,
+        }
+    }
+}
+
+/// LoRa mode channel configuration
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct LoRaChannel {
+    /// LoRa frequency in Hz (defaults to 2.4GHz)
+    pub freq: u32,
+    /// LoRa Spreading Factor (defaults to SF8)
+    pub sf: LoRaSpreadingFactor,
+    /// LoRa channel bandwidth (defaults to 200kHz)
+    pub bw: LoRaBandwidth,
+    /// LoRa Coding rate (defaults to 4/5)
+    pub cr: LoRaCodingRate,
+}
+
+impl Default for LoRaChannel {
+    fn default() -> Self {
+        Self {
+            freq: 2.4e9 as u32,
+            sf: LoRaSpreadingFactor::Sf8,
+            bw: LoRaBandwidth::Bw200kHz,
+            cr: LoRaCodingRate::Cr4_5,
         }
     }
 }

@@ -1,13 +1,13 @@
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
 pub mod ble;
-use ble::{BleConfig, BlePacketConfig};
+use ble::{BleChannel, BleConfig};
 pub mod flrc;
-use flrc::{FlrcConfig, FlrcPacketConfig};
+use flrc::{FlrcChannel, FlrcConfig};
 pub mod gfsk;
-use gfsk::{GfskConfig, GfskPacketConfig};
+use gfsk::{GfskChannel, GfskConfig};
 pub mod lora;
-use lora::{LoRaConfig, LoRaPacketConfig};
+use lora::{LoRaChannel, LoRaConfig};
 
 pub mod common;
 
@@ -15,11 +15,24 @@ pub mod common;
 /// Sx128x general configuration object
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 pub struct Config {
+    /// Regulator mode configuration
     pub regulator_mode: RegulatorMode,
+    /// Power amplifier configuration
     pub pa_config: PaConfig,
+
+    /// Internal packet type field to track configurations
     pub(crate) packet_type: PacketType,
-    pub modulation_config: ModulationMode,
-    pub packet_config: PacketMode,
+    
+    /// RF Modulation configuration
+    /// 
+    /// (note this must match the packet configuration)
+    pub channel: Channel,
+    
+    /// RF Packet configuration
+    /// 
+    /// (note this must match the modulation configuration)
+    pub packet_config: Modem,
+    
     pub timeout: Timeout,
 }
 
@@ -29,37 +42,94 @@ impl Default for Config {
             regulator_mode: RegulatorMode::Dcdc,
             pa_config: PaConfig{ power: 10, ramp_time: RampTime::Ramp20Us },
             packet_type: PacketType::None,
-            modulation_config: ModulationMode::LoRa(LoRaConfig::default()),
-            packet_config: PacketMode::LoRa(LoRaPacketConfig::default()),
+            channel: Channel::LoRa(LoRaChannel::default()),
+            packet_config: Modem::LoRa(LoRaConfig::default()),
             //timeout: Timeout::Configurable{ step: TickSize::TickSize1000us, count: 1000 },
             timeout: Timeout::Single,
         }
     }
 }
 
-/// Power Amplifier configuration
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct PaConfig {
-    /// Power in dBm
-    pub power: i8,
-    /// Ramp time for power amplifier
-    pub ramp_time: RampTime,
+/// RF packet information
+#[derive(Clone, Debug, PartialEq)]
+pub struct Info {
+    pub rssi: i16,
+    pub rssi_sync: Option<i16>,
+    pub snr: Option<i16>,
+
+    pub packet_status: PacketStatus,
+    pub tx_rx_status: TxRxStatus,
+    pub sync_addr_status: u8,
 }
 
-/// Radio modulation modes
+impl Default for Info {
+    fn default() -> Self {
+        Self {
+            rssi: -100,
+            rssi_sync: None,
+            snr: None,
+            packet_status: PacketStatus::empty(),
+            tx_rx_status: TxRxStatus::empty(),
+            sync_addr_status: 0,
+        }
+    }
+}
+
+/// Radio modem configuration contains fields for each modem mode
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum ModulationMode {
+pub enum Modem {
     Gfsk(GfskConfig),
     LoRa(LoRaConfig),
     Flrc(FlrcConfig),
     Ble(BleConfig),
     Ranging(LoRaConfig),
+    None,
 }
 
-impl ModulationMode {
+impl Modem {
+    pub fn set_payload_len(&mut self, len: u8) {
+        match self {
+            Modem::Gfsk(c) => c.payload_length = len,
+            Modem::LoRa(c) => c.payload_length = len,
+            Modem::Flrc(c) => c.payload_length = len,
+            _ => (),
+        }
+    }
+}
+
+impl From<&Modem> for PacketType {
+    fn from(m: &Modem) -> Self {
+         match m {
+            Modem::Gfsk(_) => PacketType::Gfsk,
+            Modem::LoRa(_) => PacketType::LoRa,
+            Modem::Ranging(_) => PacketType::LoRa,
+            Modem::Flrc(_) => PacketType::Flrc,
+            Modem::Ble(_) => PacketType::Ble,
+            Modem::None => PacketType::None,
+        }
+    }
+}
+
+/// Radio channel configuration contains channel options for each mode
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub enum Channel {
+    Gfsk(GfskChannel),
+    LoRa(LoRaChannel),
+    Flrc(FlrcChannel),
+    Ble(BleChannel),
+    Ranging(LoRaChannel),
+}
+
+impl Default for Channel {
+    fn default() -> Self {
+        Channel::LoRa(LoRaChannel::default())
+    }
+}
+
+impl Channel {
     /// Fetch frequency for a given modulation configuration
     pub fn frequency(&self) -> u32 {
-        use ModulationMode::*;
+        use Channel::*;
 
         match self {
             Gfsk(c) => c.freq,
@@ -71,9 +141,9 @@ impl ModulationMode {
     }
 }
 
-impl From<&ModulationMode> for PacketType {
-    fn from(m: &ModulationMode) -> Self {
-        use ModulationMode::*;
+impl From<&Channel> for PacketType {
+    fn from(m: &Channel) -> Self {
+        use Channel::*;
 
         match m {
             Gfsk(_) => PacketType::Gfsk,
@@ -84,42 +154,6 @@ impl From<&ModulationMode> for PacketType {
         }
     }
 }
-
-/// Radio packet modes
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub enum PacketMode {
-    Gfsk(GfskPacketConfig),
-    LoRa(LoRaPacketConfig),
-    Flrc(FlrcPacketConfig),
-    Ble(BlePacketConfig),
-    Ranging(LoRaPacketConfig),
-    None,
-}
-
-impl PacketMode {
-    pub fn set_payload_len(&mut self, len: u8) {
-        match self {
-            PacketMode::Gfsk(c) => c.payload_length = len,
-            PacketMode::LoRa(c) => c.payload_length = len,
-            PacketMode::Flrc(c) => c.payload_length = len,
-            _ => (),
-        }
-    }
-}
-
-impl From<&PacketMode> for PacketType {
-    fn from(m: &PacketMode) -> Self {
-         match m {
-            PacketMode::Gfsk(_) => PacketType::Gfsk,
-            PacketMode::LoRa(_) => PacketType::LoRa,
-            PacketMode::Ranging(_) => PacketType::LoRa,
-            PacketMode::Flrc(_) => PacketType::Flrc,
-            PacketMode::Ble(_) => PacketType::Ble,
-            PacketMode::None => PacketType::None,
-        }
-    }
-}
-
 
 /// Radio state
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
@@ -149,6 +183,16 @@ impl core::convert::TryFrom<u8> for State {
         }
     }
 }
+
+/// Power Amplifier configuration
+#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+pub struct PaConfig {
+    /// Power in dBm
+    pub power: i8,
+    /// Ramp time for power amplifier
+    pub ramp_time: RampTime,
+}
+
 
 /// Regulator operating mode
 #[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]

@@ -4,7 +4,7 @@ use super::common::*;
 
 /// FLRC configuration structure
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct FlrcConfig {
+pub struct FlrcChannel {
     /// Operating frequency
     pub freq: u32,
     /// Bitrate bandwidth
@@ -15,13 +15,13 @@ pub struct FlrcConfig {
     pub ms: ModShaping,
 }
 
-impl Default for FlrcConfig {
+impl Default for FlrcChannel {
     fn default() -> Self {
         Self {
             freq: 2.4e9 as u32,
             br_bw: FlrcBitrate::BR_2_080_BW_2_4,
             cr: FlrcCodingRate::Cr3_4,
-            ms: ModShaping::BtOFF,
+            ms: ModShaping::Off,
         }   
     }
 }
@@ -29,7 +29,7 @@ impl Default for FlrcConfig {
 
 /// FLRC packet configuration structure
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct FlrcPacketConfig {
+pub struct FlrcConfig {
     pub preamble_length: PreambleLength,
     pub sync_word_length: FlrcSyncWordLength,
     pub sync_word_match: SyncWordRxMatch,

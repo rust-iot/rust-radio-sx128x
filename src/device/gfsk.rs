@@ -4,7 +4,7 @@ use super::common::*;
 
 /// GFSK operating mode configuration
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct GfskConfig {
+pub struct GfskChannel {
     /// Operating frequency
     pub freq: u32,
     /// Bitrate bandwidth
@@ -15,20 +15,20 @@ pub struct GfskConfig {
     pub ms: ModShaping,
 }
 
-impl Default for GfskConfig {
+impl Default for GfskChannel {
     fn default() -> Self {
         Self {
             freq: 2.4e9 as u32,
-            br_bw: GfskBleBitrateBandwidth::GFSK_BLE_BR_0_250_BW_0_3,
-            mi: GfskBleModIndex::GFSK_BLE_MOD_IND_0_35,
-            ms: ModShaping::BtOFF,
+            br_bw: GfskBleBitrateBandwidth::BR_0_250_BW_0_3,
+            mi: GfskBleModIndex::MOD_IND_0_35,
+            ms: ModShaping::Off,
         }   
     }
 }
 
 /// GFSK packet configuration 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
-pub struct GfskPacketConfig {
+pub struct GfskConfig {
     /// Preamble length
     pub preamble_length: PreambleLength,
     /// Sync word length
