@@ -249,7 +249,7 @@ where
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
     }
 
-    pub(crate) fn configure_modem(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
+    pub fn configure_modem(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
         use Modem::*;
 
         debug!("Setting modem config: {:?}", packet);
@@ -356,6 +356,15 @@ where
     }
 }
 
+
+impl<Hal, CommsError, PinError> delay::DelayMs<u32> for Sx128x<Hal, CommsError, PinError>
+where
+    Hal: base::Hal<CommsError, PinError>,
+{
+    fn delay_ms(&mut self, t: u32) {
+        self.hal.delay_ms(t)
+    }
+}
 
 /// `radio::State` implementation for the SX128x
 impl<Hal, CommsError, PinError> radio::State for Sx128x<Hal, CommsError, PinError>
