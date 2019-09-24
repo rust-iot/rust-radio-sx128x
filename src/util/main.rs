@@ -20,6 +20,7 @@ use radio::{State as _};
 
 extern crate radio_sx128x;
 use radio_sx128x::prelude::*;
+use radio_sx128x::device::flrc;
 
 mod options;
 use options::*;
@@ -69,33 +70,46 @@ fn main() {
     let settings = Settings::default();
     let mut config = Config::default();
 
+    // Generate configurations
+    match &opts.command {
+        Command::LoRa(_lora_config) => {
+            // Set to lora mode
+            config.modem = Modem::LoRa(LoRaConfig::default());
+            config.channel = Channel::LoRa(LoRaChannel::default());
+        },
+        Command::Flrc(flrc_config) => {
+            // Set to Gfsk mode
+            config.modem = Modem::Flrc(FlrcConfig::default());
+            let mut channel = FlrcChannel::default();
+            channel.br_bw = flrc::FlrcBitrate::from_parts(flrc_config.bitrate, flrc_config.bandwidth)
+                .expect("Error parsing FLRC bitrate-bandwidth");
+            config.channel = Channel::Flrc(channel);
+        }
+        Command::Gfsk(_gfsk_config) => {
+            // Set to Gfsk mode
+            config.modem = Modem::Gfsk(GfskConfig::default());
+            config.channel = Channel::Gfsk(GfskChannel::default());
+        },
+        _ => (),
+    }
+
     debug!("Settings: {:?}", settings);
     debug!("Config: {:?}", config);
 
+    info!("Initialising Radio");
     let mut radio = Sx128x::spi(spi, cs, busy, rst, Delay{}, settings, &config).expect("error creating device");
 
-    debug!("Executing command");
-    match opts.command {
+    let operation = opts.command.operation();
+
+    info!("Executing command");
+    match &opts.command {
         Command::FirmwareVersion => {
             let version = radio.firmware_version().expect("error fetching chip version");
             info!("Silicon version: 0x{:X}", version);
             return
         },
-        Command::LoRa(lora_config) => {
-            // Set to lora mode
-            config.modem = Modem::LoRa(LoRaConfig::default());
-            config.channel = Channel::LoRa(LoRaChannel::default());
-            radio.configure(&config, true).expect("error configuring lora mode");
-
-            do_command(&mut radio, lora_config.operation).expect("error executing command");
-        },
-        Command::Gfsk(gfsk_config) => {
-            // Set to Gfsk mode
-            config.modem = Modem::Gfsk(GfskConfig::default());
-            config.channel = Channel::Gfsk(GfskChannel::default());
-            radio.configure(&config, true).expect("error configuring gfsk mode");
-
-            do_command(&mut radio, gfsk_config.operation).expect("error executing command");
+        _ => {
+            do_command(&mut radio, operation.unwrap()).expect("error executing command");
         }
     }
 

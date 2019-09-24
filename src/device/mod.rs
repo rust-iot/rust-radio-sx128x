@@ -13,7 +13,8 @@ pub mod common;
 
 
 /// Sx128x general configuration object
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub struct Config {
     /// Regulator mode configuration
     pub regulator_mode: RegulatorMode,
@@ -52,7 +53,8 @@ impl Default for Config {
 }
 
 /// Radio modem configuration contains fields for each modem mode
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum Modem {
     Gfsk(GfskConfig),
     LoRa(LoRaConfig),
@@ -87,7 +89,8 @@ impl From<&Modem> for PacketType {
 }
 
 /// Radio channel configuration contains channel options for each mode
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum Channel {
     Gfsk(GfskChannel),
     LoRa(LoRaChannel),
@@ -132,7 +135,8 @@ impl From<&Channel> for PacketType {
 }
 
 /// Radio state
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum State {
     Sleep       = 0x00,
     StandbyRc   = 0x01,
@@ -161,7 +165,8 @@ impl core::convert::TryFrom<u8> for State {
 }
 
 /// Power Amplifier configuration
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub struct PaConfig {
     /// Power in dBm
     pub power: i8,
@@ -195,7 +200,8 @@ impl Default for PacketInfo {
 }
 
 /// Regulator operating mode
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum RegulatorMode {
     /// Internal LDO
     Ldo  = 0x00,
@@ -204,7 +210,8 @@ pub enum RegulatorMode {
 }
 
 /// Power amplifier ramp time
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum RampTime {
     /// Ramp over 2us
     Ramp02Us = 0x00,
@@ -225,7 +232,8 @@ pub enum RampTime {
 }
 
 /// Packet type enumeration
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum PacketType {
     Gfsk     = 0x00,
     LoRa     = 0x01,
@@ -236,7 +244,8 @@ pub enum PacketType {
 }
 
 /// Radio commands
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum Commands {
     GetStatus                = 0xC0,
     WiteRegister             = 0x18,
@@ -277,7 +286,8 @@ pub enum Commands {
 }
 
 /// Radio registers
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum Registers {
     LrFirmwareVersionMsb               = 0x0153,
     LrCrcSeedBaseAddr                  = 0x09C8,
@@ -317,7 +327,8 @@ pub const MASK_LR_ESTIMATED_FREQUENCY_ERROR: u32 = 0x0FFFFF;
 
 pub const AUTO_RX_TX_OFFSET: u16 = 33;
 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum AutoTx {
     /// Enable AutoTX with the provided timeout in microseconds (uS)
     Enabled(u16),
@@ -365,17 +376,11 @@ bitflags! {
 
 
 bitflags! {
-    /// TxRx status register
+    /// TxRx status packet status byte
     pub struct TxRxStatus: u8 {
         /// Top flag value unknown due to lack of complete datasheet
-        const UNKNOWN               = (1 << 7);
-        const SYNC_ERROR            = (1 << 6);
-        const LENGTH_ERROR          = (1 << 5);
-        const CRC_ERROR             = (1 << 4);
-        const ABORT_ERROR           = (1 << 3);
-        const HEADER_RECEIVED       = (1 << 2);
-        const PACKET_RECEIVED       = (1 << 1);
-        const PACKET_CONTROLER_BUSY = (1 << 0);
+        const RX_NO_ACK             = (1 << 5);
+        const PACKET_SENT           = (1 << 0);
     }
 }
 
@@ -400,7 +405,8 @@ bitflags! {
 }
 
 /// Ranging mode role
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum RangingRole {
     /// Responder listens for ranging requests and responds
     Responder = 0x00,
@@ -409,7 +415,8 @@ pub enum RangingRole {
 }
 
 /// TickSize for timeout calculations
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum TickSize {
     // 15us tick size
     TickSize0015us   = 0x00,
@@ -422,7 +429,8 @@ pub enum TickSize {
 }
 
 /// Timeout confguration for autonomous radio operations
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum Timeout {
     /// Single tx/rx mode
     Single,

@@ -11,12 +11,16 @@ extern crate libc;
 #[macro_use]
 extern crate log;
 
-#[macro_use]
+#[cfg(feature = "serde")]
 extern crate serde;
 
 #[cfg(test)]
 #[macro_use]
 extern crate std;
+
+#[cfg(feature = "util")]
+#[macro_use]
+extern crate structopt;
 
 #[macro_use]
 extern crate bitflags;
@@ -101,6 +105,8 @@ pub enum Error<CommsError, PinError> {
     InvalidDevice(u16),
     /// Radio returned an invalid response
     InvalidResponse(u8),
+    /// Invalid configuration option provided
+    InvalidConfiguration,
 }
 
 impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<CommsError, PinError> {
@@ -176,6 +182,14 @@ where
     pub fn configure(&mut self, config: &Config, force: bool) -> Result<(), Error<CommsError, PinError>> {
         // Switch to standby mode
         self.set_state(State::StandbyRc)?;
+
+        // First update packet type (if required)
+        let packet_type = PacketType::from(&config.modem);
+        if self.packet_type != packet_type {
+            debug!("Setting packet type: {:?}", packet_type);
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
+            self.packet_type = packet_type;
+        }
 
         // Update regulator mode
         if self.config.regulator_mode != config.regulator_mode || force {
@@ -254,20 +268,30 @@ where
 
         debug!("Setting modem config: {:?}", packet);
 
-        // First update packet type (if required)
-        let packet_type = PacketType::from(packet);
-        if self.packet_type != packet_type {
-            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
-            self.packet_type = packet_type;
+        self.set_packet_params(packet)?;
+
+        if let Flrc(c) = packet {
+            if let Some(v) = c.sync_word_value {
+                self.set_syncword(1, &v)?;
+            }
         }
 
+        Ok(())
+    }
+
+    pub(crate) fn set_packet_params(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
+        use Modem::*;
+
+        debug!("Setting packet params");
+
         let data = match packet {
-            Gfsk(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
+            Gfsk(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.whitening as u8],
             LoRa(c) | Ranging(c) => [c.preamble_length as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.invert_iq as u8, 0u8, 0u8],
-            Flrc(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_type as u8, c.whitening as u8],
+            Flrc(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.whitening as u8],
             Ble(c) => [c.connection_state as u8, c.crc_field as u8, c.packet_type as u8, c.whitening as u8, 0u8, 0u8, 0u8],
             None => [0u8; 7],
         };
+
         self.hal.write_cmd(Commands::SetPacketParams as u8, &data)
     }
 
@@ -305,7 +329,7 @@ where
 
         info.packet_status = PacketStatus::from_bits_truncate(data[2]);
         info.tx_rx_status = TxRxStatus::from_bits_truncate(data[3]);
-        info.sync_addr_status = data[4] & 0x70;
+        info.sync_addr_status = data[4] & 0b0111;
 
         match self.packet_type {
             PacketType::Gfsk | PacketType::Flrc | PacketType::Ble => {
@@ -353,6 +377,38 @@ where
     pub(crate) fn set_buff_base_addr(&mut self, tx: u8, rx: u8) -> Result<(), Error<CommsError, PinError>> {
         debug!("Set buff base address (tx: {}, rx: {})", tx, rx);
         self.hal.write_cmd(Commands::SetBufferBaseAddress as u8, &[ tx, rx ])
+    }
+
+    /// Set the sychronization mode for a given index (1-3).
+    /// This is 5-bytes for GFSK mode and 4-bytes for FLRC and BLE modes.
+    pub fn set_syncword(&mut self, index: u8, value: &[u8]) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Attempting to set sync word index: {} to: {:?}", index, value);
+
+        // Calculate sync word base address and expected length
+        let (addr, len) = match (&self.packet_type, index) {
+            (PacketType::Gfsk, 1) => (Registers::LrSyncWordBaseAddress1 as u16, 5),
+            (PacketType::Gfsk, 2) => (Registers::LrSyncWordBaseAddress2 as u16, 5),
+            (PacketType::Gfsk, 3) => (Registers::LrSyncWordBaseAddress3 as u16, 5),
+            (PacketType::Flrc, 1) => (Registers::LrSyncWordBaseAddress1 as u16 + 1, 4),
+            (PacketType::Flrc, 2) => (Registers::LrSyncWordBaseAddress2 as u16 + 1, 4),
+            (PacketType::Flrc, 3) => (Registers::LrSyncWordBaseAddress3 as u16 + 1, 4),
+            (PacketType::Ble, _) => (Registers::LrSyncWordBaseAddress1 as u16 + 1, 4),
+            _ => {
+                warn!("Invalid sync word configuration (mode: {:?} index: {} value: {:?}", self.config.modem, index, value);
+                return Err(Error::InvalidConfiguration)
+            }
+        };
+
+        // Check length is correct
+        if value.len() != len {
+            warn!("Incorrect sync word length for mode: {:?} (actual: {}, expected: {})", self.config.modem, value.len(), len);
+            return Err(Error::InvalidConfiguration)
+        }
+
+        // Write sync word
+        self.hal.write_regs(addr, value)?;
+
+        Ok(())
     }
 }
 
@@ -484,14 +540,19 @@ where
         debug!("TX start");
 
         // Set packet mode
-        let mut modem_config = self.config.modem.clone();
-        modem_config.set_payload_len(data.len() as u8);
-        self.configure_modem(&modem_config)?;
+        let mut packet_config = self.config.modem.clone();
+        packet_config.set_payload_len(data.len() as u8);
+        self.set_packet_params(&packet_config)?;
 
         // Reset buffer addr
         self.set_buff_base_addr(0, 0)?;
-        
+
         // Write data to be sent
+        //if self.packet_type == PacketType::Flrc {
+        //    self.hal.write_buff(0, &[0, data.len() as u8])?;
+        //    self.hal.write_buff(2, data)?;
+        //} else {
+            
         self.hal.write_buff(0, data)?;
         
         // Configure ranging if used
@@ -519,6 +580,8 @@ where
     fn check_transmit(&mut self) -> Result<bool, Self::Error> {
         let irq = self.get_interrupts(true)?;
 
+        trace!("TX poll (irq: {:?})", irq);
+
         if irq.contains(Irq::TX_DONE) {
             debug!("TX complete");
             Ok(true)
@@ -526,7 +589,6 @@ where
             debug!("TX timeout");
             Err(Error::Timeout)
         } else {
-            trace!("TX poll (irq: {:?}", irq);
             Ok(false)
         }
     }
@@ -551,8 +613,9 @@ where
         self.set_buff_base_addr(0, 0)?;
         
         // Set packet mode
-        let config = self.config.modem.clone();
-        self.configure_modem(&config)?;
+        // TODO: surely this should not bre required _every_ receive?
+        let packet_config = self.config.modem.clone();
+        self.set_packet_params(&packet_config)?;
 
         // Configure ranging if used
         if PacketType::Ranging == self.packet_type {
@@ -567,7 +630,7 @@ where
         ];
         
         // Enable IRQs
-        self.set_irq_mask(Irq::RX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
+        self.set_irq_mask(Irq::RX_DONE | Irq::SYNCWORD_VALID | Irq::HEADER_VALID | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
 
         // Enter transmit mode
         self.hal.write_cmd(Commands::SetRx as u8, &config)?;
@@ -580,6 +643,8 @@ where
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
        
+        trace!("RX poll (irq: {:?})", irq);
+
         // Process flags
         if irq.contains(Irq::RX_DONE) {
             debug!("RX complete");
@@ -590,8 +655,6 @@ where
         } else if irq.contains(Irq::RX_TX_TIMEOUT) {
             debug!("RX timeout");
             res = Err(Error::Timeout);
-        } else   {
-            trace!("RX poll (irq: {:?})", irq);
         }
 
         match (restart, res) {

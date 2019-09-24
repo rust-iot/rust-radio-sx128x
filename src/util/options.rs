@@ -3,7 +3,6 @@ use structopt::StructOpt;
 use simplelog::{LevelFilter};
 use humantime::{Duration as HumanDuration};
 
-
 #[derive(StructOpt)]
 #[structopt(name = "Sx128x-util")]
 /// A Command Line Interface (CLI) for interacting with a local Sx128x radio device
@@ -57,12 +56,27 @@ pub enum Command {
     #[structopt(name="gfsk")]
     /// GFSK mode configuration and operations
     Gfsk(GfskCommand),
+
+    #[structopt(name="flrc")]
+    /// FLRC mode configuration and operations
+    Flrc(FlrcCommand),
+}
+
+impl Command {
+    pub fn operation(&self) -> Option<Operation> {
+        match self {
+            Command::FirmwareVersion => None,
+            Command::LoRa(c) => Some(c.operation.clone()),
+            Command::Gfsk(c) => Some(c.operation.clone()),
+            Command::Flrc(c) => Some(c.operation.clone()),
+        }
+    }
 }
 
 /// LoRa mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct LoRaCommand {
-    // TODO: lora mode channel / modem options here
+    // TODO: LoRa mode channel / modem options here
 
     #[structopt(subcommand)]
     /// Operation to execute
@@ -72,14 +86,32 @@ pub struct LoRaCommand {
 /// GFSK mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct GfskCommand {
-    // TODO: lora mode channel / modem options here
+    // TODO: GFSK mode channel / modem options here
 
     #[structopt(subcommand)]
     /// Operation to execute
     pub operation: Operation,
 }
 
+/// FLRC mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
+pub struct FlrcCommand {
+    /// FLRC bitrate in kbps
+    /// (options: 2600, 2080, 1300, 1040, 650, 520, 325, 260)
+    #[structopt(long = "bitrate", default_value="260")]
+    pub bitrate: u32,
+
+    /// FLRC bandwidth in kHz
+    /// (options: 2400, 1200, 600, 300)
+    #[structopt(long = "bandwidth", default_value="300")]
+    pub bandwidth: u32,
+
+    #[structopt(subcommand)]
+    /// Operation to execute
+    pub operation: Operation,
+}
+
+#[derive(Clone, StructOpt, PartialEq, Debug)]
 pub enum Operation {
     #[structopt(name="tx")]
     /// Transmit a (string) packet
@@ -98,7 +130,7 @@ pub enum Operation {
     Repeat(Repeat),
 }
 
-#[derive(StructOpt, PartialEq, Debug)]
+#[derive(Clone, StructOpt, PartialEq, Debug)]
 pub struct Transmit {
     /// Data to be transmitted
     #[structopt(long = "data")]
@@ -121,7 +153,7 @@ pub struct Transmit {
     pub poll_interval: HumanDuration,
 }
 
-#[derive(StructOpt, PartialEq, Debug)]
+#[derive(Clone, StructOpt, PartialEq, Debug)]
 pub struct Receive {
     /// Run continuously
     #[structopt(long = "continuous")]
@@ -132,7 +164,7 @@ pub struct Receive {
     pub poll_interval: HumanDuration,
 }
 
-#[derive(StructOpt, PartialEq, Debug)]
+#[derive(Clone, StructOpt, PartialEq, Debug)]
 pub struct Rssi {
     /// Specify period for RSSI polling
     #[structopt(long = "period", default_value="1s")]
@@ -143,7 +175,7 @@ pub struct Rssi {
     pub continuous: bool,
 }
 
-#[derive(StructOpt, PartialEq, Debug)]
+#[derive(Clone, StructOpt, PartialEq, Debug)]
 pub struct Repeat {
     /// Run continuously
     #[structopt(long = "continuous")]

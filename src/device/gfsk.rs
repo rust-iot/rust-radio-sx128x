@@ -3,7 +3,8 @@
 use super::common::*;
 
 /// GFSK operating mode configuration
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub struct GfskChannel {
     /// Operating frequency
     pub freq: u32,
@@ -27,7 +28,8 @@ impl Default for GfskChannel {
 }
 
 /// GFSK packet configuration 
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub struct GfskConfig {
     /// Preamble length
     pub preamble_length: PreambleLength,
@@ -40,7 +42,7 @@ pub struct GfskConfig {
     /// Payload length
     pub payload_length: u8,
     /// CRC mode
-    pub crc_type: GfskFlrcCrcModes,
+    pub crc_mode: GfskFlrcCrcModes,
     /// Packet whitening
     pub whitening: WhiteningModes
 }
@@ -53,14 +55,15 @@ impl Default for GfskConfig {
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_2,
             header_type: GfskFlrcPacketLength::Variable,
             payload_length: 0x40,
-            crc_type: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
-            whitening: WhiteningModes::RADIO_WHITENING_ON,
+            crc_mode: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
+            whitening: WhiteningModes::RADIO_WHITENING_OFF,
         }   
     }
 }
 
 /// GFSK sync word length configuration
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum GfskSyncWordLength {
     /// Sync word length: 1 byte
     GFSK_SYNCWORD_LENGTH_1_BYTE              = 0x00,

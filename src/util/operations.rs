@@ -84,7 +84,11 @@ where
                 Err(_) => info!("Received: '{:?}' info: {:?}", &buff[0..n as usize], info),
             }
             
-            if !continuous { return Ok(n) }
+            if !continuous { 
+                return Ok(n)
+            }
+
+            radio.start_receive()?;
         }
 
         std::thread::sleep(poll_interval);

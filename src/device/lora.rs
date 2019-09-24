@@ -1,7 +1,8 @@
 //! LoRa device configuration definitions
 
 /// LoRa mode radio configuration
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub struct LoRaConfig {
     // Preamble length in symbols (defaults to 8)
     pub preamble_length: u8,
@@ -28,7 +29,8 @@ impl Default for LoRaConfig {
 }
 
 /// LoRa mode channel configuration
-#[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub struct LoRaChannel {
     /// LoRa frequency in Hz (defaults to 2.4GHz)
     pub freq: u32,
@@ -52,7 +54,8 @@ impl Default for LoRaChannel {
 }
 
 /// Spreading factor for LoRa mode
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum LoRaSpreadingFactor {
     Sf5   = 0x50,
     Sf6   = 0x60,
@@ -65,7 +68,8 @@ pub enum LoRaSpreadingFactor {
 }
 
 /// Bandwidth for LoRa mode
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum LoRaBandwidth {
     /// 200 kHz bandwidth mode (actually 203.125 kHz)
     Bw200kHz  = 0x34,
@@ -90,7 +94,8 @@ impl LoRaBandwidth {
 }
 
 /// Coding rates for LoRa mode
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum LoRaCodingRate {
     /// LoRa coding rate 4/5
     Cr4_5    = 0x01,
@@ -107,21 +112,24 @@ pub enum LoRaCodingRate {
 }
 
 /// CRC mode for LoRa packet types
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum LoRaCrc {
     Enabled = 0x20,
     Disabled = 0x00,
 }
 
 /// IQ mode for LoRa packet types
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum LoRaIq {
     Normal = 0x40,
     Inverted = 0x00,
 }
 
 /// Header configuration for LoRa packet types
-#[derive(Copy, Clone, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum LoRaHeader {
     /// Variable length packets, length header included in packet
     Explicit = 0x00,
