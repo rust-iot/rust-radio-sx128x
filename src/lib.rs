@@ -268,6 +268,17 @@ where
 
         debug!("Setting modem config: {:?}", packet);
 
+        // Switch to standby mode
+        self.set_state(State::StandbyRc)?;
+
+        // First update packet type (if required)
+        let packet_type = PacketType::from(packet);
+        if self.packet_type != packet_type {
+            debug!("Setting packet type: {:?}", packet_type);
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
+            self.packet_type = packet_type;
+        }
+
         self.set_packet_params(packet)?;
 
         if let Flrc(c) = packet {
