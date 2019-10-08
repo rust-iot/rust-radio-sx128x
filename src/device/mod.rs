@@ -135,7 +135,7 @@ impl From<&Channel> for PacketType {
 }
 
 /// Radio state
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum State {
     Sleep       = 0x00,

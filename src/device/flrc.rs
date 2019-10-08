@@ -19,7 +19,7 @@ pub struct FlrcChannel {
 impl Default for FlrcChannel {
     fn default() -> Self {
         Self {
-            freq: 2.4e9 as u32,
+            freq: 2.44e9 as u32,
             br_bw: FlrcBitrate::BR_2_080_BW_2_4,
             cr: FlrcCodingRate::Cr3_4,
             ms: ModShaping::Off,

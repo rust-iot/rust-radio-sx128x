@@ -169,7 +169,7 @@ where
         sx128x.configure(config, true)?;
 
         // Ensure state is idle
-        sx128x.set_state(State::StandbyRc)?;
+        sx128x.set_state(State::StandbyXosc)?;
 
         Ok(sx128x)
     }
@@ -187,7 +187,7 @@ where
 
     pub fn configure(&mut self, config: &Config, force: bool) -> Result<(), Error<CommsError, PinError>> {
         // Switch to standby mode
-        self.set_state(State::StandbyRc)?;
+        self.set_state_checked(State::StandbyXosc)?;
 
         // First update packet type (if required)
         let packet_type = PacketType::from(&config.modem);
@@ -424,6 +424,26 @@ where
 
         Ok(())
     }
+
+    
+    pub(crate) fn set_state_checked(
+        &mut self,
+        state: State,
+    ) -> Result<(), Error<CommsError, PinError>> {
+        trace!("Set state to: {:?} (0x{:02x})", state, state as u8);
+        self.set_state(state)?;
+        // TODO: configurable delay?
+        // TODO: timeout?
+        loop {
+            let s = self.get_state()?;
+            trace!("Received: {:?}", s);
+            if state == s {
+                break;
+            }
+            self.hal.delay_ms(1);
+        }
+        Ok(())
+    }
 }
 
 
@@ -448,7 +468,9 @@ where
     fn get_state(&mut self) -> Result<Self::State, Self::Error> {
         let mut d = [0u8; 1];
         self.hal.read_cmd(Commands::GetStatus as u8, &mut d)?;
-        let m = State::try_from(d[0]).map_err(|_| Error::InvalidResponse(d[0]) )?;
+
+        let mode = (d[0] & 0b1110_0000) >> 5;
+        let m = State::try_from(mode).map_err(|_| Error::InvalidResponse(d[0]) )?;
         Ok(m)
     }
 
@@ -553,6 +575,9 @@ where
     fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
         debug!("TX start");
 
+        // Set to idle before configuring
+        self.set_state_checked(State::StandbyXosc)?;
+
         // Set packet mode
         let mut packet_config = self.config.modem.clone();
         packet_config.set_payload_len(data.len() as u8);
@@ -566,6 +591,8 @@ where
         //    self.hal.write_buff(0, &[0, data.len() as u8])?;
         //    self.hal.write_buff(2, data)?;
         //} else {
+
+        debug!("TX data: {:?}", data);
             
         self.hal.write_buff(0, data)?;
         
@@ -624,7 +651,7 @@ where
         debug!("RX start");
 
         // Set to idle before configuring
-        self.set_state(State::StandbyRc)?;
+        self.set_state_checked(State::StandbyXosc)?;
 
         // Reset buffer addr
         self.set_buff_base_addr(0, 0)?;
@@ -713,15 +740,15 @@ where
         // Fetch RX buffer information
         let (ptr, len) = self.get_rx_buffer_status()?;
 
-        debug!("RX get received, ptr: {} len: {}", ptr, len);
+        // Fetch related information
+        self.get_packet_info(info)?;
+
+        debug!("RX get received, ptr: {} len: {} info: {:?}", ptr, len, info);
 
         // Read from the buffer at the provided pointer
         self.hal.read_buff(ptr, &mut data[..len as usize])?;
 
-        // Fetch related information
-        self.get_packet_info(info)?;
-
-        debug!("RX info: {:?}", info);
+        debug!("RX data: {:?}", &data[..len as usize]);
 
         // Return read length
         Ok(len as usize)
