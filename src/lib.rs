@@ -174,6 +174,12 @@ where
         Ok(sx128x)
     }
 
+    pub fn reset(&mut self) -> Result<(), Error<CommsError, PinError>> {
+        self.hal.reset()?;
+
+        Ok(())
+    }
+
     pub(crate) fn build(hal: Hal, settings: Settings) -> Self {
         Sx128x { 
             config: Config::default(),
@@ -349,8 +355,7 @@ where
 
         match self.packet_type {
             PacketType::Gfsk | PacketType::Flrc | PacketType::Ble => {
-                info.rssi = -(data[0] as i16) / 2;
-                info.rssi_sync = Some(-(data[1] as i16) / 2);
+                info.rssi = -(data[1] as i16) / 2;
             },
             PacketType::LoRa | PacketType::Ranging => {
                 info.rssi = -(data[0] as i16) / 2;
@@ -621,7 +626,7 @@ where
     fn check_transmit(&mut self) -> Result<bool, Self::Error> {
         let irq = self.get_interrupts(true)?;
 
-        trace!("TX poll (irq: {:?})", irq);
+        //trace!("TX poll (irq: {:?})", irq);
 
         if irq.contains(Irq::TX_DONE) {
             debug!("TX complete");
@@ -687,7 +692,7 @@ where
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
        
-        trace!("RX poll (irq: {:?})", irq);
+        //trace!("RX poll (irq: {:?})", irq);
 
         // Process flags
         if irq.contains(Irq::CRC_ERROR) {
