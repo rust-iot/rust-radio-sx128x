@@ -101,6 +101,12 @@ pub enum Error<CommsError, PinError> {
     Timeout,
     /// CRC error on received message
     InvalidCrc,
+    /// TODO
+    InvalidLength,
+    /// TODO
+    InvalidSync,
+    /// TODO
+    Abort,
     /// Radio returned an invalid device firmware version
     InvalidDevice(u16),
     /// Radio returned an invalid response
@@ -258,7 +264,6 @@ where
     }
 
     pub fn set_irq_mask(&mut self, irq: Irq) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Setting IRQ mask {:?}", irq);
         let raw = irq.bits();
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
     }
@@ -356,8 +361,6 @@ where
             },
             PacketType::None => unimplemented!(),
         }
-
-        debug!("RX packet info {:?}", info);
 
         Ok(())
     }
@@ -620,6 +623,9 @@ where
     fn start_receive(&mut self) -> Result<(), Self::Error> {
         debug!("RX start");
 
+        // Set to idle before configuring
+        self.set_state(State::StandbyRc)?;
+
         // Reset buffer addr
         self.set_buff_base_addr(0, 0)?;
         
@@ -641,7 +647,7 @@ where
         ];
         
         // Enable IRQs
-        self.set_irq_mask(Irq::RX_DONE | Irq::SYNCWORD_VALID | Irq::HEADER_VALID | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
+        self.set_irq_mask(Irq::RX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
 
         // Enter transmit mode
         self.hal.write_cmd(Commands::SetRx as u8, &config)?;
@@ -657,17 +663,41 @@ where
         trace!("RX poll (irq: {:?})", irq);
 
         // Process flags
-        if irq.contains(Irq::RX_DONE) {
-            debug!("RX complete");
-            res = Ok(true);
-        } else if irq.contains(Irq::CRC_ERROR) {
+        if irq.contains(Irq::CRC_ERROR) {
             debug!("RX CRC error");
             res = Err(Error::InvalidCrc);
         } else if irq.contains(Irq::RX_TX_TIMEOUT) {
             debug!("RX timeout");
             res = Err(Error::Timeout);
+        } else if irq.contains(Irq::RX_DONE) {
+            debug!("RX complete");
+            res = Ok(true);
         }
 
+
+        // Only check packet handler information on "successful" receive
+        if let Ok(true) = res {
+            let mut info = PacketInfo::default();
+            self.get_packet_info(&mut info)?;
+
+            trace!("RX packet info {:?}", info);
+
+            if info.packet_status.contains(PacketStatus::LENGTH_ERROR) {
+                debug!("RX packet handler length error");
+                res = Err(Error::InvalidLength);
+            } else if info.packet_status.contains(PacketStatus::CRC_ERROR) {
+                debug!("RX packet handler CRC error");
+                res = Err(Error::InvalidCrc);
+            } else if info.packet_status.contains(PacketStatus::ABORT_ERROR) {
+                debug!("RX packet handler abort error");
+                res = Err(Error::Abort);
+            } else if info.packet_status.contains(PacketStatus::SYNC_ERROR) {
+                debug!("RX packet handler sync error");
+                res = Err(Error::InvalidSync);
+            }
+        }
+
+        // Auto-restart on failure if enabled
         match (restart, res) {
             (true, Err(_)) => {
                 debug!("RX restarting");
