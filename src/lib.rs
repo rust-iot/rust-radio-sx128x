@@ -107,6 +107,8 @@ pub enum Error<CommsError, PinError> {
     InvalidSync,
     /// TODO
     Abort,
+    /// TODO
+    InvalidState(State, State),
     /// Radio returned an invalid device firmware version
     InvalidDevice(u16),
     /// Radio returned an invalid response
@@ -439,13 +441,23 @@ where
         self.set_state(state)?;
         // TODO: configurable delay?
         // TODO: timeout?
+        let mut i = 0;
+
         loop {
             let s = self.get_state()?;
             trace!("Received: {:?}", s);
+
             if state == s {
                 break;
             }
+
+            if i >= 1000 {
+                warn!("Set state timeout");
+                return Err(Error::InvalidState(state, s));
+            }
+
             self.hal.delay_ms(1);
+            i += 1;
         }
         Ok(())
     }
@@ -684,6 +696,8 @@ where
         // Enter transmit mode
         self.hal.write_cmd(Commands::SetRx as u8, &config)?;
 
+        debug!("RX started");
+
         Ok(())
     }
 
@@ -708,24 +722,30 @@ where
 
 
         // Only check packet handler information on "successful" receive
-        if let Ok(true) = res {
-            let mut info = PacketInfo::default();
-            self.get_packet_info(&mut info)?;
+        // Ignore packet handler in LoRa mode as it's always invalid.
+        // TODO: find a reference for this
+        match (self.packet_type, &res) {
+            (PacketType::LoRa, _) => (),
+            (PacketType::None, _) => return Err(Error::InvalidConfiguration),
+            _ => {
+                let mut info = PacketInfo::default();
+                self.get_packet_info(&mut info)?;
 
-            trace!("RX packet info {:?}", info);
+                trace!("RX packet info {:?}", info);
 
-            if info.packet_status.contains(PacketStatus::LENGTH_ERROR) {
-                debug!("RX packet handler length error");
-                res = Err(Error::InvalidLength);
-            } else if info.packet_status.contains(PacketStatus::CRC_ERROR) {
-                debug!("RX packet handler CRC error");
-                res = Err(Error::InvalidCrc);
-            } else if info.packet_status.contains(PacketStatus::ABORT_ERROR) {
-                debug!("RX packet handler abort error");
-                res = Err(Error::Abort);
-            } else if info.packet_status.contains(PacketStatus::SYNC_ERROR) {
-                debug!("RX packet handler sync error");
-                res = Err(Error::InvalidSync);
+                if info.packet_status.contains(PacketStatus::LENGTH_ERROR) {
+                    debug!("RX packet handler length error");
+                    res = Err(Error::InvalidLength);
+                } else if info.packet_status.contains(PacketStatus::CRC_ERROR) {
+                    debug!("RX packet handler CRC error");
+                    res = Err(Error::InvalidCrc);
+                } else if info.packet_status.contains(PacketStatus::ABORT_ERROR) {
+                    debug!("RX packet handler abort error");
+                    res = Err(Error::Abort);
+                } else if info.packet_status.contains(PacketStatus::SYNC_ERROR) {
+                    debug!("RX packet handler sync error");
+                    res = Err(Error::InvalidSync);
+                }
             }
         }
 
