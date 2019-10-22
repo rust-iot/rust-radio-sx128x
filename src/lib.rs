@@ -168,7 +168,7 @@ where
         //sx128x.calibrate(CalibrationParams::default())?;
 
         // Configure device prior to use
-        sx128x.configure(config, true)?;
+        sx128x.configure(config)?;
 
         // Ensure state is idle
         sx128x.set_state(State::StandbyXosc)?;
@@ -193,7 +193,7 @@ where
         }
     }
 
-    pub fn configure(&mut self, config: &Config, force: bool) -> Result<(), Error<CommsError, PinError>> {
+    pub fn configure(&mut self, config: &Config) -> Result<(), Error<CommsError, PinError>> {
         // Switch to standby mode
         self.set_state_checked(State::StandbyXosc)?;
 
@@ -206,27 +206,19 @@ where
         }
 
         // Update regulator mode
-        if self.config.regulator_mode != config.regulator_mode || force {
-            self.set_regulator_mode(config.regulator_mode)?;
-            self.config.regulator_mode = config.regulator_mode;
-        }
+        self.set_regulator_mode(config.regulator_mode)?;
+        self.config.regulator_mode = config.regulator_mode;
 
         // Update modem and channel configuration
-        if self.config.channel != config.channel || force {
-            self.set_channel(&config.channel)?;
-            self.config.channel = config.channel.clone();
-        }
+        self.set_channel(&config.channel)?;
+        self.config.channel = config.channel.clone();
 
-        if self.config.modem != config.modem || force {
-            self.configure_modem(&config.modem)?;
-            self.config.modem = config.modem.clone();
-        }
+        self.configure_modem(&config.modem)?;
+        self.config.modem = config.modem.clone();
 
         // Update power amplifier configuration
-        if self.config.pa_config != config.pa_config || force {
-            self.set_power_ramp(config.pa_config.power, config.pa_config.ramp_time)?;
-            self.config.pa_config = config.pa_config.clone();
-        }
+        self.set_power_ramp(config.pa_config.power, config.pa_config.ramp_time)?;
+        self.config.pa_config = config.pa_config.clone();
 
         Ok(())
     }
@@ -276,7 +268,7 @@ where
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
     }
 
-    pub fn configure_modem(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
+    pub(crate) fn configure_modem(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
         use Modem::*;
 
         debug!("Setting modem config: {:?}", packet);
