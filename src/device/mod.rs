@@ -35,7 +35,14 @@ pub struct Config {
     /// (note this must match the packet configuration)
     pub channel: Channel,
     
-    pub timeout: Timeout,
+    /// RF timeout configuration
+    pub rf_timeout: Timeout,
+
+    /// Crystal oscillator frequency
+    pub xtal_freq: u32,
+
+    /// Timeout for blocking / polling internal methods
+    pub timeout_ms: u32,
 }
 
 impl Default for Config {
@@ -47,10 +54,24 @@ impl Default for Config {
             modem: Modem::LoRa(LoRaConfig::default()),
             channel: Channel::LoRa(LoRaChannel::default()),
             //timeout: Timeout::Configurable{ step: TickSize::TickSize1000us, count: 1000 },
-            timeout: Timeout::Single,
+            rf_timeout: Timeout::Single,
+            xtal_freq: 52000000,
+            timeout_ms: 100,
         }
     }
 }
+
+impl Config {
+    // Calculate frequency step for a given crystal frequency
+    pub fn freq_step(&self) -> u32 {
+        self.xtal_freq >> 18
+    }
+
+    pub fn freq_to_steps(&self, f: f32) -> f32 {
+        f / self.freq_step() as f32
+    }
+}
+
 
 /// Radio modem configuration contains fields for each modem mode
 #[derive(Clone, PartialEq, Debug)]

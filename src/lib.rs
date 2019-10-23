@@ -54,39 +54,13 @@ pub const SPI_MODE: SpiMode = SpiMode {
 /// Sx128x device object
 pub struct Sx128x<Base, CommsError, PinError> {
     config: Config,
-
     packet_type: PacketType,
-    
     hal: Base,
-    settings: Settings,
 
     _ce: PhantomData<CommsError>, 
     _pe: PhantomData<PinError>,
 }
 
-#[derive(Clone, PartialEq, Debug)]
-pub struct Settings {
-    pub xtal_freq: u32,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            xtal_freq: 52000000
-        }
-    }
-}
-
-impl Settings {
-    // Calculate frequency step for a given crystal frequency
-    fn freq_step(&self) -> u32 {
-        self.xtal_freq >> 18
-    }
-
-    fn freq_to_steps(&self, f: f32) -> f32 {
-        f / self.freq_step() as f32
-    }
-}
 
 /// Sx128x error type
 #[derive(Debug, Clone, PartialEq)]
@@ -135,13 +109,13 @@ where
     Delay: delay::DelayMs<u32>,
 {
     /// Create an Sx128x with the provided `Spi` implementation and pins
-    pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, settings: Settings, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
+    pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
         // Create SpiWrapper over spi/cs/busy
         let mut hal = SpiWrapper::new(spi, cs, delay);
         hal.with_busy(busy);
         hal.with_reset(sdn);
         // Create instance with new hal
-        Self::new(hal, settings, config)
+        Self::new(hal, config)
     }
 }
 
@@ -151,9 +125,9 @@ where
     Hal: base::Hal<CommsError, PinError>,
 {
     /// Create a new Sx128x instance over a generic Hal implementation
-    pub fn new(hal: Hal, settings: Settings, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
+    pub fn new(hal: Hal, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
 
-        let mut sx128x = Self::build(hal, settings);
+        let mut sx128x = Self::build(hal);
 
         // Reset IC
         sx128x.hal.reset()?;
@@ -182,12 +156,11 @@ where
         Ok(())
     }
 
-    pub(crate) fn build(hal: Hal, settings: Settings) -> Self {
+    pub(crate) fn build(hal: Hal) -> Self {
         Sx128x { 
             config: Config::default(),
             packet_type: PacketType::None,
             hal,
-            settings,
             _ce: PhantomData,
             _pe: PhantomData,
         }
@@ -232,7 +205,7 @@ where
     }
 
     pub fn set_frequency(&mut self, f: u32) -> Result<(), Error<CommsError, PinError>> {
-        let c = self.settings.freq_to_steps(f as f32) as u32;
+        let c = self.config.freq_to_steps(f as f32) as u32;
 
         debug!("Setting frequency ({:?} MHz, {} index)", f / 1000 / 1000, c);
 
@@ -433,23 +406,26 @@ where
         self.set_state(state)?;
         // TODO: configurable delay?
         // TODO: timeout?
-        let mut i = 0;
+        let mut ticks = 0;
 
         loop {
+            // Fetch current state
             let s = self.get_state()?;
             trace!("Received: {:?}", s);
 
+            // Check for expected state
             if state == s {
                 break;
             }
 
-            if i >= 1000 {
+            // Timeout eventually
+            if ticks >= self.config.timeout_ms {
                 warn!("Set state timeout");
-                return Err(Error::InvalidState(state, s));
+                return Err(Error::Timeout);
             }
 
             self.hal.delay_ms(1);
-            i += 1;
+            ticks += 1;
         }
         Ok(())
     }
@@ -612,9 +588,9 @@ where
 
         // Setup timout
         let config = [
-            self.config.timeout.step() as u8,
-            (( self.config.timeout.count() >> 8 ) & 0x00FF ) as u8,
-            (self.config.timeout.count() & 0x00FF ) as u8,
+            self.config.rf_timeout.step() as u8,
+            (( self.config.rf_timeout.count() >> 8 ) & 0x00FF ) as u8,
+            (self.config.rf_timeout.count() & 0x00FF ) as u8,
         ];
         
         // Enable IRQs
@@ -677,9 +653,9 @@ where
 
         // Setup timout
         let config = [
-            self.config.timeout.step() as u8,
-            (( self.config.timeout.count() >> 8 ) & 0x00FF ) as u8,
-            (self.config.timeout.count() & 0x00FF ) as u8,
+            self.config.rf_timeout.step() as u8,
+            (( self.config.rf_timeout.count() >> 8 ) & 0x00FF ) as u8,
+            (self.config.rf_timeout.count() & 0x00FF ) as u8,
         ];
         
         // Enable IRQs
@@ -791,7 +767,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Sx128x, Settings};
+    use crate::{Sx128x};
     use crate::base::Hal;
     use crate::device::RampTime;
 
@@ -806,7 +782,7 @@ mod tests {
     fn test_api_reset() {
         let mut m = Mock::new();
         let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
-        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
+        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone());
 
         m.expect(vectors::reset(&spi, &sdn, &delay));
         radio.hal.reset().unwrap();
@@ -817,7 +793,7 @@ mod tests {
     fn test_api_status() {
         let mut m = Mock::new();
         let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
-        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
+        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone());
 
         m.expect(vectors::status(&spi, &sdn, &delay));
         radio.get_state().unwrap();
@@ -828,7 +804,7 @@ mod tests {
     fn test_api_firmware_version() {
         let mut m = Mock::new();
         let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
-        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
+        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone());
 
         m.expect(vectors::firmware_version(&spi, &sdn, &delay, 16));
         let version = radio.firmware_version().unwrap();
@@ -840,7 +816,7 @@ mod tests {
     fn test_api_power_ramp() {
         let mut m = Mock::new();
         let (spi, sdn, _busy, delay) = (m.spi(), m.pin(), m.pin(), m.delay());
-        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone(), Settings::default());
+        let mut radio = Sx128x::<Spi, _, _>::build(spi.clone());
 
         m.expect(vectors::set_power_ramp(&spi, &sdn, &delay, 0x1f, 0xe0));
         radio.set_power_ramp(13, RampTime::Ramp20Us).unwrap();

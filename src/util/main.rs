@@ -67,7 +67,6 @@ fn main() {
 
     debug!("Creating radio instance");
 
-    let settings = Settings::default();
     let mut config = Config::default();
 
     // Generate configurations
@@ -93,11 +92,10 @@ fn main() {
         _ => (),
     }
 
-    debug!("Settings: {:?}", settings);
     debug!("Config: {:?}", config);
 
     info!("Initialising Radio");
-    let mut radio = Sx128x::spi(spi, cs, busy, rst, Delay{}, settings, &config).expect("error creating device");
+    let mut radio = Sx128x::spi(spi, cs, busy, rst, Delay{}, &config).expect("error creating device");
 
     let operation = opts.command.operation();
 
