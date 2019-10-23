@@ -45,7 +45,7 @@ pub struct LoRaChannel {
 impl Default for LoRaChannel {
     fn default() -> Self {
         Self {
-            freq: 2.4e9 as u32,
+            freq: 2_440_000_000,
             sf: LoRaSpreadingFactor::Sf8,
             bw: LoRaBandwidth::Bw200kHz,
             cr: LoRaCodingRate::Cr4_5,

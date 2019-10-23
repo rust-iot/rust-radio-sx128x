@@ -19,7 +19,7 @@ pub struct GfskChannel {
 impl Default for GfskChannel {
     fn default() -> Self {
         Self {
-            freq: 2.4e9 as u32,
+            freq: 2_440_000_000,
             br_bw: GfskBleBitrateBandwidth::BR_0_250_BW_0_3,
             mi: GfskBleModIndex::MOD_IND_0_35,
             ms: ModShaping::Off,
