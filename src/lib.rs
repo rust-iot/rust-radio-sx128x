@@ -170,6 +170,14 @@ where
         // Switch to standby mode
         self.set_state(State::StandbyRc)?;
 
+        // First update packet type (if required)
+        let packet_type = PacketType::from(&config.modem);
+        if self.packet_type != packet_type {
+            debug!("Setting packet type: {:?}", packet_type);
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
+            self.packet_type = packet_type;
+        }
+
         // Update regulator mode
         self.set_regulator_mode(config.regulator_mode)?;
         self.config.regulator_mode = config.regulator_mode;
