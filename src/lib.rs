@@ -509,9 +509,6 @@ where
     fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
         debug!("TX start");
 
-        // Set to idle before configuring
-        self.set_state(State::StandbyRc)?;
-
         // Set packet mode
         let mut modem_config = self.config.modem.clone();
         modem_config.set_payload_len(data.len() as u8);
@@ -521,13 +518,7 @@ where
         self.set_buff_base_addr(0, 0)?;
 
         // Write data to be sent
-        //if self.packet_type == PacketType::Flrc {
-        //    self.hal.write_buff(0, &[0, data.len() as u8])?;
-        //    self.hal.write_buff(2, data)?;
-        //} else {
-
         debug!("TX data: {:?}", data);
-            
         self.hal.write_buff(0, data)?;
         
         // Configure ranging if used
@@ -589,8 +580,8 @@ where
         
         // Set packet mode
         // TODO: surely this should not bre required _every_ receive?
-        let packet_config = self.config.modem.clone();
-        self.configure_modem(&packet_config)?;
+        let modem_config = self.config.modem.clone();
+        self.configure_modem(&modem_config)?;
 
         // Configure ranging if used
         if PacketType::Ranging == self.packet_type {
@@ -679,15 +670,15 @@ where
         // Fetch RX buffer information
         let (ptr, len) = self.get_rx_buffer_status()?;
 
-        // Fetch related information
-        self.get_packet_info(info)?;
-
-        debug!("RX get received, ptr: {} len: {} info: {:?}", ptr, len, info);
+        debug!("RX get received, ptr: {} len: {}", ptr, len);
 
         // Read from the buffer at the provided pointer
         self.hal.read_buff(ptr, &mut data[..len as usize])?;
 
-        debug!("RX data: {:?}", &data[..len as usize]);
+        // Fetch related information
+        self.get_packet_info(info)?;
+
+        debug!("RX data: {:?} info: {:?}", &data[..len as usize], info);
 
         // Return read length
         Ok(len as usize)
