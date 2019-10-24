@@ -145,7 +145,7 @@ where
         sx128x.configure(config)?;
 
         // Ensure state is idle
-        sx128x.set_state(State::StandbyXosc)?;
+        sx128x.set_state(State::StandbyRc)?;
 
         Ok(sx128x)
     }
@@ -168,7 +168,7 @@ where
 
     pub fn configure(&mut self, config: &Config) -> Result<(), Error<CommsError, PinError>> {
         // Switch to standby mode
-        self.set_state_checked(State::StandbyXosc)?;
+        self.set_state(State::StandbyRc)?;
 
         // Update regulator mode
         self.set_regulator_mode(config.regulator_mode)?;
