@@ -170,14 +170,6 @@ where
         // Switch to standby mode
         self.set_state(State::StandbyRc)?;
 
-        // First update packet type (if required)
-        let packet_type = PacketType::from(&config.modem);
-        if self.packet_type != packet_type {
-            debug!("Setting packet type: {:?}", packet_type);
-            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
-            self.packet_type = packet_type;
-        }
-
         // Update regulator mode
         self.set_regulator_mode(config.regulator_mode)?;
         self.config.regulator_mode = config.regulator_mode;
@@ -241,28 +233,20 @@ where
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
     }
 
-    pub(crate) fn configure_modem(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
+    pub(crate) fn configure_modem(&mut self, config: &Modem) -> Result<(), Error<CommsError, PinError>> {
         use Modem::*;
 
-        debug!("Setting modem config: {:?}", packet);
+        debug!("Setting modem config: {:?}", config);
 
-        self.set_packet_params(packet)?;
-
-        if let Flrc(c) = packet {
-            if let Some(v) = c.sync_word_value {
-                self.set_syncword(1, &v)?;
-            }
+        // First update packet type (if required)
+        let packet_type = PacketType::from(config);
+        if self.packet_type != packet_type {
+            debug!("Setting packet type: {:?}", packet_type);
+            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
+            self.packet_type = packet_type;
         }
 
-        Ok(())
-    }
-
-    pub(crate) fn set_packet_params(&mut self, packet: &Modem) -> Result<(), Error<CommsError, PinError>> {
-        use Modem::*;
-
-        debug!("Setting packet params");
-
-        let data = match packet {
+        let data = match config {
             Gfsk(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.whitening as u8],
             LoRa(c) | Ranging(c) => [c.preamble_length as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.invert_iq as u8, 0u8, 0u8],
             Flrc(c) => [c.preamble_length as u8, c.sync_word_length as u8, c.sync_word_match as u8, c.header_type as u8, c.payload_length as u8, c.crc_mode as u8, c.whitening as u8],
@@ -270,7 +254,15 @@ where
             None => [0u8; 7],
         };
 
-        self.hal.write_cmd(Commands::SetPacketParams as u8, &data)
+        self.hal.write_cmd(Commands::SetPacketParams as u8, &data)?;
+
+        if let Flrc(c) = config {
+            if let Some(v) = c.sync_word_value {
+                self.set_syncword(1, &v)?;
+            }
+        }
+
+        Ok(())
     }
 
     pub(crate) fn get_rx_buffer_status(&mut self) -> Result<(u8, u8), Error<CommsError, PinError>> {
@@ -386,38 +378,6 @@ where
         Ok(())
     }
 
-    
-    pub(crate) fn set_state_checked(
-        &mut self,
-        state: State,
-    ) -> Result<(), Error<CommsError, PinError>> {
-        trace!("Set state to: {:?} (0x{:02x})", state, state as u8);
-        self.set_state(state)?;
-        // TODO: configurable delay?
-        // TODO: timeout?
-        let mut ticks = 0;
-
-        loop {
-            // Fetch current state
-            let s = self.get_state()?;
-            trace!("Received: {:?}", s);
-
-            // Check for expected state
-            if state == s {
-                break;
-            }
-
-            // Timeout eventually
-            if ticks >= self.config.timeout_ms {
-                warn!("Set state timeout");
-                return Err(Error::Timeout);
-            }
-
-            self.hal.delay_ms(1);
-            ticks += 1;
-        }
-        Ok(())
-    }
 }
 
 
