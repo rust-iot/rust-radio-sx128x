@@ -170,14 +170,6 @@ where
         // Switch to standby mode
         self.set_state_checked(State::StandbyXosc)?;
 
-        // First update packet type (if required)
-        let packet_type = PacketType::from(&config.modem);
-        if self.packet_type != packet_type {
-            debug!("Setting packet type: {:?}", packet_type);
-            self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
-            self.packet_type = packet_type;
-        }
-
         // Update regulator mode
         self.set_regulator_mode(config.regulator_mode)?;
         self.config.regulator_mode = config.regulator_mode;
@@ -561,12 +553,12 @@ where
         debug!("TX start");
 
         // Set to idle before configuring
-        self.set_state_checked(State::StandbyXosc)?;
+        self.set_state(State::StandbyRc)?;
 
         // Set packet mode
-        let mut packet_config = self.config.modem.clone();
-        packet_config.set_payload_len(data.len() as u8);
-        self.set_packet_params(&packet_config)?;
+        let mut modem_config = self.config.modem.clone();
+        modem_config.set_payload_len(data.len() as u8);
+        self.configure_modem(&modem_config)?;
 
         // Reset buffer addr
         self.set_buff_base_addr(0, 0)?;
@@ -636,7 +628,7 @@ where
         debug!("RX start");
 
         // Set to idle before configuring
-        self.set_state_checked(State::StandbyXosc)?;
+        self.set_state_checked(State::StandbyRc)?;
 
         // Reset buffer addr
         self.set_buff_base_addr(0, 0)?;
@@ -644,7 +636,7 @@ where
         // Set packet mode
         // TODO: surely this should not bre required _every_ receive?
         let packet_config = self.config.modem.clone();
-        self.set_packet_params(&packet_config)?;
+        self.configure_modem(&packet_config)?;
 
         // Configure ranging if used
         if PacketType::Ranging == self.packet_type {
