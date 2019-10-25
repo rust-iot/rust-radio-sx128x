@@ -304,6 +304,9 @@ where
         match self.packet_type {
             PacketType::Gfsk | PacketType::Flrc | PacketType::Ble => {
                 info.rssi = -(data[1] as i16) / 2;
+                let rssi_avg = -(data[0] as i16) / 2;
+                debug!("Raw RSSI: {}", info.rssi);
+                debug!("Average RSSI: {}", rssi_avg);
             },
             PacketType::LoRa | PacketType::Ranging => {
                 info.rssi = -(data[0] as i16) / 2;
@@ -623,35 +626,6 @@ where
         } else if irq.contains(Irq::RX_DONE) {
             debug!("RX complete");
             res = Ok(true);
-        }
-
-
-        // Only check packet handler information on "successful" receive
-        // Ignore packet handler in LoRa mode as it's always invalid.
-        // TODO: find a reference for this
-        match (self.packet_type, &res) {
-            (PacketType::LoRa, _) => (),
-            (PacketType::None, _) => return Err(Error::InvalidConfiguration),
-            _ => {
-                let mut info = PacketInfo::default();
-                self.get_packet_info(&mut info)?;
-
-                trace!("RX packet info {:?}", info);
-
-                if info.packet_status.contains(PacketStatus::LENGTH_ERROR) {
-                    debug!("RX packet handler length error");
-                    res = Err(Error::InvalidLength);
-                } else if info.packet_status.contains(PacketStatus::CRC_ERROR) {
-                    debug!("RX packet handler CRC error");
-                    res = Err(Error::InvalidCrc);
-                } else if info.packet_status.contains(PacketStatus::ABORT_ERROR) {
-                    debug!("RX packet handler abort error");
-                    res = Err(Error::Abort);
-                } else if info.packet_status.contains(PacketStatus::SYNC_ERROR) {
-                    debug!("RX packet handler sync error");
-                    res = Err(Error::InvalidSync);
-                }
-            }
         }
 
         // Auto-restart on failure if enabled
