@@ -58,7 +58,7 @@ impl Default for FlrcConfig {
 
 /// Bit rate / bandwidth pairs for FLRC mode
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum FlrcBitrate {
     /// Baud: 2600 kbps Bandwidth: 2.4 MHz
     BR_2_600_BW_2_4                    = 0x04,
@@ -78,55 +78,29 @@ pub enum FlrcBitrate {
     BR_0_260_BW_0_3                    = 0xEB,
 }
 
-impl FlrcBitrate {
+#[cfg(feature = "util")]
+const FLRC_BIT_RATE_PARSE_ERR: &str = "Invalid FLRC bitrate bandwidth (supported options: 2600_2400, 2080_2400, 1300_1200, 1040_1200, 650_600, 520_600, 325_300, 260_300)";
 
-    /// Compute an FLRC bitrate/bandwidth from parts
-    pub fn from_parts(bitrate_kbps: u32, bandwidth_khz: u32) -> Option<Self> {
+#[cfg(feature = "util")]
+impl std::str::FromStr for FlrcBitrate {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         use self::FlrcBitrate::*;
 
-        match (bitrate_kbps, bandwidth_khz) {
-            (2_600, 2_400) => Some(BR_2_600_BW_2_4),
-            (2_080, 2_400) => Some(BR_2_080_BW_2_4),
-            (1_300, 1_200) => Some(BR_1_300_BW_1_2),
-            (1_040, 1_200) => Some(BR_1_040_BW_1_2),
-            (0_650, 0_600) => Some(BR_0_650_BW_0_6),
-            (0_520, 0_600) => Some(BR_0_520_BW_0_6),
-            (0_325, 0_300) => Some(BR_0_325_BW_0_3),
-            (0_260, 0_300) => Some(BR_0_260_BW_0_3),
-            _ => None
-        }
-    }
+        let v = match s {
+            "2600_2400" => BR_2_600_BW_2_4,
+            "2080_2400" => BR_2_080_BW_2_4,
+            "1300_1200" => BR_1_300_BW_1_2,
+            "1040_1200" => BR_1_040_BW_1_2,
+            "650_600"   => BR_0_650_BW_0_6,
+            "520_600"   => BR_0_520_BW_0_6,
+            "325_300"   => BR_0_325_BW_0_3,
+            "260_300"   => BR_0_260_BW_0_3,
+            _ => return Err(FLRC_BIT_RATE_PARSE_ERR)
+        };
 
-    /// Fetch the configured baud rate in kbps
-    pub fn baud(&self) -> u32 {
-        use self::FlrcBitrate::*;
-
-        match self {
-            BR_2_600_BW_2_4 => 2_600,
-            BR_2_080_BW_2_4 => 2_080,
-            BR_1_300_BW_1_2 => 1_300,
-            BR_1_040_BW_1_2 => 1_040,
-            BR_0_650_BW_0_6 => 0_650,
-            BR_0_520_BW_0_6 => 0_520,
-            BR_0_325_BW_0_3 => 0_325,
-            BR_0_260_BW_0_3 => 0_260,
-        }
-    }
-
-    /// Fetch the configured bandwidth in kHz
-    pub fn bw(&self) -> u32 {
-        use self::FlrcBitrate::*;
-        
-        match self {
-            BR_2_600_BW_2_4 => 2_600,
-            BR_2_080_BW_2_4 => 2_080,
-            BR_1_300_BW_1_2 => 1_300,
-            BR_1_040_BW_1_2 => 1_040,
-            BR_0_650_BW_0_6 => 0_650,
-            BR_0_520_BW_0_6 => 0_520,
-            BR_0_325_BW_0_3 => 0_325,
-            BR_0_260_BW_0_3 => 0_260,
-        }
+        Ok(v)
     }
 }
 
@@ -142,6 +116,25 @@ pub enum FlrcCodingRate {
     Cr1_0 = 0x04,
 }
 
+#[cfg(feature = "util")]
+const FLRC_CODE_RATE_PARSE_ERR: &str = "Invalid coding rate (supported options: 1/2, 3/4, 1/0)";
+
+#[cfg(feature = "util")]
+impl std::str::FromStr for FlrcCodingRate {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+
+        let v = match s {
+            "1/2" => FlrcCodingRate::Cr1_2,
+            "3/4" => FlrcCodingRate::Cr3_4,
+            "1/0" => FlrcCodingRate::Cr1_0,
+            _ => return Err(FLRC_CODE_RATE_PARSE_ERR)
+        };
+
+        Ok(v)
+    }
+}
 
 /// FLRC sync word length
 #[derive(Copy, Clone, PartialEq, Debug)]

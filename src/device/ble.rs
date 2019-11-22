@@ -4,7 +4,7 @@ use super::common::*;
 
 /// BLE operating mode channel configuration
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BleChannel {
     /// Operating frequency
     pub freq: u32,
@@ -55,7 +55,7 @@ pub enum BleCrcFields {
 
 /// BLE mode packet types
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum BlePacketTypes {
     /// Pseudo Random Binary Sequence based on 9th degree polynomial
     BLE_PRBS_9                              = 0x00,

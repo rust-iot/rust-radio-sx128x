@@ -11,6 +11,9 @@ extern crate libc;
 #[macro_use]
 extern crate log;
 
+#[cfg(feature = "util")]
+extern crate std;
+
 #[cfg(feature = "serde")]
 extern crate serde;
 

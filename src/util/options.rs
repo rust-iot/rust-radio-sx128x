@@ -3,6 +3,8 @@ use structopt::StructOpt;
 use simplelog::{LevelFilter};
 use humantime::{Duration as HumanDuration};
 
+use radio_sx128x::device::flrc;
+
 #[derive(StructOpt)]
 #[structopt(name = "Sx128x-util")]
 /// A Command Line Interface (CLI) for interacting with a local Sx128x radio device
@@ -96,15 +98,15 @@ pub struct GfskCommand {
 /// FLRC mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct FlrcCommand {
-    /// FLRC bitrate in kbps
-    /// (options: 2600, 2080, 1300, 1040, 650, 520, 325, 260)
-    #[structopt(long = "bitrate", default_value="260")]
-    pub bitrate: u32,
+    /// FLRC bitrate-bandwidth in kbps
+    /// (options: 2600_2400, 2080_2400, 1300_1200, 1040_1200, 650_600, 520_600, 325_300, 260_300)
+    #[structopt(long = "br-bw", default_value="260_300")]
+    pub bitrate_bandwidth: flrc::FlrcBitrate,
 
-    /// FLRC bandwidth in kHz
-    /// (options: 2400, 1200, 600, 300)
-    #[structopt(long = "bandwidth", default_value="300")]
-    pub bandwidth: u32,
+    /// FLRC coding rate
+    /// (options: 3/4, 1/2, 1/0)
+    #[structopt(long = "cr", default_value="3/4")]
+    pub code_rate: flrc::FlrcCodingRate,
 
     #[structopt(subcommand)]
     /// Operation to execute

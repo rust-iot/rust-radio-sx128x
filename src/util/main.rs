@@ -20,7 +20,6 @@ use radio::{State as _};
 
 extern crate radio_sx128x;
 use radio_sx128x::prelude::*;
-use radio_sx128x::device::flrc;
 
 mod options;
 use options::*;
@@ -80,8 +79,7 @@ fn main() {
             // Set to Gfsk mode
             config.modem = Modem::Flrc(FlrcConfig::default());
             let mut channel = FlrcChannel::default();
-            channel.br_bw = flrc::FlrcBitrate::from_parts(flrc_config.bitrate, flrc_config.bandwidth)
-                .expect("Error parsing FLRC bitrate-bandwidth");
+            channel.br_bw = flrc_config.bitrate_bandwidth;
             config.channel = Channel::Flrc(channel);
         }
         Command::Gfsk(_gfsk_config) => {
