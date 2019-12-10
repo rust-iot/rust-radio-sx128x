@@ -18,14 +18,6 @@ libc = "0.2.42"
 log = "0.4.6"
 radio = "0.4.0"
 
-[dependencies.strum]
-version = "*"
-optional = true
-
-[dependencies.strum_macros]
-version = "*"
-optional = true
-
 [dependencies.embedded-hal]
 features = ["unproven"]
 version = "0.2.3"
