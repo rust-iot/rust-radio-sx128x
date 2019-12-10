@@ -70,22 +70,33 @@ fn main() {
 
     // Generate configurations
     match &opts.command {
-        Command::LoRa(_lora_config) => {
+        Command::LoRa(lora_config) => {
             // Set to lora mode
             config.modem = Modem::LoRa(LoRaConfig::default());
-            config.channel = Channel::LoRa(LoRaChannel::default());
+
+            let mut channel = LoRaChannel::default();
+            channel.freq = (lora_config.frequency * 1e9) as u32;
+
+            config.channel = Channel::LoRa(channel);
         },
         Command::Flrc(flrc_config) => {
             // Set to Gfsk mode
             config.modem = Modem::Flrc(FlrcConfig::default());
+
             let mut channel = FlrcChannel::default();
+            channel.freq = (flrc_config.frequency * 1e9) as u32;
             channel.br_bw = flrc_config.bitrate_bandwidth;
+
             config.channel = Channel::Flrc(channel);
         }
-        Command::Gfsk(_gfsk_config) => {
+        Command::Gfsk(gfsk_config) => {
             // Set to Gfsk mode
             config.modem = Modem::Gfsk(GfskConfig::default());
-            config.channel = Channel::Gfsk(GfskChannel::default());
+
+            let mut channel = GfskChannel::default();
+            channel.freq = (gfsk_config.frequency * 1e9) as u32;
+
+            config.channel = Channel::Gfsk(channel);
         },
         _ => (),
     }

@@ -78,7 +78,11 @@ impl Command {
 /// LoRa mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct LoRaCommand {
-    // TODO: LoRa mode channel / modem options here
+    /// Operating frequency in GHz
+    /// This must be in a range of 2.45 to 2.55 GHz
+    #[structopt(long = "freq-ghz", default_value="2.45")]
+    pub frequency: f32,
+
 
     #[structopt(subcommand)]
     /// Operation to execute
@@ -88,7 +92,11 @@ pub struct LoRaCommand {
 /// GFSK mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct GfskCommand {
-    // TODO: GFSK mode channel / modem options here
+    /// Operating frequency in GHz
+    /// This must be in a range of 2.45 to 2.55 GHz
+    #[structopt(long = "freq-ghz", default_value="2.45")]
+    pub frequency: f32,
+
 
     #[structopt(subcommand)]
     /// Operation to execute
@@ -98,6 +106,11 @@ pub struct GfskCommand {
 /// FLRC mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct FlrcCommand {
+    /// Operating frequency in GHz
+    /// This must be in a range of 2.45 to 2.55 GHz
+    #[structopt(long = "freq-ghz", default_value="2.45")]
+    pub frequency: f32,
+
     /// FLRC bitrate-bandwidth in kbps
     /// (options: 2600_2400, 2080_2400, 1300_1200, 1040_1200, 650_600, 520_600, 325_300, 260_300)
     #[structopt(long = "br-bw", default_value="260_300")]

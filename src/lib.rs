@@ -64,6 +64,8 @@ pub struct Sx128x<Base, CommsError, PinError> {
     _pe: PhantomData<PinError>,
 }
 
+pub const FREQ_MIN: u32 = 2_400_000_000;
+pub const FREQ_MAX: u32 = 2_500_000_000;
 
 /// Sx128x error type
 #[derive(Debug, Clone, PartialEq)]
@@ -92,6 +94,8 @@ pub enum Error<CommsError, PinError> {
     InvalidResponse(u8),
     /// Invalid configuration option provided
     InvalidConfiguration,
+    /// Frequency out of range
+    InvalidFrequency,
 }
 
 impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<CommsError, PinError> {
@@ -446,7 +450,12 @@ where
         debug!("Setting channel config: {:?}", ch);
         
         // Set frequency
-        self.set_frequency(ch.frequency())?;
+        let freq = ch.frequency();
+        if freq < FREQ_MIN || freq > FREQ_MAX {
+            return Err(Error::InvalidFrequency)
+        }
+
+        self.set_frequency(freq)?;
 
         // First update packet type (if required)
         let packet_type = PacketType::from(ch);
