@@ -38,7 +38,15 @@ pub trait Hal<CommsError, PinError> {
     /// Wait on radio device busy
     fn wait_busy(&mut self) -> Result<(), Error<CommsError, PinError>> {
         // TODO: timeouts here
-        while self.get_busy()? == PinState::High {}
+        let mut timeout = 0;
+        while self.get_busy()? == PinState::High {
+            self.delay_ms(1);
+            timeout += 1;
+
+            if timeout > BUSY_TIMEOUT_MS {
+                return Err(Error::BusyTimeout)
+            }
+        }
 
         Ok(())
     }

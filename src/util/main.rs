@@ -39,7 +39,7 @@ fn main() {
     // Connect to hardware
     let mut spi = Spidev::open(opts.spi).expect("error opening spi device");
     let mut config = spidev::SpidevOptions::new();
-    config.mode(spidev::SPI_MODE_0 | spidev::SPI_NO_CS);
+    config.mode(spidev::SpiModeFlags::SPI_MODE_0 | spidev::SpiModeFlags::SPI_NO_CS);
     config.max_speed_hz(opts.baud);
     spi.configure(&config).expect("error configuring spi device");
 

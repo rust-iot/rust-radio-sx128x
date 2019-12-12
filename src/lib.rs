@@ -11,15 +11,12 @@ extern crate libc;
 #[macro_use]
 extern crate log;
 
-#[cfg(feature = "util")]
+#[cfg(any(test, feature = "util"))]
+#[macro_use]
 extern crate std;
 
 #[cfg(feature = "serde")]
 extern crate serde;
-
-#[cfg(test)]
-#[macro_use]
-extern crate std;
 
 #[cfg(feature = "util")]
 #[macro_use]
@@ -78,6 +75,7 @@ pub enum Error<CommsError, PinError> {
     Aborted,
     /// Timeout by device
     Timeout,
+    BusyTimeout,
     /// CRC error on received message
     InvalidCrc,
     /// TODO
@@ -108,7 +106,9 @@ impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<Comm
     }
 }
 
-impl<Spi, CommsError, Output, Input, PinError, Delay> Sx128x<SpiWrapper<Spi, CommsError, Output, Input, PinError, Delay>, CommsError, PinError>
+pub type Sx128xSpi<Spi, SpiError, Output, Input, PinError, Delay> = Sx128x<SpiWrapper<Spi, SpiError, Output, Input, (), Output, PinError, Delay>, SpiError, PinError>;
+
+impl<Spi, CommsError, Output, Input, PinError, Delay> Sx128x<SpiWrapper<Spi, CommsError, Output, Input, (), Output, PinError, Delay>, CommsError, PinError>
 where
     Spi: Transfer<u8, Error = CommsError> + Write<u8, Error = CommsError>,
     Output: OutputPin<Error = PinError>,
@@ -118,9 +118,7 @@ where
     /// Create an Sx128x with the provided `Spi` implementation and pins
     pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
         // Create SpiWrapper over spi/cs/busy
-        let mut hal = SpiWrapper::new(spi, cs, delay);
-        hal.with_busy(busy);
-        hal.with_reset(sdn);
+        let hal = SpiWrapper::new(spi, cs, busy, (), sdn, delay);
         // Create instance with new hal
         Self::new(hal, config)
     }
@@ -136,8 +134,12 @@ where
 
         let mut sx128x = Self::build(hal);
 
+        debug!("Resetting device");
+
         // Reset IC
         sx128x.hal.reset()?;
+
+        debug!("Checking firmware version");
 
         // Check communication with the radio
         let firmware_version = sx128x.firmware_version()?;
@@ -147,6 +149,8 @@ where
 
         // TODO: do we need to calibrate things here?
         //sx128x.calibrate(CalibrationParams::default())?;
+
+        debug!("Configuring device");
 
         // Configure device prior to use
         sx128x.configure(config)?;
@@ -176,6 +180,14 @@ where
     pub fn configure(&mut self, config: &Config) -> Result<(), Error<CommsError, PinError>> {
         // Switch to standby mode
         self.set_state(State::StandbyRc)?;
+
+        // Check configs match
+        match (&config.modem, &config.channel) {
+            (Modem::LoRa(_), Channel::LoRa(_)) => (),
+            (Modem::Flrc(_), Channel::Flrc(_)) => (),
+            (Modem::Gfsk(_), Channel::Gfsk(_)) => (),
+            _ => return Err(Error::InvalidConfiguration)
+        }
 
         // Update regulator mode
         self.set_regulator_mode(config.regulator_mode)?;
@@ -626,7 +638,7 @@ where
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
        
-        //trace!("RX poll (irq: {:?})", irq);
+        //debug!("RX check receive (irq: {:?})", irq);
 
         // Process flags
         if irq.contains(Irq::CRC_ERROR) {
