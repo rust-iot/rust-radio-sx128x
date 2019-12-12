@@ -141,7 +141,7 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
 #[ignore]
 fn lora_tx_rx() {
     // Setup logging
-    SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
+    let _ = SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default());
 
     let mut config = Config::default();
     config.modem = Modem::LoRa(LoRaConfig::default());
@@ -162,7 +162,7 @@ fn lora_tx_rx() {
 #[ignore]
 fn flrc_tx_rx() {
     // Setup logging
-    SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
+    let _ = SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default());
 
     let mut config = Config::default();
     config.modem = Modem::Flrc(FlrcConfig::default());
@@ -182,7 +182,7 @@ fn flrc_tx_rx() {
 #[ignore]
 fn gfsk_tx_rx() {
     // Setup logging
-    SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
+    let _ = SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default());
 
     let mut config = Config::default();
     config.modem = Modem::Gfsk(GfskConfig::default());
