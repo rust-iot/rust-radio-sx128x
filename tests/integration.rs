@@ -31,33 +31,50 @@ pub type SpiWrapper = Wrapper<Spidev, IoError, PinDev, PinDev, (), PinDev, PinEr
 
 pub type Radio = Sx128x<SpiWrapper, IoError, PinError>;
 
-fn load_radio(config: &Config, spi: &str, baud: u32, cs: u64, rst: u64, busy: u64, ant: u64) -> Radio
+pub struct HwConfig<'a> {
+    spi: &'a str, 
+    baud: u32, 
+    cs: u64, 
+    rst: u64, 
+    busy: u64, 
+    ant: u64,
+}
+
+const RADIO1_CONFIG: HwConfig = HwConfig {
+    spi: "/dev/spidev0.0", baud: 1_000_000, cs: 16, rst: 17, busy: 5, ant: 23
+};
+
+const RADIO2_CONFIG: HwConfig = HwConfig {
+    spi: "/dev/spidev0.1", baud: 1_000_000, cs: 13, rst: 18, busy: 8, ant: 22
+};
+
+fn load_radio(config: &Config, hw: &HwConfig) -> Radio
  {
     debug!("Connecting to radio");
 
     // Connect to hardware
-    let mut spi = Spidev::open(spi).expect("error opening spi device");
+    let mut spi = Spidev::open(hw.spi).expect("error opening spi device");
     let mut spi_config = spidev::SpidevOptions::new();
     spi_config.mode(spidev::SpiModeFlags::SPI_MODE_0 | spidev::SpiModeFlags::SPI_NO_CS);
-    spi_config.max_speed_hz(baud);
+    spi_config.max_speed_hz(hw.baud);
     spi.configure(&spi_config).expect("error configuring spi device");
 
-    let cs = PinDev::new(cs);
+    let cs = PinDev::new(hw.cs);
     cs.export().expect("error exporting cs pin");
     cs.set_direction(Direction::Out).expect("error setting cs pin direction");
 
-    let rst = PinDev::new(rst);
+    let rst = PinDev::new(hw.rst);
     rst.export().expect("error exporting rst pin");
     rst.set_direction(Direction::Out).expect("error setting rst pin direction");
 
     // Configure (optional) antenna control output pin
-    let mut ant = PinDev::new(ant);
+    let mut ant = PinDev::new(hw.ant);
     ant.export().expect("error exporting rst ant");
     ant.set_direction(Direction::Out).expect("error setting ant pin direction");
     ant.set_high().expect("error setting ANT pin state");
 
     // Configure busy input pin
-    let busy = PinDev::new(busy);
+    let busy = PinDev::new(hw.busy);
     busy.export().expect("error exporting busy pin");
     busy.set_direction(Direction::Out).expect("error setting busy pin direction");
 
@@ -133,8 +150,8 @@ fn lora_tx_rx() {
     config.channel = Channel::LoRa(channel);
 
     info!("Loading radios");
-    let mut radio1 = load_radio(&config, "/dev/spidev0.0", 1_000_000, 16, 17, 5, 23);
-    let mut radio2 = load_radio(&config, "/dev/spidev0.1", 1_000_000, 13, 18, 8, 22);
+    let mut radio1 = load_radio(&config, &RADIO1_CONFIG);
+    let mut radio2 = load_radio(&config, &RADIO2_CONFIG);
 
     info!("Running test");
     test_tx_rx(&mut radio1, &mut radio2);
@@ -154,8 +171,8 @@ fn flrc_tx_rx() {
     config.channel = Channel::Flrc(channel);
 
     info!("Loading radios");
-    let mut radio1 = load_radio(&config, "/dev/spidev0.0", 1_000_000, 16, 17, 5, 23);
-    let mut radio2 = load_radio(&config, "/dev/spidev0.1", 1_000_000, 13, 18, 8, 22);
+    let mut radio1 = load_radio(&config, &RADIO1_CONFIG);
+    let mut radio2 = load_radio(&config, &RADIO2_CONFIG);
 
     info!("Running test");
     test_tx_rx(&mut radio1, &mut radio2);
@@ -174,8 +191,8 @@ fn gfsk_tx_rx() {
     config.channel = Channel::Gfsk(channel);
 
     info!("Loading radios");
-    let mut radio1 = load_radio(&config, "/dev/spidev0.0", 1_000_000, 16, 17, 5, 23);
-    let mut radio2 = load_radio(&config, "/dev/spidev0.1", 1_000_000, 13, 18, 8, 22);
+    let mut radio1 = load_radio(&config, &RADIO1_CONFIG);
+    let mut radio2 = load_radio(&config, &RADIO2_CONFIG);
 
     info!("Running test");
     test_tx_rx(&mut radio1, &mut radio2);
