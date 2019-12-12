@@ -3,7 +3,6 @@
 //! Copyright 2019 Ryan Kurte
 
 use std::io::Error as IoError;
-use std::collections::HashMap;
 use std::thread;
 use std::time::Duration;
 
@@ -12,7 +11,7 @@ use embedded_hal::digital::v2::OutputPin;
 
 extern crate embedded_spi;
 use embedded_spi::wrapper::Wrapper;
-use embedded_spi::utils::{load_config, DeviceConfig, PinError};
+use embedded_spi::utils::{PinError};
 
 extern crate linux_embedded_hal;
 use linux_embedded_hal::{spidev, Spidev, Pin as PinDev, Delay};
@@ -26,7 +25,7 @@ use radio::{Receive, Transmit};
 
 #[macro_use] extern crate log;
 extern crate simplelog;
-use simplelog::{TermLogger, LevelFilter};
+use simplelog::{SimpleLogger, LevelFilter};
 
 pub type SpiWrapper = Wrapper<Spidev, IoError, PinDev, PinDev, (), PinDev, PinError, Delay>;
 
@@ -125,7 +124,7 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
 #[ignore]
 fn lora_tx_rx() {
     // Setup logging
-    TermLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
+    SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
 
     let mut config = Config::default();
     config.modem = Modem::LoRa(LoRaConfig::default());
@@ -146,7 +145,7 @@ fn lora_tx_rx() {
 #[ignore]
 fn flrc_tx_rx() {
     // Setup logging
-    TermLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
+    SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
 
     let mut config = Config::default();
     config.modem = Modem::Flrc(FlrcConfig::default());
@@ -166,7 +165,7 @@ fn flrc_tx_rx() {
 #[ignore]
 fn gfsk_tx_rx() {
     // Setup logging
-    TermLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
+    SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default()).unwrap();
 
     let mut config = Config::default();
     config.modem = Modem::Gfsk(GfskConfig::default());
