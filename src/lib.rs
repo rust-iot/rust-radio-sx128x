@@ -189,6 +189,12 @@ where
             _ => return Err(Error::InvalidConfiguration)
         }
 
+        // Set packet type
+        // NOTE: attempted fix for packet handler misbehaviour on radio mode switching
+        debug!("Setting packet type: {:?}", packet_type);
+        self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
+        self.packet_type = packet_type;
+
         // Update regulator mode
         self.set_regulator_mode(config.regulator_mode)?;
         self.config.regulator_mode = config.regulator_mode;
