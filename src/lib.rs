@@ -191,6 +191,7 @@ where
 
         // Set packet type
         // NOTE: attempted fix for packet handler misbehaviour on radio mode switching
+        let packet_type = PacketType::from(&config.modem);
         debug!("Setting packet type: {:?}", packet_type);
         self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
         self.packet_type = packet_type;
