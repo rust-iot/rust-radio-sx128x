@@ -94,6 +94,8 @@ pub enum Error<CommsError, PinError> {
     InvalidConfiguration,
     /// Frequency out of range
     InvalidFrequency,
+    /// No SPI communication detected
+    NoComms,
 }
 
 impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<CommsError, PinError> {
@@ -143,7 +145,14 @@ where
 
         // Check communication with the radio
         let firmware_version = sx128x.firmware_version()?;
-        if firmware_version != 0xA9B5 {
+        
+        if firmware_version == 0xFFFF || firmware_version == 0x0000 {
+            return Err(Error::NoComms)
+        } else if firmware_version != 0xA9B5 {
+            warn!("Invalid firmware version! expected: 0x{:x} actual: 0x{:x}", 0xA9B5, firmware_version);
+        }
+
+        if firmware_version != 0xA9B5 && !config.skip_version_check {
             return Err(Error::InvalidDevice(firmware_version));
         }
 

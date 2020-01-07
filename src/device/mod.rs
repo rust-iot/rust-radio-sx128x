@@ -45,6 +45,9 @@ pub struct Config {
 
     /// Timeout for blocking / polling internal methods
     pub timeout_ms: u32,
+
+    /// Skip firmware version validation
+    pub skip_version_check: bool,
 }
 
 impl Default for Config {
@@ -59,6 +62,7 @@ impl Default for Config {
             rf_timeout: Timeout::Single,
             xtal_freq: 52000000,
             timeout_ms: 100,
+            skip_version_check: false,
         }
     }
 }
