@@ -257,6 +257,8 @@ where
     }
 
     pub fn set_irq_mask(&mut self, irq: Irq) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Setting IRQ mask: {:?}", irq);
+
         let raw = irq.bits();
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
     }
@@ -268,7 +270,7 @@ where
 
         // First update packet type (if required)
         let packet_type = PacketType::from(config);
-        if self.packet_type != packet_type {
+        if self.packet_type != packet_type || true {
             debug!("Setting packet type: {:?}", packet_type);
             self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
             self.packet_type = packet_type;
@@ -434,8 +436,16 @@ where
         let mut d = [0u8; 1];
         self.hal.read_cmd(Commands::GetStatus as u8, &mut d)?;
 
+        trace!("raw state: 0x{:.2x}", d[0]);
+
         let mode = (d[0] & 0b1110_0000) >> 5;
         let m = State::try_from(mode).map_err(|_| Error::InvalidResponse(d[0]) )?;
+
+        let status = (d[0] & 0b0001_1110) >> 2;
+        let s = CommandStatus::try_from(status).map_err(|_| Error::InvalidResponse(d[0]) )?;
+
+        debug!("mode: {:?} status: {:?}", m, s);
+
         Ok(m)
     }
 
@@ -575,14 +585,20 @@ where
         // Enter transmit mode
         self.hal.write_cmd(Commands::SetTx as u8, &config)?;
 
+        debug!("TX start issued");
+
+        let state = self.get_state()?;
+        debug!("State: {:?}", state);
+
         Ok(())
     }
 
     /// Check for transmit completion
     fn check_transmit(&mut self) -> Result<bool, Self::Error> {
         let irq = self.get_interrupts(true)?;
+        let state = self.get_state()?;
 
-        //trace!("TX poll (irq: {:?})", irq);
+        trace!("TX poll (irq: {:?}, state: {:?})", irq, state);
 
         if irq.contains(Irq::TX_DONE) {
             debug!("TX complete");

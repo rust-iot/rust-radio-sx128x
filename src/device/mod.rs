@@ -191,6 +191,35 @@ impl core::convert::TryFrom<u8> for State {
     }
 }
 
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+pub enum CommandStatus {
+    Success = 0x01,
+    DataAvailable = 0x02,
+    Timeout = 0x03,
+    ProcessingError = 0x04,
+    ExecutionFailure = 0x05,
+    TxDone = 0x06,
+}
+
+impl core::convert::TryFrom<u8> for CommandStatus {
+    type Error = ();
+
+    fn try_from(v: u8) -> Result<CommandStatus, ()> {
+        match v {
+            0x00 => Ok(CommandStatus::Success),
+            0x01 => Ok(CommandStatus::DataAvailable),
+            0x02 => Ok(CommandStatus::Timeout),
+            0x03 => Ok(CommandStatus::ProcessingError),
+            0x04 => Ok(CommandStatus::ExecutionFailure),
+            0x05 => Ok(CommandStatus::TxDone),
+            _ => Err(())
+        }
+    }
+}
+
+
 /// Power Amplifier configuration
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
