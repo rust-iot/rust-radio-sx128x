@@ -12,7 +12,7 @@ use lora::{LoRaChannel, LoRaConfig};
 pub mod common;
 
 
-pub const BUSY_TIMEOUT_MS: u32 = 500;
+pub const BUSY_TIMEOUT_MS: u32 = 200;
 
 /// Sx128x general configuration object
 #[derive(Clone, PartialEq, Debug)]
