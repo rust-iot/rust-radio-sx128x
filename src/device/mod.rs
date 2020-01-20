@@ -193,17 +193,39 @@ impl core::convert::TryFrom<u8> for State {
 }
 
 
-bitflags!(
-    #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
-    pub struct CommandStatus: u8 {
-        const SUCCESS           = 0x01;
-        const DATA_AVAILABLE    = 0x02;
-        const TIMEOUT           = 0x03;
-        const PROCESSING_ERROR  = 0x04;
-        const EXECUTION_FAILURE = 0x05;
-        const TX_DONE           = 0x06;
+#[derive(Clone, Copy, PartialEq, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+pub enum CommandStatus {
+    Reserved          = 0x0,
+    Success           = 0x1,
+    DataAvailable     = 0x2,
+    Timeout           = 0x3,
+    ProcessingError   = 0x4,
+    ExecutionFailure  = 0x5,
+    TxDone            = 0x6,
+}
+
+
+impl core::convert::TryFrom<u8> for CommandStatus {
+    type Error = ();
+
+    fn try_from(v: u8) -> Result<CommandStatus, ()> {
+        match v {
+            0x00 => Ok(CommandStatus::Reserved),
+            0x01 => Ok(CommandStatus::Success),
+            0x02 => Ok(CommandStatus::DataAvailable),
+            0x03 => Ok(CommandStatus::Timeout),
+            0x04 => Ok(CommandStatus::ProcessingError),
+            0x05 => Ok(CommandStatus::ExecutionFailure),
+            0x06 => Ok(CommandStatus::TxDone),
+            _ => {
+                error!("Unrecognised status {:x}", v);
+                Err(())
+            }
+        }
     }
-);
+}
+
 
 /// Power Amplifier configuration
 #[derive(Clone, PartialEq, Debug)]

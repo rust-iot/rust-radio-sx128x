@@ -441,8 +441,8 @@ where
         let mode = (d[0] & 0b1110_0000) >> 5;
         let m = State::try_from(mode).map_err(|_| Error::InvalidResponse(d[0]) )?;
 
-        let status = (d[0] & 0b0001_1110) >> 2;
-        let s = CommandStatus::from_bits_truncate(status);
+        let status = (d[0] & 0b0001_1100) >> 2;
+        let s = CommandStatus::try_from(status).map_err(|_| Error::InvalidResponse(d[0]) )?;
 
         debug!("state: {:?} status: {:?}", m, s);
 
