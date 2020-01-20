@@ -82,8 +82,8 @@ impl Command {
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct LoRaCommand {
     /// Operating frequency in GHz
-    /// This must be in a range of 2.45 to 2.55 GHz
-    #[structopt(long = "freq-ghz", default_value="2.45")]
+    /// This must be in a range of 2.40 to 2.50 GHz
+    #[structopt(long = "freq-ghz", default_value="2.44")]
     pub frequency: f32,
 
 
@@ -96,8 +96,8 @@ pub struct LoRaCommand {
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct GfskCommand {
     /// Operating frequency in GHz
-    /// This must be in a range of 2.45 to 2.55 GHz
-    #[structopt(long = "freq-ghz", default_value="2.45")]
+    /// This must be in a range of 2.40 to 2.50 GHz
+    #[structopt(long = "freq-ghz", default_value="2.44")]
     pub frequency: f32,
 
 
@@ -110,8 +110,8 @@ pub struct GfskCommand {
 #[derive(StructOpt, PartialEq, Debug)]
 pub struct FlrcCommand {
     /// Operating frequency in GHz
-    /// This must be in a range of 2.45 to 2.55 GHz
-    #[structopt(long = "freq-ghz", default_value="2.45")]
+    /// This must be in a range of 2.40 to 2.50 GHz
+    #[structopt(long = "freq-ghz", default_value="2.44")]
     pub frequency: f32,
 
     /// FLRC bitrate-bandwidth in kbps
