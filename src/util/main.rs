@@ -68,6 +68,10 @@ fn main() {
 
     let mut config = Config::default();
 
+    if opts.use_ldo {
+        config.regulator_mode = RegulatorMode::Ldo;
+    }
+
     // Generate configurations
     match &opts.command {
         Command::LoRa(lora_config) => {

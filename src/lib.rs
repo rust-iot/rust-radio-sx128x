@@ -270,7 +270,7 @@ where
 
         // First update packet type (if required)
         let packet_type = PacketType::from(config);
-        if self.packet_type != packet_type || true {
+        if self.packet_type != packet_type {
             debug!("Setting packet type: {:?}", packet_type);
             self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
             self.packet_type = packet_type;
@@ -442,9 +442,9 @@ where
         let m = State::try_from(mode).map_err(|_| Error::InvalidResponse(d[0]) )?;
 
         let status = (d[0] & 0b0001_1110) >> 2;
-        let s = CommandStatus::try_from(status).map_err(|_| Error::InvalidResponse(d[0]) )?;
+        let s = CommandStatus::from_bits_truncate(status);
 
-        debug!("mode: {:?} status: {:?}", m, s);
+        debug!("state: {:?} status: {:?}", m, s);
 
         Ok(m)
     }
@@ -454,7 +454,7 @@ where
         let command = match state {
             State::Tx => Commands::SetTx,
             State::Rx => Commands::SetRx,
-            State::Cad => Commands::SetCad,
+            //State::Cad => Commands::SetCad,
             State::Fs => Commands::SetFs,
             State::StandbyRc | State::StandbyXosc => Commands::SetStandby,
             State::Sleep => Commands::SetSleep,
@@ -538,6 +538,10 @@ where
 
         if clear && !irq.is_empty() {
             self.hal.write_cmd(Commands::ClearIrqStatus as u8, &data)?;
+        }
+
+        if !irq.is_empty() {
+            debug!("irq: {:?}", irq);
         }
 
         Ok(irq)
@@ -648,12 +652,21 @@ where
         ];
         
         // Enable IRQs
-        self.set_irq_mask(Irq::RX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
+        self.set_irq_mask(
+            Irq::RX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT
+            | Irq::SYNCWORD_VALID
+            | Irq::SYNCWORD_ERROR
+            | Irq::HEADER_VALID
+            | Irq::HEADER_ERROR
+            | Irq::PREAMBLE_DETECTED
+        )?;
 
         // Enter transmit mode
         self.hal.write_cmd(Commands::SetRx as u8, &config)?;
 
-        debug!("RX started");
+        let state = self.get_state()?;
+
+        debug!("RX started (state: {:?})", state);
 
         Ok(())
     }
@@ -663,8 +676,6 @@ where
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
        
-        //debug!("RX check receive (irq: {:?})", irq);
-
         // Process flags
         if irq.contains(Irq::CRC_ERROR) {
             debug!("RX CRC error");

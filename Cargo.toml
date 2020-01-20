@@ -9,7 +9,7 @@ version = "0.11.3"
 
 [features]
 default = ["util", "serde"]
-util = ["structopt", "linux-embedded-hal", "simplelog", "humantime"]
+util = ["structopt", "linux-embedded-hal", "simplelog", "humantime", "embedded-spi/utils"]
 
 
 [dependencies]
@@ -57,4 +57,4 @@ path = "src/util/main.rs"
 required-features = ["util", "embedded-spi/utils"]
 
 [patch.crates-io]
-#embedded-spi = { path = "../rust-embedded-spi" }
+embedded-spi = { path = "../rust-embedded-spi" }

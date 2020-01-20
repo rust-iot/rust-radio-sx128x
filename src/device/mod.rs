@@ -166,12 +166,11 @@ impl From<&Channel> for PacketType {
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
 pub enum State {
     Sleep       = 0x00,
-    StandbyRc   = 0x01,
-    StandbyXosc = 0x02,
-    Fs          = 0x03,
-    Tx          = 0x04,
+    StandbyRc   = 0x02,
+    StandbyXosc = 0x03,
+    Fs          = 0x04,
     Rx          = 0x05,
-    Cad         = 0x06,
+    Tx          = 0x06,
 }
 
 impl core::convert::TryFrom<u8> for State {
@@ -180,45 +179,31 @@ impl core::convert::TryFrom<u8> for State {
     fn try_from(v: u8) -> Result<State, ()> {
         match v {
             0x00 => Ok(State::Sleep),
-            0x01 => Ok(State::StandbyRc),
-            0x02 => Ok(State::StandbyXosc),
-            0x03 => Ok(State::Fs),
-            0x04 => Ok(State::Tx),
+            0x02 => Ok(State::StandbyRc),
+            0x03 => Ok(State::StandbyXosc),
+            0x04 => Ok(State::Fs),
             0x05 => Ok(State::Rx),
-            0x06 => Ok(State::Cad),
-            _ => Err(())
+            0x06 => Ok(State::Tx),
+            _ => {
+                error!("Unrecognised state {:x}", v);
+                Err(())
+            }
         }
     }
 }
 
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
-pub enum CommandStatus {
-    Success = 0x01,
-    DataAvailable = 0x02,
-    Timeout = 0x03,
-    ProcessingError = 0x04,
-    ExecutionFailure = 0x05,
-    TxDone = 0x06,
-}
-
-impl core::convert::TryFrom<u8> for CommandStatus {
-    type Error = ();
-
-    fn try_from(v: u8) -> Result<CommandStatus, ()> {
-        match v {
-            0x00 => Ok(CommandStatus::Success),
-            0x01 => Ok(CommandStatus::DataAvailable),
-            0x02 => Ok(CommandStatus::Timeout),
-            0x03 => Ok(CommandStatus::ProcessingError),
-            0x04 => Ok(CommandStatus::ExecutionFailure),
-            0x05 => Ok(CommandStatus::TxDone),
-            _ => Err(())
-        }
+bitflags!(
+    #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+    pub struct CommandStatus: u8 {
+        const SUCCESS           = 0x01;
+        const DATA_AVAILABLE    = 0x02;
+        const TIMEOUT           = 0x03;
+        const PROCESSING_ERROR  = 0x04;
+        const EXECUTION_FAILURE = 0x05;
+        const TX_DONE           = 0x06;
     }
-}
-
+);
 
 /// Power Amplifier configuration
 #[derive(Clone, PartialEq, Debug)]

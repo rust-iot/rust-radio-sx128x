@@ -39,6 +39,9 @@ pub struct Options {
     #[structopt(long = "baud", default_value = "1000000", env = "SX128X_BAUD")]
     pub baud: u32,
 
+    // Use onboard LDO instead of DCDC
+    #[structopt(long)]
+    pub use_ldo: bool,
 
     #[structopt(long = "log-level", default_value = "info")]
     /// Enable verbose logging
