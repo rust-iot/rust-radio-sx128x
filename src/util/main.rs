@@ -20,6 +20,7 @@ use radio::{State as _};
 
 extern crate radio_sx128x;
 use radio_sx128x::prelude::*;
+use radio_sx128x::device::{self, lora, flrc, gfsk, common};
 
 mod options;
 use options::*;
@@ -76,7 +77,12 @@ fn main() {
     match &opts.command {
         Command::LoRa(lora_config) => {
             // Set to lora mode
-            config.modem = Modem::LoRa(LoRaConfig::default());
+            let mut modem = LoRaConfig::default();
+            if opts.no_crc {
+                modem.crc_mode = lora::LoRaCrc::Disabled;
+            }
+
+            config.modem = Modem::LoRa(modem);
 
             let mut channel = LoRaChannel::default();
             channel.freq = (lora_config.frequency * 1e9) as u32;
@@ -85,7 +91,16 @@ fn main() {
         },
         Command::Flrc(flrc_config) => {
             // Set to Gfsk mode
-            config.modem = Modem::Flrc(FlrcConfig::default());
+            let mut modem = FlrcConfig::default();
+            if opts.no_crc {
+                modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF;
+            }
+
+            if flrc_config.no_syncword {
+                modem.sync_word_match = common::SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_OFF;
+            }
+
+            config.modem = Modem::Flrc(modem);
 
             let mut channel = FlrcChannel::default();
             channel.freq = (flrc_config.frequency * 1e9) as u32;
@@ -95,7 +110,12 @@ fn main() {
         }
         Command::Gfsk(gfsk_config) => {
             // Set to Gfsk mode
-            config.modem = Modem::Gfsk(GfskConfig::default());
+            let mut modem = GfskConfig::default();
+            if opts.no_crc {
+                modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF;
+            }
+
+            config.modem = Modem::Gfsk(modem);
 
             let mut channel = GfskChannel::default();
             channel.freq = (gfsk_config.frequency * 1e9) as u32;

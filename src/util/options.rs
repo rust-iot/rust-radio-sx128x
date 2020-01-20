@@ -39,9 +39,13 @@ pub struct Options {
     #[structopt(long = "baud", default_value = "1000000", env = "SX128X_BAUD")]
     pub baud: u32,
 
-    // Use onboard LDO instead of DCDC
+    /// Use onboard LDO instead of DCDC
     #[structopt(long)]
     pub use_ldo: bool,
+
+    /// Disable CRC appending / checking
+    #[structopt(long)]
+    pub no_crc: bool,
 
     #[structopt(long = "log-level", default_value = "info")]
     /// Enable verbose logging
@@ -123,6 +127,10 @@ pub struct FlrcCommand {
     /// (options: 3/4, 1/2, 1/0)
     #[structopt(long = "cr", default_value="3/4")]
     pub code_rate: flrc::FlrcCodingRate,
+
+    /// Disable Sync word matching
+    #[structopt(long)]
+    pub no_syncword: bool,
 
     #[structopt(subcommand)]
     /// Operation to execute
