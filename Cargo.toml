@@ -9,8 +9,8 @@ version = "0.12.1"
 
 [features]
 default = ["util", "serde"]
+tests = [ "embedded-spi/mock" ]
 util = ["structopt", "linux-embedded-hal", "simplelog", "humantime", "embedded-spi/utils"]
-
 
 [dependencies]
 bitflags = "1.0.4"
@@ -50,11 +50,17 @@ version = "0.3.2"
 [dev-dependencies]
 color-backtrace = "0.1.3"
 
-
 [[bin]]
 name = "sx128x-util"
 path = "src/util/main.rs"
 required-features = ["util"]
 
 [patch.crates-io]
-#embedded-spi = { path = "../rust-embedded-spi" }
+embedded-hal = { git = "https://github.com/ryankurte/embedded-hal.git", branch = "feature/spi-i2c-transactions" }
+
+#embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "feature/transactional-spi" }
+#linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/transactional" }
+
+embedded-spi = { path = "../rust-embedded-spi" }
+linux-embedded-hal = { path = "../linux-embedded-hal" }
+

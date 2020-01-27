@@ -29,7 +29,7 @@ extern crate embedded_hal as hal;
 use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
 use hal::spi::{Mode as SpiMode, Phase, Polarity};
-use hal::blocking::spi::{Transfer, Write};
+use hal::blocking::spi::{Transfer, Write, Transactional};
 
 extern crate embedded_spi;
 use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
@@ -112,7 +112,7 @@ pub type Sx128xSpi<Spi, SpiError, Output, Input, PinError, Delay> = Sx128x<SpiWr
 
 impl<Spi, CommsError, Output, Input, PinError, Delay> Sx128x<SpiWrapper<Spi, CommsError, Output, Input, (), Output, PinError, Delay>, CommsError, PinError>
 where
-    Spi: Transfer<u8, Error = CommsError> + Write<u8, Error = CommsError>,
+    Spi: Transfer<u8, Error = CommsError> + Write<u8, Error = CommsError> + Transactional<u8, Error = CommsError>,
     Output: OutputPin<Error = PinError>,
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
