@@ -1,9 +1,11 @@
 
 use structopt::StructOpt;
-use simplelog::{LevelFilter};
 use humantime::{Duration as HumanDuration};
 
-use radio_sx128x::device::flrc;
+use embedded_spi::hal::{DeviceConfig, LogConfig};
+
+use radio_sx128x::prelude::*;
+use radio_sx128x::device::{common, flrc, lora};
 
 #[derive(StructOpt)]
 #[structopt(name = "Sx128x-util")]
@@ -14,30 +16,8 @@ pub struct Options {
     /// Request for remote-hal server
     pub command: Command,
 
-
-    #[structopt(long = "spi", default_value = "/dev/spidev0.0", env = "SX128X_SPI")]
-    /// SPI device for the radio connection
-    pub spi: String,
-
-    /// Chip Select (output) pin
-    #[structopt(long = "cs-pin", default_value = "16", env = "SX128X_CS")]
-    pub cs: u64,
-
-    /// Reset (output) pin
-    #[structopt(long = "rst-pin", default_value = "17", env = "SX128X_RST")]
-    pub rst: u64,
-
-    /// Antenna control pin
-    #[structopt(long = "ant-pin", default_value = "23", env = "SX128X_ANT")]
-    pub ant: u64,
-
-    /// Busy (input) pin
-    #[structopt(long = "busy-pin", default_value = "5", env = "SX128X_BUSY")]
-    pub busy: u64,
-
-    /// Baud rate setting
-    #[structopt(long = "baud", default_value = "1000000", env = "SX128X_BAUD")]
-    pub baud: u32,
+    #[structopt(flatten)]
+    pub spi_config: DeviceConfig,
 
     /// Use onboard LDO instead of DCDC
     #[structopt(long)]
@@ -47,9 +27,8 @@ pub struct Options {
     #[structopt(long)]
     pub no_crc: bool,
 
-    #[structopt(long = "log-level", default_value = "info")]
-    /// Enable verbose logging
-    pub level: LevelFilter,
+    #[structopt(flatten)]
+    pub log: LogConfig,
 }
 
 #[derive(StructOpt, PartialEq, Debug)]
@@ -81,6 +60,71 @@ impl Command {
         }
     }
 }
+
+impl Options {
+    pub fn rf_config(&self) -> Config {
+        let mut config = Config::default();
+
+        if self.use_ldo {
+            config.regulator_mode = RegulatorMode::Ldo;
+        }
+    
+        // Generate configurations
+        match &self.command {
+            Command::LoRa(lora_config) => {
+                // Set to lora mode
+                let mut modem = LoRaConfig::default();
+                if self.no_crc {
+                    modem.crc_mode = lora::LoRaCrc::Disabled;
+                }
+    
+                config.modem = Modem::LoRa(modem);
+    
+                let mut channel = LoRaChannel::default();
+                channel.freq = (lora_config.frequency * 1e9) as u32;
+    
+                config.channel = Channel::LoRa(channel);
+            },
+            Command::Flrc(flrc_config) => {
+                // Set to Gfsk mode
+                let mut modem = FlrcConfig::default();
+                if self.no_crc {
+                    modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF;
+                }
+    
+                if flrc_config.no_syncword {
+                    modem.sync_word_match = common::SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_OFF;
+                }
+    
+                config.modem = Modem::Flrc(modem);
+    
+                let mut channel = FlrcChannel::default();
+                channel.freq = (flrc_config.frequency * 1e9) as u32;
+                channel.br_bw = flrc_config.bitrate_bandwidth;
+    
+                config.channel = Channel::Flrc(channel);
+            }
+            Command::Gfsk(gfsk_config) => {
+                // Set to Gfsk mode
+                let mut modem = GfskConfig::default();
+                if self.no_crc {
+                    modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF;
+                }
+    
+                config.modem = Modem::Gfsk(modem);
+    
+                let mut channel = GfskChannel::default();
+                channel.freq = (gfsk_config.frequency * 1e9) as u32;
+    
+                config.channel = Channel::Gfsk(channel);
+            },
+            _ => (),
+        }
+
+        config
+    }
+}
+
 
 /// LoRa mode command wrapper
 #[derive(StructOpt, PartialEq, Debug)]
@@ -175,7 +219,7 @@ pub struct Transmit {
     pub period: HumanDuration,
 
     /// Specify period for polling for device status
-    #[structopt(long = "poll-interval", default_value="10ms")]
+    #[structopt(long = "poll-interval", default_value="1ms")]
     pub poll_interval: HumanDuration,
 }
 
@@ -186,8 +230,12 @@ pub struct Receive {
     pub continuous: bool,
 
     /// Specify period for polling for device status
-    #[structopt(long = "poll-interval", default_value="10ms")]
+    #[structopt(long = "poll-interval", default_value="1ms")]
     pub poll_interval: HumanDuration,
+
+    /// PCAP file for captured packet output
+    #[structopt(long)]
+    pub pcap_file: Option<String>,
 }
 
 #[derive(Clone, StructOpt, PartialEq, Debug)]

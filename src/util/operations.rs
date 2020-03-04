@@ -1,6 +1,9 @@
 
 
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
+use std::fs::File;
+
+use pcap_file::PcapWriter;
 
 use super::options::*;
 
@@ -20,7 +23,7 @@ where
             let mut buff = [0u8; 255];
             let mut info = I::default();
 
-            do_receive(radio, &mut buff, &mut info, config.continuous, *config.poll_interval)
+            do_receive(radio, &mut buff, &mut info, config.continuous, *config.poll_interval, config.pcap_file)
                 .expect("Receive error");
         },
         Operation::Repeat(config) => {
@@ -67,11 +70,22 @@ where
     Ok(())
 }
 
-fn do_receive<T, I, E>(radio: &mut T, mut buff: &mut [u8], mut info: &mut I, continuous: bool, poll_interval: Duration) -> Result<usize, E> 
+fn do_receive<T, I, E>(radio: &mut T, mut buff: &mut [u8], mut info: &mut I, continuous: bool, poll_interval: Duration, pcap_file: Option<String>) -> Result<usize, E> 
 where
     T: radio::Receive<Info=I, Error=E>,
     I: std::fmt::Debug,
 {
+    // Load PCAP file
+    let mut pcap = match pcap_file {
+        Some(n) => {
+            let f = File::create(n).expect("Error creating PCAP file");
+            let w = PcapWriter::new(f).expect("Error writing to PCAP file");
+            Some(w)
+        },
+        None => None,
+    };
+    let t = SystemTime::now();
+
     // Start receive mode
     radio.start_receive()?;
 
@@ -82,6 +96,12 @@ where
             match std::str::from_utf8(&buff[0..n as usize]) {
                 Ok(s) => info!("Received: '{}' info: {:?}", s, info),
                 Err(_) => info!("Received: '{:?}' info: {:?}", &buff[0..n as usize], info),
+            }
+
+            if let Some(p) = &mut pcap {
+                let d = t.elapsed().unwrap();
+                
+                p.write(d.as_secs() as u32, d.as_nanos() as u32 % 1_000_000, &buff[0..n], n as u32).expect("Error writing pcap file");
             }
             
             if !continuous { 

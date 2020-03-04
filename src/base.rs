@@ -1,14 +1,15 @@
 //! Basic HAL functions for communicating with the radio device
 
 use hal::blocking::delay::DelayMs;
+use hal::blocking::spi::Transactional;
 
-use embedded_spi::{Transactional, Reset, Busy, PinState};
-use embedded_spi::{Error as WrapError};
+use embedded_spi::{Reset, Busy, PinState, PrefixRead, PrefixWrite};
+use embedded_spi::{Error as SpiError};
 
 use crate::{Error};
 use crate::device::*;
 
-/// Comms implementation can be generic over SPI or UART connections
+/// Hal implementation can be generic over SPI or UART connections
 pub trait Hal<CommsError, PinError> {
 
     /// Reset the device
@@ -75,9 +76,9 @@ pub trait Hal<CommsError, PinError> {
 
 impl<T, CommsError, PinError> Hal<CommsError, PinError> for T
 where
-    T: Transactional<Error=WrapError<CommsError, PinError>>,
-    T: Reset<Error=WrapError<CommsError, PinError>>,
-    T: Busy<Error=WrapError<CommsError, PinError>>,
+    T: Transactional<u8, Error=SpiError<CommsError, PinError>> + PrefixRead<Error=SpiError<CommsError, PinError>> + PrefixWrite<Error=SpiError<CommsError, PinError>>,
+    T: Reset<Error=SpiError<CommsError, PinError>>,
+    T: Busy<Error=SpiError<CommsError, PinError>>,
     T: DelayMs<u32>,
 {    
     /// Reset the radio

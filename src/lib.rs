@@ -25,6 +25,8 @@ extern crate structopt;
 #[macro_use]
 extern crate bitflags;
 
+extern crate pcap_file;
+
 extern crate embedded_hal as hal;
 use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
@@ -120,7 +122,7 @@ where
     /// Create an Sx128x with the provided `Spi` implementation and pins
     pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
         // Create SpiWrapper over spi/cs/busy
-        let hal = SpiWrapper::new(spi, cs, busy, (), sdn, delay);
+        let hal = SpiWrapper::new(spi, cs, sdn, busy, (), delay);
         // Create instance with new hal
         Self::new(hal, config)
     }

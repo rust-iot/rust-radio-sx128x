@@ -10,13 +10,14 @@ version = "0.12.1"
 [features]
 default = ["util", "serde"]
 tests = [ "embedded-spi/mock" ]
-util = ["structopt", "linux-embedded-hal", "simplelog", "humantime", "embedded-spi/utils"]
+util = ["structopt", "simplelog", "humantime", "pcap-file", "embedded-spi/hal", "embedded-spi/hal-cp2130"]
 
 [dependencies]
 bitflags = "1.0.4"
 libc = "0.2.42"
 log = "0.4.6"
 radio = "0.5.0"
+pcap-file = { version = "1.1.1", optional = true }
 
 [dependencies.embedded-hal]
 features = ["unproven"]
@@ -26,13 +27,13 @@ version = "0.2.3"
 version = "0.6.0"
 default-features = false
 
+[target.'cfg(unix)'.dependencies.embedded-spi]
+version = "0.6.0"
+features = [ "hal-linux" ]
+
 [dependencies.humantime]
 optional = true
 version = "1.2.0"
-
-[dependencies.linux-embedded-hal]
-optional = true
-version = "0.3.0"
 
 [dependencies.serde]
 features = ["derive"]
@@ -45,7 +46,7 @@ version = "0.5.3"
 
 [dependencies.structopt]
 optional = true
-version = "0.3.2"
+version = "0.3.11"
 
 [dev-dependencies]
 color-backtrace = "0.1.3"
@@ -57,10 +58,12 @@ required-features = ["util"]
 
 [patch.crates-io]
 embedded-hal = { git = "https://github.com/ryankurte/embedded-hal.git", branch = "feature/spi-i2c-transactions" }
+driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130", branch = "fix/static-refs" }
+embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "feature/hal" }
+linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/transactional" }
 
-#embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "feature/transactional-spi" }
-#linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/transactional" }
-
-embedded-spi = { path = "../rust-embedded-spi" }
-linux-embedded-hal = { path = "../linux-embedded-hal" }
+#driver-cp2130 = { path = "../rust-driver-cp2130" }
+#embedded-hal = { path = "../embedded-hal" }
+#embedded-spi = { path = "../rust-embedded-spi" }
+#linux-embedded-hal = { path = "../linux-embedded-hal" }
 
