@@ -49,7 +49,7 @@ impl Default for FlrcConfig {
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_1,
             sync_word_value: Some([0x12, 0x13, 0x14, 0x15]),
             header_type: GfskFlrcPacketLength::Variable,
-            payload_length: 0x40,
+            payload_length: 127,
             crc_mode: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
             whitening: WhiteningModes::RADIO_WHITENING_OFF,
         }

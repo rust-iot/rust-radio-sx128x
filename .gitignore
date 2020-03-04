@@ -14,3 +14,5 @@ libsx128x/
 .vscode/
 
 *.snap
+*.pcap
+*.env
