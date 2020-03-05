@@ -53,20 +53,20 @@ pub trait Hal<CommsError, PinError> {
     }
 
     /// Read a single u8 value from the specified register
-    fn read_reg(&mut self, reg: u8) -> Result<u8, Error<CommsError, PinError>> {
+    fn read_reg(&mut self, reg: u16) -> Result<u8, Error<CommsError, PinError>> {
         let mut incoming = [0u8; 1];
         self.read_regs(reg.into(), &mut incoming)?;
         Ok(incoming[0])
     }
 
     /// Write a single u8 value to the specified register
-    fn write_reg(&mut self, reg: u8, value: u8) -> Result<(), Error<CommsError, PinError>> {
+    fn write_reg(&mut self, reg: u16, value: u8) -> Result<(), Error<CommsError, PinError>> {
         self.write_regs(reg.into(), &[value])?;
         Ok(())
     }
 
     /// Update the specified register with the provided value & mask
-    fn update_reg(&mut self, reg: u8, mask: u8, value: u8) -> Result<u8, Error<CommsError, PinError>> {
+    fn update_reg(&mut self, reg: u16, mask: u8, value: u8) -> Result<u8, Error<CommsError, PinError>> {
         let existing = self.read_reg(reg)?;
         let updated = (existing & !mask) | (value & mask);
         self.write_reg(reg, updated)?;

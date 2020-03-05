@@ -307,7 +307,7 @@ where
         let len = match &self.config.modem {
             Modem::LoRa(c) => {
                 match c.header_type {
-                    LoRaHeader::Implicit => self.hal.read_reg(Registers::LrPayloadLength as u8)?,
+                    LoRaHeader::Implicit => self.hal.read_reg(Registers::LrPayloadLength as u16)?,
                     LoRaHeader::Explicit => status[0],
                 }
             },
@@ -409,6 +409,13 @@ where
 
         // Write sync word
         self.hal.write_regs(addr, value)?;
+
+        // If we're in FLRC mode, patch to force 100% match on syncwords
+        // because otherwise the 4 bit threshold is too low
+        if let PacketType::Flrc = &self.packet_type {
+            let r = self.hal.read_reg(Registers::LrSyncWordTolerance as u16)?;
+            self.hal.write_reg(Registers::LrSyncWordTolerance as u16, r & 0xF0)?;
+        }
 
         Ok(())
     }

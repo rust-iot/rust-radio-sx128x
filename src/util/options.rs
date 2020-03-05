@@ -23,9 +23,9 @@ pub struct Options {
     #[structopt(long)]
     pub use_ldo: bool,
 
-    /// Disable CRC appending / checking
-    #[structopt(long)]
-    pub no_crc: bool,
+    /// Set CRC length (0, 2, 3 bytes)
+    #[structopt(long, default_value="2")]
+    pub crc_mode: u8,
 
     #[structopt(flatten)]
     pub log: LogConfig,
@@ -49,6 +49,11 @@ pub enum Command {
     /// FLRC mode configuration and operations
     Flrc(FlrcCommand),
 }
+
+fn try_from_hex(s: &str) -> Result<u32, std::num::ParseIntError> {
+    u32::from_str_radix(s, 16)
+}
+
 
 impl Command {
     pub fn operation(&self) -> Option<Operation> {
@@ -74,8 +79,10 @@ impl Options {
             Command::LoRa(lora_config) => {
                 // Set to lora mode
                 let mut modem = LoRaConfig::default();
-                if self.no_crc {
+                if self.crc_mode == 0 {
                     modem.crc_mode = lora::LoRaCrc::Disabled;
+                } else {
+                    modem.crc_mode = lora::LoRaCrc::Enabled;
                 }
     
                 config.modem = Modem::LoRa(modem);
@@ -88,12 +95,28 @@ impl Options {
             Command::Flrc(flrc_config) => {
                 // Set to Gfsk mode
                 let mut modem = FlrcConfig::default();
-                if self.no_crc {
-                    modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF;
+
+                match self.crc_mode {
+                    0 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF,
+                    1 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_1_BYTES,
+                    2 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
+                    3 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_3_BYTES,
+                    _ => unimplemented!(),
                 }
     
                 if flrc_config.no_syncword {
                     modem.sync_word_match = common::SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_OFF;
+                }
+
+                if let Some(s) = flrc_config.syncword {
+                    let sw: [u8; 4] = [
+                        (s >> 24) as u8,
+                        (s >> 16) as u8,
+                        (s >> 8) as u8,
+                        s as u8
+                    ];
+
+                    modem.sync_word_value = Some(sw);
                 }
     
                 config.modem = Modem::Flrc(modem);
@@ -103,12 +126,18 @@ impl Options {
                 channel.br_bw = flrc_config.bitrate_bandwidth;
     
                 config.channel = Channel::Flrc(channel);
+
             }
             Command::Gfsk(gfsk_config) => {
                 // Set to Gfsk mode
                 let mut modem = GfskConfig::default();
-                if self.no_crc {
-                    modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF;
+
+                match self.crc_mode {
+                    0 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF,
+                    1 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_1_BYTES,
+                    2 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
+                    3 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_3_BYTES,
+                    _ => unimplemented!(),
                 }
     
                 config.modem = Modem::Gfsk(modem);
@@ -175,6 +204,10 @@ pub struct FlrcCommand {
     /// Disable Sync word matching
     #[structopt(long)]
     pub no_syncword: bool,
+
+    /// Set sync word
+    #[structopt(long, parse(try_from_str=try_from_hex))]
+    pub syncword: Option<u32>,
 
     #[structopt(subcommand)]
     /// Operation to execute
