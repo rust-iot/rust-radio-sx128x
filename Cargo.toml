@@ -16,7 +16,7 @@ util = ["structopt", "linux-embedded-hal", "simplelog", "humantime", "embedded-s
 bitflags = "1.0.4"
 libc = "0.2.42"
 log = "0.4.6"
-radio = "0.5.0"
+radio = "0.6.0"
 
 [dependencies.embedded-hal]
 features = ["unproven"]
