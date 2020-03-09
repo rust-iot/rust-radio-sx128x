@@ -15,6 +15,8 @@ jobs:
         - gcc-arm-linux-gnueabihf
         - libc6-armhf-cross
         - libc6-dev-armhf-cross
+        - libusb-dev
+        - libusb-1.0
   - env: TARGET=x86_64-apple-darwin
     os: osx
     addons:
@@ -27,6 +29,8 @@ jobs:
   allow_failures:
     - os: windows
 
+before_install:
+ - "if [ ${TRAVIS_OS_NAME} = 'windows' ]; then choco install zadig; fi"
 
 install:
 - cargo fetch
