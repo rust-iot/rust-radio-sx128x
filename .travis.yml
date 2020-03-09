@@ -1,6 +1,7 @@
 language: rust
 cache: cargo
-matrix:
+
+jobs:
   include:
   - env: TARGET=x86_64-unknown-linux-gnu
     os: linux
@@ -14,12 +15,27 @@ matrix:
         - gcc-arm-linux-gnueabihf
         - libc6-armhf-cross
         - libc6-dev-armhf-cross
+  - env: TARGET=x86_64-apple-darwin
+    os: osx
+    addons:
+      homebrew:
+        packages:
+        - libusb
+        update: true
+  - env: TARGET=x86_64-pc-windows-gnu
+    os: windows
+  allow_failures:
+    - os: windows
+
+
 install:
 - cargo fetch
-- rustup target add armv7-unknown-linux-gnueabihf
+- rustup target add $TARGET
 - rustup component add rustfmt
+
 script:
 - cargo build && cargo test && cargo build --target=$TARGET --release
+
 before_deploy:
 - tar -cvf target/sx128x-util-$TARGET-$TRAVIS_TAG.tgz -C target/$TARGET/release/ sx128x-util
 
