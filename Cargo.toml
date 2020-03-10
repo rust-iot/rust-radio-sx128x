@@ -24,12 +24,12 @@ features = ["unproven"]
 version = "0.2.3"
 
 [dependencies.embedded-spi]
-version = "0.6.0"
+version = "0.6.1"
 default-features = false
 
-[target.'cfg(unix)'.dependencies.embedded-spi]
-version = "0.6.0"
-features = [ "hal-linux" ]
+#[target.'cfg(unix)'.dependencies.embedded-spi]
+#version = "00.6.1
+#features = [ "hal-linux" ]
 
 [dependencies.humantime]
 optional = true
