@@ -3,7 +3,7 @@ language: rust
 cache: 
   directories:
     - $HOME/.cargo
-    - $HOME/.sccache
+    - $HOME/.cache
 
 services:
   - docker
