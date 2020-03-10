@@ -1,47 +1,26 @@
 language: rust
 cache: cargo
 
+services:
+  - docker
+
 jobs:
   include:
-  - env: TARGET=x86_64-unknown-linux-gnu
+  - env: TARGET=i686-unknown-linux-gnu
     os: linux
     
   - env: TARGET=armv7-unknown-linux-gnueabihf
     os: linux
-    addons:
-      apt:
-        packages:
-        - libc6-i386
-        - libc6-dev-i386
-        - gcc-arm-linux-gnueabihf
-        - libc6-armhf-cross
-        - libc6-dev-armhf-cross
-        - libusb-dev
-        - libusb-1.0
 
   - env: TARGET=x86_64-apple-darwin
     os: osx
-    addons:
-      homebrew:
-        packages:
-        - libusb
-        update: true
 
-  - env: TARGET=x86_64-pc-windows-gnu
+  - env: TARGET=i686-pc-windows-gnu
     os: linux
-    addons:
-      apt:
-        packages:
-          - mingw-w64
-          - mingw-w64-i686-dev
-          - gcc-mingw-w64
-          - binutils-mingw-w64
 
-  allow_failures:
-    - env: TARGET=x86_64-apple-darwin
-    - env: TARGET=armv7-unknown-linux-gnueabihf
-    - env: TARGET=x86_64-pc-windows-gnu
 
+before_install:
+  - docker pull ryankurte/rust-embedded
 
 install:
 - cargo fetch
@@ -49,7 +28,7 @@ install:
 - rustup component add rustfmt
 
 script:
-- cargo build && cargo test && cargo build --target=$TARGET --release
+- ./cross/build.sh $TARGET
 
 before_deploy:
 - tar -cvf target/sx128x-util-$TARGET-$TRAVIS_TAG.tgz -C target/$TARGET/release/ sx128x-util
