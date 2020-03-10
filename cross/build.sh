@@ -1,9 +1,23 @@
 #!/bin/bash
 
-DOCKER_CMD="docker run --rm -v=`pwd`:/work --workdir=/work --env PKG_CONFIG_ALLOW_CROSS=1"
+RUSTC_WRAPPER="sccache"
+
+if [ -z "$SCCACHE_DIR"]; then
+    export SCCACHE_DIR=$HOME/.cache
+fi
+
+if [ -z "$CARGO_HOME"]; then
+    export CARGO_HOME=$HOME/.cargo
+fi
+
+
+DOCKER_CMD="docker run --rm -v=`pwd`:/work -v$CARGO_HOME/registry:/root/.cargo/registry -v$SCCACHE_DIR:/root/.cache --workdir=/work --env PKG_CONFIG_ALLOW_CROSS=1"
+
 DOCKER_IMG=ryankurte/rust-embedded
 
-echo "Building for target: $1"
+
+
+echo "Building for target: $1 (cargo cache: $CARGO_HOME, sccache $SCCACHE_DIR)"
 
 # Args for cross build for armhf, windows tricks are in .cargo/config
 ARMHF_ARGS="--env SYSROOT=/usr/arm-linux-gnueabihf --env PKG_CONFIG_ALLOW_CROSS=1 --env PKG_CONFIG_LIBDIR=/usr/lib/arm-linux-gnueabihf/pkgconfig --env PKG_CONFIG_SYSROOT_DIR=/usr/arm-linux-gnueabihf --env PKG_CONFIG_SYSTEM_LIBRARY_PATH=/usr/lib/arm-linux-gnueabihf --env PKG_CONFIG_SYSTEM_INCLUDE_PATH=/usr/arm-linux-gnueabihf/include"
