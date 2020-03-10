@@ -6,7 +6,7 @@ services:
 
 jobs:
   include:
-  - env: TARGET=i686-unknown-linux-gnu
+  - env: TARGET=x86_64-unknown-linux-gnu
     os: linux
     
   - env: TARGET=armv7-unknown-linux-gnueabihf
@@ -20,7 +20,7 @@ jobs:
 
 
 before_install:
-  - docker pull ryankurte/rust-embedded
+  - if [ "$TRAVIS_OS_NAME" != "osx"]; then docker pull ryankurte/rust-embedded; fi
 
 install:
 - cargo fetch
