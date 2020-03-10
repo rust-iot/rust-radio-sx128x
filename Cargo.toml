@@ -4,7 +4,7 @@ description = "Driver for the Semtec sx1280 2.4GHz RF IC"
 repository = "https://github.com/ryankurte/rust-radio-sx128x"
 license = "MPL-2.0"
 name = "radio-sx128x"
-version = "0.12.1"
+version = "0.13.0"
 
 
 [features]
@@ -16,7 +16,7 @@ util = ["structopt", "simplelog", "humantime", "pcap-file", "embedded-spi/hal", 
 bitflags = "1.0.4"
 libc = "0.2.42"
 log = "0.4.6"
-radio = "0.5.0"
+radio = "0.6.0"
 pcap-file = { version = "1.1.1", optional = true }
 
 [dependencies.embedded-hal]
