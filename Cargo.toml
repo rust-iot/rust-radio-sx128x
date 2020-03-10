@@ -57,10 +57,10 @@ path = "src/util/main.rs"
 required-features = ["util"]
 
 [patch.crates-io]
-embedded-hal = { git = "https://github.com/ryankurte/embedded-hal.git", branch = "feature/spi-i2c-transactions" }
+embedded-hal = { git = "https://github.com/ryankurte/embedded-hal.git", branch = "feature/spi-transactions" }
 driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130", branch = "fix/static-refs" }
 embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "feature/hal" }
-linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/transactional" }
+linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/spi-transactions" }
 
 #driver-cp2130 = { path = "../rust-driver-cp2130" }
 #embedded-hal = { path = "../embedded-hal" }
