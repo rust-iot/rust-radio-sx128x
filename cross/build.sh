@@ -11,7 +11,7 @@ if [ -z "$CARGO_HOME"]; then
 fi
 
 
-DOCKER_CMD="docker run --rm -v=`pwd`:/work -v$CARGO_HOME/registry:/root/.cargo/registry -v$SCCACHE_DIR:/root/.cache --workdir=/work --env PKG_CONFIG_ALLOW_CROSS=1"
+DOCKER_CMD="docker run --rm -v=`pwd`:/work -v$CARGO_HOME/registry:/root/.cargo/registry -v$SCCACHE_DIR:/root/.cache --workdir=/work --user=:`id -g` --env PKG_CONFIG_ALLOW_CROSS=1"
 
 DOCKER_IMG=ryankurte/rust-embedded
 
