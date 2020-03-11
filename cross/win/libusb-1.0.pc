@@ -1,0 +1,10 @@
+# libusb.pc
+
+includedir=/include/libusb-1.0
+libdir=/lib
+
+Name: libusb
+Description: libusb
+Version: 1.0
+Cflags: -I${includedir}
+Libs: -L${libdir} -llibusb-1.0

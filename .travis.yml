@@ -1,25 +1,39 @@
 language: rust
-cache: cargo
-matrix:
+
+cache: 
+  directories:
+    - $HOME/.cargo
+    - $HOME/.cache
+
+services:
+  - docker
+
+jobs:
   include:
   - env: TARGET=x86_64-unknown-linux-gnu
     os: linux
+    
   - env: TARGET=armv7-unknown-linux-gnueabihf
     os: linux
-    addons:
-      apt:
-        packages:
-        - libc6-i386
-        - libc6-dev-i386
-        - gcc-arm-linux-gnueabihf
-        - libc6-armhf-cross
-        - libc6-dev-armhf-cross
+
+  - env: TARGET=x86_64-apple-darwin
+    os: osx
+
+  - env: TARGET=i686-pc-windows-gnu
+    os: linux
+
+
+before_install:
+  - if [ "$TRAVIS_OS_NAME" != "osx"]; then docker pull ryankurte/rust-embedded; fi
+
 install:
 - cargo fetch
-- rustup target add armv7-unknown-linux-gnueabihf
+- rustup target add $TARGET
 - rustup component add rustfmt
+
 script:
-- cargo build && cargo test && cargo build --target=$TARGET --release
+- ./cross/build.sh $TARGET
+
 before_deploy:
 - tar -cvf target/sx128x-util-$TARGET-$TRAVIS_TAG.tgz -C target/$TARGET/release/ sx128x-util
 

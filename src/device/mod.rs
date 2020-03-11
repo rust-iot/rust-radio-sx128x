@@ -70,7 +70,7 @@ impl Default for Config {
 impl Config {
     // Calculate frequency step for a given crystal frequency
     pub fn freq_step(&self) -> f32 {
-        self.xtal_freq as f32 / 2f32.powi(18)
+        self.xtal_freq as f32 / (2u32 << 18) as f32
     }
 
     pub fn freq_to_steps(&self, f: f32) -> f32 {

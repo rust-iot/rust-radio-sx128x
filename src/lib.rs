@@ -25,6 +25,7 @@ extern crate structopt;
 #[macro_use]
 extern crate bitflags;
 
+#[cfg(feature = "util")]
 extern crate pcap_file;
 
 extern crate embedded_hal as hal;
