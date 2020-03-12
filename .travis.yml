@@ -10,16 +10,16 @@ services:
 
 jobs:
   include:
-  - env: TARGET=x86_64-unknown-linux-gnu
+  - env: TARGET=x86_64-unknown-linux-gnu OUTPUT=sx128x-util
     os: linux
     
-  - env: TARGET=armv7-unknown-linux-gnueabihf
+  - env: TARGET=armv7-unknown-linux-gnueabihf OUTPUT=sx128x-util
     os: linux
 
-  - env: TARGET=x86_64-apple-darwin
+  - env: TARGET=x86_64-apple-darwin OUTPUT=sx128x-util
     os: osx
 
-  - env: TARGET=i686-pc-windows-gnu
+  - env: TARGET=i686-pc-windows-gnu OUTPUT=sx128x-util.exe
     os: linux
 
 
@@ -35,7 +35,7 @@ script:
 - ./cross/build.sh $TARGET
 
 before_deploy:
-- tar -cvf target/sx128x-util-$TARGET-$TRAVIS_TAG.tgz -C target/$TARGET/release/ sx128x-util
+- tar -cvf target/sx128x-util-$TARGET-$TRAVIS_TAG.tgz -C target/$TARGET/release/ $OUTPUT
 
 notifications:
   email:
