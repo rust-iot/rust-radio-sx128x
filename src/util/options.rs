@@ -96,6 +96,7 @@ impl Options {
                 // Set to Gfsk mode
                 let mut modem = FlrcConfig::default();
 
+
                 match self.crc_mode {
                     0 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF,
                     1 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_1_BYTES,
@@ -124,6 +125,7 @@ impl Options {
                 let mut channel = FlrcChannel::default();
                 channel.freq = (flrc_config.frequency * 1e9) as u32;
                 channel.br_bw = flrc_config.bitrate_bandwidth;
+                channel.cr = flrc_config.code_rate;
     
                 config.channel = Channel::Flrc(channel);
 
