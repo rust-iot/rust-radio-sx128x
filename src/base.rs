@@ -1,5 +1,7 @@
 //! Basic HAL functions for communicating with the radio device
 
+use core::fmt::Debug;
+
 use hal::blocking::delay::DelayMs;
 use hal::blocking::spi::Transactional;
 
@@ -10,7 +12,7 @@ use crate::{Error};
 use crate::device::*;
 
 /// Hal implementation can be generic over SPI or UART connections
-pub trait Hal<CommsError, PinError> {
+pub trait Hal<CommsError: Debug + Sync + Send, PinError: Debug + Sync + Send> {
 
     /// Reset the device
     fn reset(&mut self) -> Result<(), Error<CommsError, PinError>>;
@@ -80,6 +82,8 @@ where
     T: Reset<Error=SpiError<CommsError, PinError>>,
     T: Busy<Error=SpiError<CommsError, PinError>>,
     T: DelayMs<u32>,
+    CommsError: Debug + Sync + Send,
+    PinError: Debug + Sync + Send,
 {    
     /// Reset the radio
     fn reset(&mut self) -> Result<(), Error<CommsError, PinError>> {

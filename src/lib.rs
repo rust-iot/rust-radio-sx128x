@@ -5,6 +5,7 @@
 
 use core::marker::PhantomData;
 use core::convert::TryFrom;
+use core::fmt::Debug;
 
 extern crate libc;
 
@@ -27,6 +28,9 @@ extern crate bitflags;
 
 #[cfg(feature = "util")]
 extern crate pcap_file;
+
+extern crate failure;
+use failure::{Fail};
 
 extern crate embedded_hal as hal;
 use hal::blocking::{delay};
@@ -68,40 +72,74 @@ pub const FREQ_MIN: u32 = 2_400_000_000;
 pub const FREQ_MAX: u32 = 2_500_000_000;
 
 /// Sx128x error type
-#[derive(Debug, Clone, PartialEq)]
-pub enum Error<CommsError, PinError> {
+#[derive(Debug, Clone, PartialEq, Fail)]
+pub enum Error<CommsError: Debug + Sync + Send + 'static, PinError:  Debug + Sync + Send + 'static> {
+
+    #[fail(display="communication error: {:?}", 0)]
     /// Communications (SPI or UART) error
     Comms(CommsError),
+
+    #[fail(display="pin error: {:?}", 0)]
     /// Pin control error
     Pin(PinError),
+
+    #[fail(display="transaction aborted")]
     /// Transaction aborted
     Aborted,
+
+    #[fail(display="transaction timeout")]
     /// Timeout by device
     Timeout,
+
+    #[fail(display="busy timeout")]
+    /// Timeout awaiting busy pin de-assert
     BusyTimeout,
+
+    #[fail(display="invalid message CRC")]
     /// CRC error on received message
     InvalidCrc,
-    /// TODO
+
+    #[fail(display="invalid message length")]
+    /// Invalid message length
     InvalidLength,
+    
+    #[fail(display="invalid sync word")]
     /// TODO
     InvalidSync,
+
+    #[fail(display="transaction aborted")]
     /// TODO
     Abort,
+
+    #[fail(display="invalid state (expected {:?} actual {:?})", 0, 1)]
     /// TODO
     InvalidState(State, State),
+
+    #[fail(display="invalid device version (received {:?})", 0)]
     /// Radio returned an invalid device firmware version
     InvalidDevice(u16),
+
+    #[fail(display="invalid response (received {:?})", 0)]
     /// Radio returned an invalid response
     InvalidResponse(u8),
+
+    #[fail(display="invalid configuration")]
     /// Invalid configuration option provided
     InvalidConfiguration,
+    
+    #[fail(display="invalid frequency or frequency out of range")]
     /// Frequency out of range
     InvalidFrequency,
+
+    #[fail(display="device communication failed")]
     /// No SPI communication detected
     NoComms,
 }
 
-impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<CommsError, PinError> {
+impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<CommsError, PinError> where
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
+{
     fn from(e: WrapError<CommsError, PinError>) -> Self {
         match e {
             WrapError::Spi(e) => Error::Comms(e),
@@ -119,6 +157,8 @@ where
     Output: OutputPin<Error = PinError>,
     Input: InputPin<Error = PinError>,
     Delay: delay::DelayMs<u32>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     /// Create an Sx128x with the provided `Spi` implementation and pins
     pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
@@ -133,6 +173,8 @@ where
 impl<Hal, CommsError, PinError> Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     /// Create a new Sx128x instance over a generic Hal implementation
     pub fn new(hal: Hal, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
@@ -427,6 +469,8 @@ where
 impl<Hal, CommsError, PinError> delay::DelayMs<u32> for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     fn delay_ms(&mut self, t: u32) {
         self.hal.delay_ms(t)
@@ -437,6 +481,8 @@ where
 impl<Hal, CommsError, PinError> radio::State for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     type State = State;
     type Error = Error<CommsError, PinError>;
@@ -478,6 +524,8 @@ where
 impl<Hal, CommsError, PinError> radio::Channel for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     /// Channel consists of an operating frequency and packet mode
     type Channel = Channel;
@@ -521,6 +569,8 @@ where
 impl<Hal, CommsError, PinError> radio::Power for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     type Error = Error<CommsError, PinError>;
 
@@ -535,6 +585,8 @@ where
 impl<Hal, CommsError, PinError> radio::Interrupts for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     type Irq = Irq;
     type Error = Error<CommsError, PinError>;
@@ -562,6 +614,8 @@ where
 impl<Hal, CommsError, PinError> radio::Transmit for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     type Error = Error<CommsError, PinError>;
 
@@ -630,6 +684,8 @@ where
 impl<Hal, CommsError, PinError> radio::Receive for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     /// Receive info structure
     type Info = PacketInfo;
@@ -734,6 +790,8 @@ where
 impl<Hal, CommsError, PinError> radio::Rssi for Sx128x<Hal, CommsError, PinError>
 where
     Hal: base::Hal<CommsError, PinError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
 {
     type Error = Error<CommsError, PinError>;
 
