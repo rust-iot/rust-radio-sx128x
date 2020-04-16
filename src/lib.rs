@@ -32,6 +32,9 @@ extern crate pcap_file;
 extern crate failure;
 use failure::{Fail};
 
+#[macro_use]
+extern crate handle_error;
+
 extern crate embedded_hal as hal;
 use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
@@ -70,6 +73,8 @@ pub struct Sx128x<Base, CommsError, PinError> {
 
 pub const FREQ_MIN: u32 = 2_400_000_000;
 pub const FREQ_MAX: u32 = 2_500_000_000;
+
+pub const NUM_RETRIES: usize = 3;
 
 /// Sx128x error type
 #[derive(Debug, Clone, PartialEq, Fail)]
@@ -216,6 +221,8 @@ where
     }
 
     pub fn reset(&mut self) -> Result<(), Error<CommsError, PinError>> {
+        debug!("Resetting device");
+
         self.hal.reset()?;
 
         Ok(())
@@ -272,7 +279,7 @@ where
     pub fn set_frequency(&mut self, f: u32) -> Result<(), Error<CommsError, PinError>> {
         let c = self.config.freq_to_steps(f as f32) as u32;
 
-        debug!("Setting frequency ({:?} MHz, {} index)", f / 1000 / 1000, c);
+        trace!("Setting frequency ({:?} MHz, {} index)", f / 1000 / 1000, c);
 
         let data: [u8; 3] = [
             (c >> 16) as u8,
@@ -294,7 +301,7 @@ where
         let power = core::cmp::min(power, 13);
         let power_reg = (power + 18) as u8;
 
-        debug!("Setting TX power to {} dBm {:?} ramp ({}, {})", power, ramp, power_reg, ramp as u8);
+        trace!("Setting TX power to {} dBm {:?} ramp ({}, {})", power, ramp, power_reg, ramp as u8);
         self.config.pa_config.power = power;
         self.config.pa_config.ramp_time = ramp;
 
@@ -302,7 +309,7 @@ where
     }
 
     pub fn set_irq_mask(&mut self, irq: Irq) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Setting IRQ mask: {:?}", irq);
+        trace!("Setting IRQ mask: {:?}", irq);
 
         let raw = irq.bits();
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
@@ -311,12 +318,12 @@ where
     pub(crate) fn configure_modem(&mut self, config: &Modem) -> Result<(), Error<CommsError, PinError>> {
         use Modem::*;
 
-        debug!("Setting modem config: {:?}", config);
+        trace!("Setting modem config: {:?}", config);
 
         // First update packet type (if required)
         let packet_type = PacketType::from(config);
         if self.packet_type != packet_type {
-            debug!("Setting packet type: {:?}", packet_type);
+            trace!("Setting packet type: {:?}", packet_type);
             self.hal.write_cmd(Commands::SetPacketType as u8, &[ packet_type.clone() as u8 ] )?;
             self.packet_type = packet_type;
         }
@@ -361,7 +368,7 @@ where
 
         let rx_buff_ptr = status[1];
 
-        debug!("RX buffer ptr: {} len: {}", rx_buff_ptr, len);
+        trace!("RX buffer ptr: {} len: {}", rx_buff_ptr, len);
 
         Ok((rx_buff_ptr, len))
     }
@@ -397,12 +404,12 @@ where
     }
 
     pub fn calibrate(&mut self, c: CalibrationParams) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Calibrate {:?}", c);
+        trace!("Calibrate {:?}", c);
         self.hal.write_cmd(Commands::Calibrate as u8, &[ c.bits() ])
     }
 
     pub(crate) fn set_regulator_mode(&mut self, r: RegulatorMode) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Set regulator mode {:?}", r);
+        trace!("Set regulator mode {:?}", r);
         self.hal.write_cmd(Commands::SetRegulatorMode as u8, &[ r as u8 ])
     }
 
@@ -420,14 +427,14 @@ where
     }
 
     pub(crate) fn set_buff_base_addr(&mut self, tx: u8, rx: u8) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Set buff base address (tx: {}, rx: {})", tx, rx);
+        trace!("Set buff base address (tx: {}, rx: {})", tx, rx);
         self.hal.write_cmd(Commands::SetBufferBaseAddress as u8, &[ tx, rx ])
     }
 
     /// Set the sychronization mode for a given index (1-3).
     /// This is 5-bytes for GFSK mode and 4-bytes for FLRC and BLE modes.
     pub fn set_syncword(&mut self, index: u8, value: &[u8]) -> Result<(), Error<CommsError, PinError>> {
-        debug!("Attempting to set sync word index: {} to: {:?}", index, value);
+        trace!("Attempting to set sync word index: {} to: {:?}", index, value);
 
         // Calculate sync word base address and expected length
         let (addr, len) = match (&self.packet_type, index) {
@@ -500,7 +507,7 @@ where
         let status = (d[0] & 0b0001_1100) >> 2;
         let s = CommandStatus::try_from(status).map_err(|_| Error::InvalidResponse(d[0]) )?;
 
-        debug!("state: {:?} status: {:?}", m, s);
+        trace!("get state: {:?} status: {:?}", m, s);
 
         Ok(m)
     }
@@ -603,7 +610,7 @@ where
         }
 
         if !irq.is_empty() {
-            debug!("irq: {:?}", irq);
+            trace!("irq: {:?}", irq);
         }
 
         Ok(irq)
@@ -626,13 +633,23 @@ where
         // Set packet mode
         let mut modem_config = self.config.modem.clone();
         modem_config.set_payload_len(data.len() as u8);
-        self.configure_modem(&modem_config)?;
+
+
+        if let Err(e) = self.configure_modem(&modem_config) {
+            let s = self.get_state();
+            error!("TX error setting modem (error: {:?}, state: {:?})", e, s);
+            return Err(e);
+        }
 
         // Reset buffer addr
-        self.set_buff_base_addr(0, 0)?;
+        if let Err(e) = self.set_buff_base_addr(0, 0) {
+            let s = self.get_state();
+            error!("TX error setting buffer base addr (error: {:?}, state: {:?})", e, s);
+            return Err(e);
+        }
 
         // Write data to be sent
-        debug!("TX data: {:?}", data);
+        trace!("TX data: {:?}", data);
         self.hal.write_buff(0, data)?;
         
         // Configure ranging if used
@@ -653,10 +670,10 @@ where
         // Enter transmit mode
         self.hal.write_cmd(Commands::SetTx as u8, &config)?;
 
-        debug!("TX start issued");
+        trace!("TX start issued");
 
         let state = self.get_state()?;
-        debug!("State: {:?}", state);
+        trace!("State: {:?}", state);
 
         Ok(())
     }
@@ -698,12 +715,21 @@ where
         debug!("RX start");
 
         // Reset buffer addr
-        self.set_buff_base_addr(0, 0)?;
+        if let Err(e) = self.set_buff_base_addr(0, 0)  {
+            let s = self.get_state();
+            error!("RX error setting buffer base addr (error: {:?}, state: {:?})", e, s);
+            return Err(e);
+        }
         
         // Set packet mode
         // TODO: surely this should not bre required _every_ receive?
         let modem_config = self.config.modem.clone();
-        self.configure_modem(&modem_config)?;
+        
+        if let Err(e) = self.configure_modem(&modem_config) {
+            let s = self.get_state();
+            error!("RX error setting configuration (error: {:?}, state: {:?})", e, s);
+            return Err(e);
+        }
 
         // Configure ranging if used
         if PacketType::Ranging == self.packet_type {
@@ -772,13 +798,17 @@ where
 
         debug!("RX get received, ptr: {} len: {}", ptr, len);
 
+        // TODO: check error packet status byte to ensure CRC is valid
+        // as this may not result in a CRC error IRQ.
+        // See chip errata for further details
+
         // Read from the buffer at the provided pointer
         self.hal.read_buff(ptr, &mut data[..len as usize])?;
 
         // Fetch related information
         self.get_packet_info(info)?;
 
-        debug!("RX data: {:?} info: {:?}", &data[..len as usize], info);
+        trace!("RX data: {:?} info: {:?}", &data[..len as usize], info);
 
         // Return read length
         Ok(len as usize)

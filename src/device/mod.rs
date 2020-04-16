@@ -38,6 +38,10 @@ pub struct Config {
     pub channel: Channel,
     
     /// RF timeout configuration
+    ///
+    /// Note that in high-traffic conditions Timeout::Single must be used
+    /// to avoid the radio becoming unresponsive, see the chip errata for
+    /// further details
     pub rf_timeout: Timeout,
 
     /// Crystal oscillator frequency
