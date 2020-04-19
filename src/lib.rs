@@ -523,6 +523,8 @@ where
             State::Sleep => Commands::SetSleep,
         };
 
+        trace!("Setting state {:?} ({:x?})", state, command);
+
         self.hal.write_cmd(command as u8, &[ 0u8 ])
     }
 }
@@ -630,10 +632,15 @@ where
     fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
         debug!("TX start");
 
+        // Set state to idle before we write configuration
+        self.set_state(State::StandbyRc)?;
+
+        let s = self.get_state()?;
+        debug!("TX setup state: {:?}", s);
+
         // Set packet mode
         let mut modem_config = self.config.modem.clone();
         modem_config.set_payload_len(data.len() as u8);
-
 
         if let Err(e) = self.configure_modem(&modem_config) {
             let s = self.get_state();
@@ -713,6 +720,12 @@ where
     /// Start radio in receive mode
     fn start_receive(&mut self) -> Result<(), Self::Error> {
         debug!("RX start");
+
+        // Set state to idle before we write configuration
+        self.set_state(State::StandbyRc)?;
+
+        let s = self.get_state()?;
+        debug!("TX setup state: {:?}", s);
 
         // Reset buffer addr
         if let Err(e) = self.set_buff_base_addr(0, 0)  {

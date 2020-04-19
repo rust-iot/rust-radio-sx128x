@@ -47,6 +47,7 @@ pub trait Hal<CommsError: Debug + Sync + Send, PinError: Debug + Sync + Send> {
             timeout += 1;
 
             if timeout > BUSY_TIMEOUT_MS {
+                error!("Busy timeout after {} ms", BUSY_TIMEOUT_MS);
                 return Err(Error::BusyTimeout)
             }
         }
@@ -87,10 +88,11 @@ where
 {    
     /// Reset the radio
     fn reset(&mut self) -> Result<(), Error<CommsError, PinError>> {
+        self.delay_ms(20);
         self.set_reset(PinState::Low).map_err(|e| Error::from(e) )?;
-        self.delay_ms(1);
+        self.delay_ms(50);
         self.set_reset(PinState::High).map_err(|e| Error::from(e) )?;
-        self.delay_ms(10);
+        self.delay_ms(20);
 
         Ok(())
     }
@@ -110,6 +112,9 @@ where
     fn write_cmd(&mut self, command: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register write command
         let out_buf: [u8; 1] = [command as u8];
+        
+        trace!("write_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
+
         self.wait_busy()?;
         let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
@@ -120,9 +125,13 @@ where
     fn read_cmd<'a>(&mut self, command: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError>> {
         // Setup register read command
         let out_buf: [u8; 2] = [command as u8, 0x00];
+        
         self.wait_busy()?;
         let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
+
+        trace!("read_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
+
         r
     }
 
@@ -134,6 +143,9 @@ where
             ((reg & 0xFF00) >> 8) as u8,
             (reg & 0x00FF) as u8,
         ];
+
+        trace!("write_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
+
         self.wait_busy()?;
         let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
@@ -149,9 +161,13 @@ where
             (reg & 0x00FF) as u8,
             0,
         ];
+
         self.wait_busy()?;
         let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
+
+        trace!("read_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
+        
         r
     }
 
@@ -162,6 +178,9 @@ where
             Commands::WriteBuffer as u8,
             offset,
         ];
+        
+        trace!("write_buff cmd: {:02x?}", out_buf);
+
         self.wait_busy()?;
         let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
@@ -176,9 +195,13 @@ where
             offset,
             0
         ];
+        trace!(" data: {:02x?}", out_buf);
         self.wait_busy()?;
         let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
+
+        trace!("read_buff cmd: {:02x?} data: {:02x?}", out_buf, data);
+
         r
     }
 }
