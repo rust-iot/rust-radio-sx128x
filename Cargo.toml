@@ -16,7 +16,7 @@ util = ["structopt", "simplelog", "humantime", "pcap-file", "embedded-spi/hal", 
 bitflags = "1.0.4"
 libc = "0.2.42"
 log = "0.4.6"
-radio = "0.6.0"
+radio = "0.7.0"
 pcap-file = { version = "1.1.1", optional = true }
 handle-error = "0.1.2"
 
