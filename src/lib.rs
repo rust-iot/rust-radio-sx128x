@@ -788,13 +788,12 @@ where
         ];
         
         // Enable IRQs
-        self.set_irq_mask(
-            Irq::RX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT
-            | Irq::SYNCWORD_VALID
-            | Irq::SYNCWORD_ERROR
-            | Irq::HEADER_VALID
-            | Irq::HEADER_ERROR
-            | Irq::PREAMBLE_DETECTED
+        let irqs = Irq::RX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT
+        | Irq::SYNCWORD_VALID | Irq::SYNCWORD_ERROR | Irq::HEADER_VALID
+        | Irq::HEADER_ERROR | Irq::PREAMBLE_DETECTED;
+
+        self.set_irq_dio_mask(
+            irqs, irqs, DioMask::empty(), DioMask::empty()
         )?;
 
         // Enter transmit mode
@@ -809,8 +808,16 @@ where
 
     /// Check for a received packet
     fn check_receive(&mut self, restart: bool) -> Result<bool, Self::Error> {
+
+        // Poll on DIO and short-circuit if not asserted
+        if self.hal.get_dio()? == PinState::Low {
+            return Ok(false)
+        }
+
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
+
+        debug!("RX poll (irq: {:?}", irq);
        
         // Process flags
         if irq.contains(Irq::CRC_ERROR) {
