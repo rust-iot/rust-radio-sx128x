@@ -42,7 +42,7 @@ use hal::spi::{Mode as SpiMode, Phase, Polarity};
 use hal::blocking::spi::{Transfer, Write, Transactional};
 
 extern crate embedded_spi;
-use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
+use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper, PinState};
 
 extern crate radio;
 pub use radio::{State as _, Interrupts as _, Channel as _};
@@ -154,9 +154,9 @@ impl <CommsError, PinError> From<WrapError<CommsError, PinError>> for Error<Comm
     }
 }
 
-pub type Sx128xSpi<Spi, SpiError, Output, Input, PinError, Delay> = Sx128x<SpiWrapper<Spi, SpiError, Output, Input, (), Output, PinError, Delay>, SpiError, PinError>;
+pub type Sx128xSpi<Spi, SpiError, Output, Input, PinError, Delay> = Sx128x<SpiWrapper<Spi, SpiError, Output, Input, Input, Output, PinError, Delay>, SpiError, PinError>;
 
-impl<Spi, CommsError, Output, Input, PinError, Delay> Sx128x<SpiWrapper<Spi, CommsError, Output, Input, (), Output, PinError, Delay>, CommsError, PinError>
+impl<Spi, CommsError, Output, Input, PinError, Delay> Sx128x<SpiWrapper<Spi, CommsError, Output, Input, Input, Output, PinError, Delay>, CommsError, PinError>
 where
     Spi: Transfer<u8, Error = CommsError> + Write<u8, Error = CommsError> + Transactional<u8, Error = CommsError>,
     Output: OutputPin<Error = PinError>,
@@ -166,9 +166,9 @@ where
     PinError: Debug + Sync + Send + 'static,
 {
     /// Create an Sx128x with the provided `Spi` implementation and pins
-    pub fn spi(spi: Spi, cs: Output, busy: Input, sdn: Output, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
+    pub fn spi(spi: Spi, cs: Output, busy: Input, ready: Input, sdn: Output, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError>> {
         // Create SpiWrapper over spi/cs/busy
-        let hal = SpiWrapper::new(spi, cs, sdn, busy, (), delay);
+        let hal = SpiWrapper::new(spi, cs, sdn, busy, ready, delay);
         // Create instance with new hal
         Self::new(hal, config)
     }
@@ -308,11 +308,36 @@ where
         self.hal.write_cmd(Commands::SetTxParams as u8, &[ power_reg, ramp as u8 ])
     }
 
+    /// Set IRQ mask
     pub fn set_irq_mask(&mut self, irq: Irq) -> Result<(), Error<CommsError, PinError>> {
         trace!("Setting IRQ mask: {:?}", irq);
 
         let raw = irq.bits();
         self.hal.write_cmd(Commands::SetDioIrqParams as u8, &[ (raw >> 8) as u8, (raw & 0xff) as u8])
+    }
+
+    /// Set the IRQ and DIO masks
+    pub fn set_irq_dio_mask(&mut self, irq: Irq, dio1: DioMask, dio2: DioMask, dio3: DioMask) -> Result<(), Error<CommsError, PinError>> {
+        trace!("Setting IRQ mask: {:?} DIOs: {:?}, {:?}, {:?}", irq, dio1, dio2, dio3);
+
+        let raw_irq = irq.bits();
+        let raw_dio1 = dio1.bits();
+        let raw_dio2 = dio2.bits();
+        let raw_dio3 = dio3.bits();
+
+        let data = [ 
+            (raw_irq >> 8) as u8, 
+            (raw_irq & 0xff) as u8,
+
+            (raw_dio1 >> 8) as u8, 
+            (raw_dio1 & 0xff) as u8,
+            (raw_dio2 >> 8) as u8, 
+            (raw_dio2 & 0xff) as u8,
+            (raw_dio3 >> 8) as u8, 
+            (raw_dio3 & 0xff) as u8,
+        ];
+
+        self.hal.write_cmd(Commands::SetDioIrqParams as u8, &data)
     }
 
     pub(crate) fn configure_modem(&mut self, config: &Modem) -> Result<(), Error<CommsError, PinError>> {
@@ -672,7 +697,8 @@ where
         ];
         
         // Enable IRQs
-        self.set_irq_mask(Irq::TX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT)?;
+        let irqs = Irq::TX_DONE | Irq::CRC_ERROR | Irq::RX_TX_TIMEOUT;
+        self.set_irq_dio_mask(irqs,irqs, DioMask::empty(), DioMask::empty())?;
 
         // Enter transmit mode
         self.hal.write_cmd(Commands::SetTx as u8, &config)?;
@@ -687,6 +713,11 @@ where
 
     /// Check for transmit completion
     fn check_transmit(&mut self) -> Result<bool, Self::Error> {
+        // Poll on DIO and short-circuit if not asserted
+        if self.hal.get_dio()? == PinState::Low {
+            return Ok(false)
+        }
+
         let irq = self.get_interrupts(true)?;
         let state = self.get_state()?;
 

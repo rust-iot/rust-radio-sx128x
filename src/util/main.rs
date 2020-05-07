@@ -39,8 +39,7 @@ fn main() {
     debug!("Config: {:?}", rf_config);
 
     info!("Initialising Radio");
-    let mut radio = Sx128x::spi(spi, pins.cs, pins.busy, pins.reset, HalDelay{}, &rf_config).expect("error creating device");
-
+    let mut radio = Sx128x::spi(spi, pins.cs, pins.busy, pins.ready, pins.reset, HalDelay{}, &rf_config).expect("error creating device");
 
     let operation = opts.command.operation();
 
@@ -56,6 +55,6 @@ fn main() {
         }
     }
 
-    let _ = radio.set_state(State::Sleep);
+    //let _ = radio.set_state(State::Sleep);
 }
 

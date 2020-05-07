@@ -5,7 +5,7 @@ use core::fmt::Debug;
 use hal::blocking::delay::DelayMs;
 use hal::blocking::spi::Transactional;
 
-use embedded_spi::{Reset, Busy, PinState, PrefixRead, PrefixWrite};
+use embedded_spi::{Reset, Busy, Ready, PinState, PrefixRead, PrefixWrite};
 use embedded_spi::{Error as SpiError};
 
 use crate::{Error};
@@ -17,8 +17,11 @@ pub trait Hal<CommsError: Debug + Sync + Send, PinError: Debug + Sync + Send> {
     /// Reset the device
     fn reset(&mut self) -> Result<(), Error<CommsError, PinError>>;
 
-    /// Wait on radio device busy
+    /// Fetch radio device busy pin value
     fn get_busy(&mut self) -> Result<PinState, Error<CommsError, PinError>>;
+
+    /// Fetch radio device ready / irq (DIO) pin value
+    fn get_dio(&mut self) -> Result<PinState, Error<CommsError, PinError>>;
 
     /// Delay for the specified time
     fn delay_ms(&mut self, ms: u32);
@@ -82,6 +85,7 @@ where
     T: Transactional<u8, Error=SpiError<CommsError, PinError>> + PrefixRead<Error=SpiError<CommsError, PinError>> + PrefixWrite<Error=SpiError<CommsError, PinError>>,
     T: Reset<Error=SpiError<CommsError, PinError>>,
     T: Busy<Error=SpiError<CommsError, PinError>>,
+    T: Ready<Error=SpiError<CommsError, PinError>>,
     T: DelayMs<u32>,
     CommsError: Debug + Sync + Send,
     PinError: Debug + Sync + Send,
@@ -100,6 +104,11 @@ where
     fn get_busy(&mut self) -> Result<PinState, Error<CommsError, PinError>> {
         let busy = self.get_busy()?;
         Ok(busy)
+    }
+
+    fn get_dio(&mut self) -> Result<PinState, Error<CommsError, PinError>> {
+        let dio = self.get_ready()?;
+        Ok(dio)
     }
 
 

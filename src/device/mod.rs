@@ -12,7 +12,7 @@ use lora::{LoRaChannel, LoRaConfig};
 pub mod common;
 
 
-pub const BUSY_TIMEOUT_MS: u32 = 200;
+pub const BUSY_TIMEOUT_MS: u32 = 500;
 
 /// Sx128x general configuration object
 #[derive(Clone, PartialEq, Debug)]
@@ -425,6 +425,8 @@ bitflags! {
     }
 }
 
+/// DIO IRQ flag mask
+pub type DioMask = Irq;
 
 bitflags! {
     /// Packet status register
