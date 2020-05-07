@@ -721,7 +721,7 @@ where
         let irq = self.get_interrupts(true)?;
         let state = self.get_state()?;
 
-        trace!("TX poll (irq: {:?}, state: {:?})", irq, state);
+        debug!("TX poll (irq: {:?}, state: {:?})", irq, state);
 
         if irq.contains(Irq::TX_DONE) {
             debug!("TX complete");

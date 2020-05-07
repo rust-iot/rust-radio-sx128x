@@ -3,6 +3,9 @@
 use std::time::{Duration, SystemTime};
 use std::fs::File;
 
+use embedded_hal::blocking::delay::DelayUs;
+
+use embedded_spi::hal::{HalDelay};
 use pcap_file::PcapWriter;
 
 use super::options::*;
@@ -60,11 +63,11 @@ where
                 debug!("Send complete");
                 break;
             }
-            std::thread::sleep(poll_interval);
+            HalDelay{}.delay_us(poll_interval.as_micros() as u32);
         }
 
         if !continuous {  break; }
-        std::thread::sleep(period);
+        HalDelay{}.delay_us(poll_interval.as_micros() as u32);
     }
 
     Ok(())
@@ -111,7 +114,7 @@ where
             radio.start_receive()?;
         }
 
-        std::thread::sleep(poll_interval);
+        HalDelay{}.delay_us(poll_interval.as_micros() as u32);
     }
 }
 
@@ -131,7 +134,7 @@ where
 
         radio.check_receive(true)?;
 
-        std::thread::sleep(period);
+        HalDelay{}.delay_us(period.as_micros() as u32);
 
         if !continuous {
             break
@@ -163,7 +166,7 @@ where
                 Err(_) => info!("Received: '{:?}' info: {:?}", &buff[0..n as usize], info),
             }
 
-            std::thread::sleep(delay);
+            HalDelay{}.delay_us(delay.as_micros() as u32);
 
             radio.start_transmit(&buff[..n])?;
             loop {
@@ -171,12 +174,12 @@ where
                     debug!("Send complete");
                     break;
                 }
-                std::thread::sleep(poll_interval);
+                HalDelay{}.delay_us(poll_interval.as_micros() as u32);
             }
             
             if !continuous { return Ok(n) }
         }
 
-        std::thread::sleep(poll_interval);
+        HalDelay{}.delay_us(poll_interval.as_micros() as u32);
     }
 }

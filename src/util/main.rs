@@ -9,6 +9,8 @@ extern crate humantime;
 extern crate embedded_spi;
 use embedded_spi::hal::{HalInst, HalDelay};
 
+extern crate embedded_hal;
+
 extern crate radio;
 use radio::{State as _};
 
