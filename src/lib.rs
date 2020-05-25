@@ -32,9 +32,6 @@ extern crate pcap_file;
 extern crate failure;
 use failure::{Fail};
 
-#[macro_use]
-extern crate handle_error;
-
 extern crate embedded_hal as hal;
 use hal::blocking::{delay};
 use hal::digital::v2::{InputPin, OutputPin};
