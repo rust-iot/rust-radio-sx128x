@@ -2,7 +2,7 @@
 use structopt::StructOpt;
 use humantime::{Duration as HumanDuration};
 use tracing_subscriber::filter::{LevelFilter};
-use embedded_spi::hal::{DeviceConfig, LogConfig};
+use embedded_spi::hal::{DeviceConfig};
 
 use radio_sx128x::prelude::*;
 use radio_sx128x::device::{common, flrc, lora};
@@ -288,9 +288,13 @@ pub struct Receive {
     #[structopt(long = "poll-interval", default_value="200ns")]
     pub poll_interval: HumanDuration,
 
-    /// PCAP file for captured packet output
+    /// Create and write capture output to a PCAP file
     #[structopt(long)]
     pub pcap_file: Option<String>,
+
+    /// Create and write to a unix pipe for connection to wireshark
+    #[structopt(long)]
+    pub pcap_pipe: Option<String>,
 }
 
 #[derive(Clone, StructOpt, PartialEq, Debug)]

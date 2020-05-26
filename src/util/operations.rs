@@ -1,7 +1,13 @@
 
 
 use std::time::{Duration, SystemTime};
-use std::fs::File;
+use std::fs::{File, OpenOptions};
+use std::ffi::CString;
+
+#[cfg(target_family="unix")]
+use std::os::unix::fs::OpenOptionsExt;
+
+use libc::{self};
 
 use embedded_hal::blocking::delay::DelayUs;
 
@@ -26,7 +32,7 @@ where
             let mut buff = [0u8; 255];
             let mut info = I::default();
 
-            do_receive(radio, &mut buff, &mut info, config.continuous, *config.poll_interval, config.pcap_file)
+            do_receive(radio, &mut buff, &mut info, &config)
                 .expect("Receive error");
         },
         Operation::Repeat(config) => {
@@ -67,29 +73,63 @@ where
         }
 
         if !continuous {  break; }
-        HalDelay{}.delay_us(poll_interval.as_micros() as u32);
+        HalDelay{}.delay_us(period.as_micros() as u32);
     }
 
     Ok(())
 }
 
-fn do_receive<T, I, E>(radio: &mut T, mut buff: &mut [u8], mut info: &mut I, continuous: bool, poll_interval: Duration, pcap_file: Option<String>) -> Result<usize, E> 
+
+fn do_receive<T, I, E>(radio: &mut T, mut buff: &mut [u8], mut info: &mut I, options: &Receive) -> Result<usize, E> 
 where
     T: radio::Receive<Info=I, Error=E>,
     I: std::fmt::Debug,
 {
-    // Load PCAP file
-    let mut pcap = match pcap_file {
-        Some(n) => {
-            let f = File::create(n).expect("Error creating PCAP file");
+    // Create and open pcap file for writing
+    let pcap_file = match (&options.pcap_file, &options.pcap_pipe) {
+        (Some(file), None) => {
+            let f = File::create(file).expect("Error creating PCAP file");
+            Some(f)
+        },
+        #[cfg(target_family="unix")]
+        (None, Some(pipe)) => {
+            // Ensure file doesn't already exist
+            let _ = std::fs::remove_file(pipe);
 
+            // Create pipe
+            let n = CString::new(pipe.as_str()).unwrap();
+            let status = unsafe { libc::mkfifo(n.as_ptr(), 0o644) };
+
+            if status != 0 {
+                panic!("Error creating fifo: {}", status);
+            }
+
+            // Open pipe
+            let f = OpenOptions::new()
+                //.custom_flags(libc::O_NONBLOCK)
+                .write(true)
+                .open(pipe)
+                .expect("Error opening PCAP pipe");
+
+            Some(f)
+        }
+        (None, None) => None,
+        _ => unimplemented!()
+    };
+
+    // Setup pcap writer and write header
+    // (This is a blocking operation on pipes)
+    let mut pcap = match pcap_file {
+        None => None,
+        Some(f) => {
+            // Setup pcap header
             let mut h = PcapHeader::default();
             h.datalink = DataLink::IEEE802_15_4;
 
+            // Write header
             let w = PcapWriter::with_header(h, f).expect("Error writing to PCAP file");
             Some(w)
-        },
-        None => None,
+        }
     };
 
     // Start receive mode
@@ -110,14 +150,14 @@ where
                 p.write(t.as_secs() as u32, t.as_nanos() as u32 % 1_000_000, &buff[0..n], n as u32).expect("Error writing pcap file");
             }
             
-            if !continuous { 
+            if !options.continuous { 
                 return Ok(n)
             }
 
             radio.start_receive()?;
         }
 
-        HalDelay{}.delay_us(poll_interval.as_micros() as u32);
+        HalDelay{}.delay_us(options.poll_interval.as_micros() as u32);
     }
 }
 

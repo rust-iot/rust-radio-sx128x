@@ -14,7 +14,7 @@ util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", 
 
 [dependencies]
 bitflags = "1.0.4"
-libc = "0.2.42"
+libc = "0.2.70"
 log = "0.4.6"
 radio = "0.7.0"
 

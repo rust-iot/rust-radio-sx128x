@@ -1,6 +1,8 @@
 
 #[macro_use] extern crate log;
 
+extern crate libc;
+
 extern crate structopt;
 use structopt::StructOpt;
 
