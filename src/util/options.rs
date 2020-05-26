@@ -1,11 +1,14 @@
 
 use structopt::StructOpt;
 use humantime::{Duration as HumanDuration};
-
+use tracing_subscriber::filter::{LevelFilter};
 use embedded_spi::hal::{DeviceConfig, LogConfig};
 
 use radio_sx128x::prelude::*;
 use radio_sx128x::device::{common, flrc, lora};
+use radio_sx128x::device::common::GfskFlrcCrcModes::*;
+use radio_sx128x::device::common::PreambleLength::*;
+
 
 #[derive(StructOpt)]
 #[structopt(name = "Sx128x-util")]
@@ -19,16 +22,21 @@ pub struct Options {
     #[structopt(flatten)]
     pub spi_config: DeviceConfig,
 
-    /// Use onboard LDO instead of DCDC
-    #[structopt(long)]
-    pub use_ldo: bool,
+    /// Use onboard DCDC instead of LDO
+    #[structopt(long, env="USE_DCDC")]
+    pub use_dcdc: bool,
 
     /// Set CRC length (0, 2, 3 bytes)
-    #[structopt(long, default_value="2")]
+    #[structopt(long, default_value="2", env="CRC_MODE")]
     pub crc_mode: u8,
 
-    #[structopt(flatten)]
-    pub log: LogConfig,
+    /// Set preamble length
+    #[structopt(long, default_value="16", env="PREAMBLE_LEN")]
+    pub preamble_len: u8, 
+
+    #[structopt(long, default_value = "info")]
+    /// Configure radio log level
+    pub log_level: LevelFilter,
 }
 
 #[derive(StructOpt, PartialEq, Debug)]
@@ -70,9 +78,10 @@ impl Options {
     pub fn rf_config(&self) -> Config {
         let mut config = Config::default();
 
-        if self.use_ldo {
-            config.regulator_mode = RegulatorMode::Ldo;
-        }
+        config.regulator_mode = match self.use_dcdc {
+            true => RegulatorMode::Dcdc,
+            false => RegulatorMode::Ldo,
+        };
     
         // Generate configurations
         match &self.command {
@@ -96,14 +105,25 @@ impl Options {
                 // Set to Gfsk mode
                 let mut modem = FlrcConfig::default();
 
-
-                match self.crc_mode {
-                    0 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF,
-                    1 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_1_BYTES,
-                    2 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
-                    3 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_3_BYTES,
+                modem.crc_mode = match self.crc_mode {
+                    0 => RADIO_CRC_OFF,
+                    1 => RADIO_CRC_1_BYTES,
+                    2 => RADIO_CRC_2_BYTES,
+                    3 => RADIO_CRC_3_BYTES,
                     _ => unimplemented!(),
-                }
+                };
+
+                modem.preamble_length = match self.preamble_len {
+                    4 => PreambleLength04,
+                    08 => PreambleLength08,
+                    12 => PreambleLength12,
+                    16 => PreambleLength16,
+                    20 => PreambleLength20,
+                    24 => PreambleLength24,
+                    28 => PreambleLength28,
+                    32 => PreambleLength32,
+                    _ => unimplemented!(),
+                };
     
                 if flrc_config.no_syncword {
                     modem.sync_word_match = common::SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_OFF;
@@ -190,17 +210,17 @@ pub struct GfskCommand {
 pub struct FlrcCommand {
     /// Operating frequency in GHz
     /// This must be in a range of 2.40 to 2.50 GHz
-    #[structopt(long = "freq-ghz", default_value="2.44")]
+    #[structopt(long = "freq-ghz", default_value="2.44", env="FLRC_FREQ_GHZ")]
     pub frequency: f32,
 
     /// FLRC bitrate-bandwidth in kbps
     /// (options: 2600_2400, 2080_2400, 1300_1200, 1040_1200, 650_600, 520_600, 325_300, 260_300)
-    #[structopt(long = "br-bw", default_value="260_300")]
+    #[structopt(long = "br-bw", default_value="260_300", env="FLRC_BR_BW")]
     pub bitrate_bandwidth: flrc::FlrcBitrate,
 
     /// FLRC coding rate
     /// (options: 3/4, 1/2, 1/0)
-    #[structopt(long = "cr", default_value="3/4")]
+    #[structopt(long = "cr", default_value="3/4", env="FLRC_CR")]
     pub code_rate: flrc::FlrcCodingRate,
 
     /// Disable Sync word matching
@@ -254,7 +274,7 @@ pub struct Transmit {
     pub period: HumanDuration,
 
     /// Specify period for polling for device status
-    #[structopt(long = "poll-interval", default_value="1ms")]
+    #[structopt(long = "poll-interval", default_value="200ns")]
     pub poll_interval: HumanDuration,
 }
 
@@ -265,7 +285,7 @@ pub struct Receive {
     pub continuous: bool,
 
     /// Specify period for polling for device status
-    #[structopt(long = "poll-interval", default_value="1ms")]
+    #[structopt(long = "poll-interval", default_value="200ns")]
     pub poll_interval: HumanDuration,
 
     /// PCAP file for captured packet output

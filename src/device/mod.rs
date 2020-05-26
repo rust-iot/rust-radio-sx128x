@@ -57,7 +57,7 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config{
-            regulator_mode: RegulatorMode::Dcdc,
+            regulator_mode: RegulatorMode::Ldo,
             pa_config: PaConfig{ power: 10, ramp_time: RampTime::Ramp20Us },
             packet_type: PacketType::None,
             modem: Modem::LoRa(LoRaConfig::default()),

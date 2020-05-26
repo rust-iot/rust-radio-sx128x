@@ -10,7 +10,7 @@ version = "0.14.0-alpha.1"
 [features]
 default = ["util", "serde"]
 tests = [ "embedded-spi/mock" ]
-util = ["structopt", "simplelog", "humantime", "pcap-file", "embedded-spi/hal", "embedded-spi/hal-cp2130", "failure/std"]
+util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "embedded-spi/hal", "embedded-spi/hal-cp2130", "failure/std"]
 
 [dependencies]
 bitflags = "1.0.4"
@@ -45,9 +45,13 @@ features = ["derive"]
 optional = true
 version = "1.0"
 
-[dependencies.simplelog]
+[dependencies.tracing]
 optional = true
-version = "0.5.3"
+version = "0.1.14"
+
+[dependencies.tracing-subscriber]
+optional = true
+version = "0.2.5"
 
 [dependencies.structopt]
 optional = true
@@ -63,11 +67,11 @@ required-features = ["util"]
 
 [patch.crates-io]
 embedded-hal = { git = "https://github.com/ryankurte/embedded-hal.git", branch = "feature/spi-transactions" }
-driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130", branch = "master" }
+#driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130", branch = "master" }
 embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "feature/hal" }
 linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/spi-transactions" }
 
-#driver-cp2130 = { path = "../rust-driver-cp2130" }
+driver-cp2130 = { path = "../rust-driver-cp2130" }
 #embedded-hal = { path = "../embedded-hal" }
 #embedded-spi = { path = "../rust-embedded-spi" }
 #linux-embedded-hal = { path = "../linux-embedded-hal" }

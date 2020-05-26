@@ -87,7 +87,6 @@ where
         },
         None => None,
     };
-    let t = SystemTime::now();
 
     // Start receive mode
     radio.start_receive()?;
@@ -98,13 +97,13 @@ where
 
             match std::str::from_utf8(&buff[0..n as usize]) {
                 Ok(s) => info!("Received: '{}' info: {:?}", s, info),
-                Err(_) => info!("Received: '{:?}' info: {:?}", &buff[0..n as usize], info),
+                Err(_) => info!("Received: '{:x?}' info: {:?}", &buff[0..n as usize], info),
             }
 
             if let Some(p) = &mut pcap {
-                let d = t.elapsed().unwrap();
+                let t = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
                 
-                p.write(d.as_secs() as u32, d.as_nanos() as u32 % 1_000_000, &buff[0..n], n as u32).expect("Error writing pcap file");
+                p.write(t.as_secs() as u32, t.as_nanos() as u32 % 1_000_000, &buff[0..n], n as u32).expect("Error writing pcap file");
             }
             
             if !continuous { 

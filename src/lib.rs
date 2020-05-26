@@ -340,7 +340,7 @@ where
     pub(crate) fn configure_modem(&mut self, config: &Modem) -> Result<(), Error<CommsError, PinError>> {
         use Modem::*;
 
-        trace!("Setting modem config: {:?}", config);
+        debug!("Setting modem config: {:?}", config);
 
         // First update packet type (if required)
         let packet_type = PacketType::from(config);
@@ -360,10 +360,9 @@ where
 
         self.hal.write_cmd(Commands::SetPacketParams as u8, &data)?;
 
-        if let Flrc(c) = config {
-            if let Some(v) = c.sync_word_value {
-                self.set_syncword(1, &v)?;
-            }
+        // Apply sync-word patch for FLRC mode
+        if let Flrc(_c) = config {
+            self.patch_flrc_syncword()?;
         }
 
         Ok(())
@@ -409,8 +408,8 @@ where
             PacketType::Gfsk | PacketType::Flrc | PacketType::Ble => {
                 info.rssi = -(data[1] as i16) / 2;
                 let rssi_avg = -(data[0] as i16) / 2;
-                debug!("Raw RSSI: {}", info.rssi);
-                debug!("Average RSSI: {}", rssi_avg);
+                trace!("Raw RSSI: {}", info.rssi);
+                trace!("Average RSSI: {}", rssi_avg);
             },
             PacketType::LoRa | PacketType::Ranging => {
                 info.rssi = -(data[0] as i16) / 2;
@@ -421,6 +420,8 @@ where
             },
             PacketType::None => unimplemented!(),
         }
+
+        debug!("Info: {:?}", info);
 
         Ok(())
     }
@@ -482,6 +483,11 @@ where
         // Write sync word
         self.hal.write_regs(addr, value)?;
 
+        Ok(())
+    }
+
+    /// Apply patch for sync-word match errata in FLRC mode
+    fn patch_flrc_syncword(&mut self) -> Result<(), Error<CommsError, PinError>> {
         // If we're in FLRC mode, patch to force 100% match on syncwords
         // because otherwise the 4 bit threshold is too low
         if let PacketType::Flrc = &self.packet_type {
@@ -491,7 +497,6 @@ where
 
         Ok(())
     }
-
 }
 
 
@@ -753,7 +758,7 @@ where
         self.set_state(State::StandbyRc)?;
 
         let s = self.get_state()?;
-        debug!("TX setup state: {:?}", s);
+        debug!("RX setup state: {:?}", s);
 
         // Reset buffer addr
         if let Err(e) = self.set_buff_base_addr(0, 0)  {

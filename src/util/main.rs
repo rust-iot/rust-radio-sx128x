@@ -6,13 +6,16 @@ use structopt::StructOpt;
 
 extern crate humantime;
 
+extern crate tracing_subscriber;
+use tracing_subscriber::FmtSubscriber;
+use tracing_subscriber::filter::{EnvFilter};
+
 extern crate embedded_spi;
 use embedded_spi::hal::{HalInst, HalDelay};
 
 extern crate embedded_hal;
 
 extern crate radio;
-use radio::{State as _};
 
 extern crate radio_sx128x;
 use radio_sx128x::prelude::*;
@@ -29,8 +32,16 @@ fn main() {
     // Load options
     let opts = Options::from_args();
 
-    // Setup logging
-    opts.log.init();
+    // Initialise logging
+    let filter = EnvFilter::from_default_env()
+    .add_directive(format!("radio_sx128x={}", opts.log_level).parse().unwrap())
+    .add_directive(format!("sx128x_util={}", opts.log_level).parse().unwrap())
+    .add_directive(format!("driver_cp2130=warn").parse().unwrap());
+
+    let _ = FmtSubscriber::builder()
+        .with_env_filter(filter)
+        .without_time()
+        .try_init();
 
     debug!("Connecting to SPI device");
 

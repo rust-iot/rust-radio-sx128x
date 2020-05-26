@@ -47,7 +47,7 @@ impl Default for FlrcConfig {
             preamble_length: PreambleLength::PreambleLength16,
             sync_word_length: FlrcSyncWordLength::Length4,
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_1,
-            sync_word_value: Some([0x12, 0x13, 0x14, 0x15]),
+            sync_word_value: None,
             header_type: GfskFlrcPacketLength::Variable,
             payload_length: 127,
             crc_mode: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
