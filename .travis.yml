@@ -21,7 +21,9 @@ jobs:
 
   - env: TARGET=i686-pc-windows-gnu OUTPUT=sx128x-util.exe
     os: linux
-
+  
+  allow_failures:
+    - env: TARGET=i686-pc-windows-gnu
 
 before_install:
   - if [ "$TRAVIS_OS_NAME" != "osx"]; then docker pull ryankurte/rust-embedded; fi
