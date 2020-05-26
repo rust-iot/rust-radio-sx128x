@@ -6,7 +6,7 @@ use std::fs::File;
 use embedded_hal::blocking::delay::DelayUs;
 
 use embedded_spi::hal::{HalDelay};
-use pcap_file::PcapWriter;
+use pcap_file::{PcapWriter, DataLink, pcap::PcapHeader};
 
 use super::options::*;
 
@@ -82,7 +82,11 @@ where
     let mut pcap = match pcap_file {
         Some(n) => {
             let f = File::create(n).expect("Error creating PCAP file");
-            let w = PcapWriter::new(f).expect("Error writing to PCAP file");
+
+            let mut h = PcapHeader::default();
+            h.datalink = DataLink::IEEE802_15_4;
+
+            let w = PcapWriter::with_header(h, f).expect("Error writing to PCAP file");
             Some(w)
         },
         None => None,
