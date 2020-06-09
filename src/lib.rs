@@ -361,8 +361,12 @@ where
         self.hal.write_cmd(Commands::SetPacketParams as u8, &data)?;
 
         // Apply sync-word patch for FLRC mode
-        if let Flrc(_c) = config {
+        if let Flrc(c) = config {
             self.patch_flrc_syncword()?;
+
+            if let Some(v) = c.sync_word_value {
+                self.set_syncword(1, &v)?;
+            }
         }
 
         Ok(())
