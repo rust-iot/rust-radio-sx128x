@@ -26,8 +26,7 @@ features = [ "derive" ]
 default-features = false
 
 [dependencies.embedded-hal]
-features = ["unproven"]
-version = "0.2.3"
+version = "=1.0.0-alpha.1"
 
 [dependencies.embedded-spi]
 version = "0.6.1"
