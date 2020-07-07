@@ -2,7 +2,7 @@
 
 use core::fmt::Debug;
 
-use hal::blocking::delay::DelayMs;
+use hal::blocking::delay::{DelayMs, DelayUs};
 use hal::blocking::spi::Transactional;
 
 use embedded_spi::{Reset, Busy, Ready, PinState, PrefixRead, PrefixWrite};
@@ -29,6 +29,9 @@ pub trait Hal<
 
     /// Delay for the specified time
     fn try_delay_ms(&mut self, ms: u32)-> Result<(), DelayError>;
+
+    /// Delay for the specified time
+    fn try_delay_us(&mut self, us: u32)-> Result<(), DelayError>;
 
     /// Write the specified command and data
     fn write_cmd(&mut self, command: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
@@ -90,7 +93,7 @@ where
     T: Reset<Error=SpiError<CommsError, PinError, DelayError>>,
     T: Busy<Error=SpiError<CommsError, PinError, DelayError>>,
     T: Ready<Error=SpiError<CommsError, PinError, DelayError>>,
-    T: DelayMs<u32, Error=DelayError>,
+    T: DelayMs<u32, Error=DelayError> + DelayUs<u32, Error=DelayError>,
     CommsError: Debug + Sync + Send,
     PinError: Debug + Sync + Send,
     DelayError: Debug + Sync + Send,
@@ -119,7 +122,12 @@ where
 
     /// Delay for the specified time
     fn try_delay_ms(&mut self, ms: u32) -> Result<(), DelayError> {
-        self.try_delay_ms(ms)
+        DelayMs::try_delay_ms(self, ms)
+    }
+
+    /// Delay for the specified time
+    fn try_delay_us(&mut self, ms: u32) -> Result<(), DelayError> {
+        DelayUs::try_delay_us(self, ms)
     }
 
     /// Write the specified command and data

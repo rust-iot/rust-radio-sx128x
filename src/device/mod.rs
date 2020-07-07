@@ -253,6 +253,12 @@ pub struct PacketInfo {
     pub sync_addr_status: u8,
 }
 
+impl radio::ReceiveInfo for PacketInfo {
+    fn rssi(&self) -> i16 {
+        self.rssi
+    }
+}
+
 impl Default for PacketInfo {
     fn default() -> Self {
         Self {

@@ -173,7 +173,7 @@ where
     BusyPin: InputPin<Error = PinError>,
     ReadyPin: InputPin<Error = PinError>,
     SdnPin: OutputPin<Error = PinError>,
-    Delay: delay::DelayMs<u32, Error=DelayError>,
+    Delay: delay::DelayMs<u32, Error=DelayError> + delay::DelayUs<u32, Error=DelayError>,
     CommsError: Debug + Sync + Send + 'static,
     PinError: Debug + Sync + Send + 'static,
     DelayError: Debug + Sync + Send + 'static,
@@ -536,6 +536,20 @@ where
     }
 }
 
+impl<Hal, CommsError, PinError, DelayError> delay::DelayUs<u32> for Sx128x<Hal, CommsError, PinError, DelayError>
+where
+    Hal: base::Hal<CommsError, PinError, DelayError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
+    DelayError: Debug + Sync + Send + 'static,
+{
+    type Error = DelayError;
+
+    fn try_delay_us(&mut self, t: u32) -> Result<(), DelayError> {
+        self.hal.try_delay_us(t)
+    }
+}
+
 /// `radio::State` implementation for the SX128x
 impl<Hal, CommsError, PinError, DelayError> radio::State for Sx128x<Hal, CommsError, PinError, DelayError>
 where
@@ -579,6 +593,30 @@ where
         trace!("Setting state {:?} ({:x?})", state, command);
 
         self.hal.write_cmd(command as u8, &[ 0u8 ])
+    }
+}
+
+/// `radio::Busy` implementation for the SX128x
+impl<Hal, CommsError, PinError, DelayError> radio::Busy for Sx128x<Hal, CommsError, PinError, DelayError>
+where
+    Hal: base::Hal<CommsError, PinError, DelayError>,
+    CommsError: Debug + Sync + Send + 'static,
+    PinError: Debug + Sync + Send + 'static,
+    DelayError: Debug + Sync + Send + 'static,
+{
+    type Error = Error<CommsError, PinError, DelayError>;
+
+    /// Fetch device state
+    fn is_busy(&mut self) -> Result<bool, Self::Error> {
+        
+        let irq = self.get_interrupts(false)?;
+
+        if irq.contains(Irq::SYNCWORD_VALID) && 
+                !(irq.contains(Irq::RX_DONE) || irq.contains(Irq::CRC_ERROR)){
+            return Ok(true);
+        }
+
+        Ok(false)
     }
 }
 
