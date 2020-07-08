@@ -72,11 +72,44 @@ impl Default for Config {
 }
 
 impl Config {
-    // Calculate frequency step for a given crystal frequency
+    /// Create a default FLRC configuration
+    pub fn flrc() -> Self {
+        Config{
+            packet_type: PacketType::Flrc,
+            modem: Modem::Flrc(FlrcConfig::default()),
+            channel: Channel::Flrc(FlrcChannel::default()),
+            ..Default::default()
+        }
+    }
+
+    /// Create a default GFSK configuration
+    pub fn gfsk() -> Self {
+        Config{
+            packet_type: PacketType::Gfsk,
+            modem: Modem::Gfsk(GfskConfig::default()),
+            channel: Channel::Gfsk(GfskChannel::default()),
+            ..Default::default()
+        }
+    }
+
+    /// Create a default LoRa configuration
+    pub fn lora() -> Self {
+        Config{
+            packet_type: PacketType::LoRa,
+            modem: Modem::LoRa(LoRaConfig::default()),
+            channel: Channel::LoRa(LoRaChannel::default()),
+            ..Default::default()
+        }
+    }
+}
+
+impl Config {
+    /// Calculate frequency step for a given crystal frequency
     pub fn freq_step(&self) -> f32 {
         self.xtal_freq as f32 / (2u32 << 17) as f32
     }
 
+    /// Convert a provided frequency into configuration steps
     pub fn freq_to_steps(&self, f: f32) -> f32 {
         f / self.freq_step() as f32
     }
@@ -382,6 +415,7 @@ pub enum Registers {
     LrSyncWordBaseAddress2             = 0x09D3,
     LrSyncWordBaseAddress3             = 0x09D8,
     LrEstimatedFrequencyErrorMsb       = 0x0954,
+    GfskBlePreambleLength              = 0x09C1,
     LrSyncWordTolerance                = 0x09CD,
     LrBleAccessAddress                 = 0x09CF,
     LnaRegime                          = 0x0891,

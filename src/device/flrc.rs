@@ -34,11 +34,14 @@ pub struct FlrcConfig {
     pub preamble_length: PreambleLength,
     pub sync_word_length: FlrcSyncWordLength,
     pub sync_word_match: SyncWordRxMatch,
-    pub sync_word_value: Option<[u8; 4]>,
     pub header_type: GfskFlrcPacketLength,
     pub payload_length: u8,
     pub crc_mode: GfskFlrcCrcModes,
-    pub whitening: WhiteningModes
+    pub whitening: WhiteningModes,
+
+    /// Patch to resolver errata 16.4, increased PER in FLRC packets with syncword
+    /// This sets the LrSyncWordTolerance to maximum
+    pub patch_syncword: bool,
 }
 
 impl Default for FlrcConfig {
@@ -47,11 +50,11 @@ impl Default for FlrcConfig {
             preamble_length: PreambleLength::PreambleLength16,
             sync_word_length: FlrcSyncWordLength::Length4,
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_1,
-            sync_word_value: None,
             header_type: GfskFlrcPacketLength::Variable,
             payload_length: 127,
             crc_mode: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
             whitening: WhiteningModes::RADIO_WHITENING_OFF,
+            patch_syncword: true,
         }
     }
 }

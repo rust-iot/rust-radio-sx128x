@@ -378,13 +378,18 @@ where
 
         self.hal.write_cmd(Commands::SetPacketParams as u8, &data)?;
 
-        // Apply sync-word patch for FLRC mode
-        if let Flrc(c) = config {
-            self.patch_flrc_syncword()?;
 
-            if let Some(v) = c.sync_word_value {
-                self.set_syncword(1, &v)?;
-            }
+        // Apply patches
+        match config {
+            Flrc(c) if c.patch_syncword => {
+                // Apply sync-word patch for FLRC mode
+                self.patch_flrc_syncword()?;
+            },
+            Gfsk(c) if c.patch_preamble => {
+                // Write preamble length for GFSK mode
+                self.hal.write_reg(Registers::GfskBlePreambleLength as u16, c.preamble_length as u8)?;
+            },
+            _ => ()
         }
 
         Ok(())
@@ -480,6 +485,17 @@ where
     /// This is 5-bytes for GFSK mode and 4-bytes for FLRC and BLE modes.
     pub fn set_syncword(&mut self, index: u8, value: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>> {
         trace!("Attempting to set sync word index: {} to: {:?}", index, value);
+
+        // Check sync words for errata 16.4
+        if self.packet_type == PacketType::Flrc {
+            match &value[0..2] {
+                &[0x8C, 0x32] | &[0x63, 0x0E] => {
+                    error!("Invalid sync word selected (see errata 16.4)");
+                    return Err(Error::InvalidConfiguration);
+                },
+                _ => (),
+            }
+        }
 
         // Calculate sync word base address and expected length
         let (addr, len) = match (&self.packet_type, index) {
@@ -897,6 +913,9 @@ where
         } else if irq.contains(Irq::RX_TX_TIMEOUT) {
             debug!("RX timeout");
             res = Err(Error::Timeout);
+        } else if irq.contains(Irq::SYNCWORD_ERROR) {
+            debug!("Invalid syncword");
+            res = Err(Error::InvalidSync);
         } else if irq.contains(Irq::RX_DONE) {
             debug!("RX complete");
             res = Ok(true);
@@ -919,6 +938,10 @@ where
         let (ptr, len) = self.get_rx_buffer_status()?;
 
         debug!("RX get received, ptr: {} len: {}", ptr, len);
+
+        if data.len() < len as usize {
+            return Err(Error::InvalidLength);
+        }
 
         // TODO: check error packet status byte to ensure CRC is valid
         // as this may not result in a CRC error IRQ.

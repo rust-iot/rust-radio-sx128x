@@ -44,20 +44,25 @@ pub struct GfskConfig {
     /// CRC mode
     pub crc_mode: GfskFlrcCrcModes,
     /// Packet whitening
-    pub whitening: WhiteningModes
+    pub whitening: WhiteningModes,
+
+    /// Patch to set "Packet Preamble Settings" register 0x09C1 with preamble
+    /// length. Without this the preamble is not correctly filter from RX'd packets.
+    pub patch_preamble: bool,
 }
 
 impl Default for GfskConfig {
     fn default() -> Self {
         Self {
-            preamble_length: PreambleLength::PreambleLength16,
-            sync_word_length: GfskSyncWordLength::GFSK_SYNCWORD_LENGTH_2_BYTE,
-            sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_2,
+            preamble_length: PreambleLength::PreambleLength32,
+            sync_word_length: GfskSyncWordLength::GFSK_SYNCWORD_LENGTH_4_BYTE,
+            sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_1,
             header_type: GfskFlrcPacketLength::Variable,
             payload_length: 255,
-            crc_mode: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
+            crc_mode: GfskFlrcCrcModes::RADIO_CRC_OFF,
             whitening: WhiteningModes::RADIO_WHITENING_OFF,
-        }   
+            patch_preamble: false,
+        }
     }
 }
 
