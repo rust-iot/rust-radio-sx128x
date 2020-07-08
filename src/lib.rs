@@ -751,7 +751,7 @@ where
         }
 
         // Write data to be sent
-        trace!("TX data: {:?}", data);
+        debug!("TX data: {:?}", data);
         self.hal.write_buff(0, data)?;
         
         // Configure ranging if used
@@ -888,7 +888,7 @@ where
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
 
-        debug!("RX poll (irq: {:?}", irq);
+        debug!("RX poll (irq: {:?})", irq);
        
         // Process flags
         if irq.contains(Irq::CRC_ERROR) {

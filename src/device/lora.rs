@@ -21,7 +21,7 @@ impl Default for LoRaConfig {
         Self {
             preamble_length: 08,
             header_type: LoRaHeader::Explicit,
-            payload_length: 0x40,
+            payload_length: 255,
             crc_mode: LoRaCrc::Enabled,
             invert_iq: LoRaIq::Inverted,
         }

@@ -54,7 +54,7 @@ impl Default for GfskConfig {
             sync_word_length: GfskSyncWordLength::GFSK_SYNCWORD_LENGTH_2_BYTE,
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_2,
             header_type: GfskFlrcPacketLength::Variable,
-            payload_length: 0x40,
+            payload_length: 255,
             crc_mode: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
             whitening: WhiteningModes::RADIO_WHITENING_OFF,
         }   
