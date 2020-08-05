@@ -12,10 +12,7 @@ fi
 
 
 DOCKER_CMD="docker run --rm -v=`pwd`:/work -v$CARGO_HOME/registry:/root/.cargo/registry -v$SCCACHE_DIR:/root/.cache --workdir=/work --user=:`id -g` --env PKG_CONFIG_ALLOW_CROSS=1"
-
-
 DOCKER_IMG=ryankurte/rust-embedded
-
 
 
 echo "Building for target: $1 (cargo cache: $CARGO_HOME, sccache $SCCACHE_DIR)"
