@@ -75,6 +75,8 @@ driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130.git", b
 embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "master" }
 linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/spi-transactions" }
 
+libusb-sys = { git = "https://github.com/cmsd2/libusb-sys" } 
+
 #driver-cp2130 = { path = "../rust-driver-cp2130" }
 #embedded-hal = { path = "../embedded-hal" }
 #embedded-spi = { path = "../rust-embedded-spi" }
