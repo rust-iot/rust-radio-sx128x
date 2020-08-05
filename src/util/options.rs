@@ -130,14 +130,14 @@ impl Options {
                 }
 
                 if let Some(s) = flrc_config.syncword {
-                    let sw: [u8; 4] = [
+                    let _sw: [u8; 4] = [
                         (s >> 24) as u8,
                         (s >> 16) as u8,
                         (s >> 8) as u8,
                         s as u8
                     ];
 
-                    modem.sync_word_value = Some(sw);
+                    unimplemented!()
                 }
     
                 config.modem = Modem::Flrc(modem);

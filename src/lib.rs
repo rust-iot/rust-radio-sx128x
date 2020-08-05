@@ -39,7 +39,7 @@ use hal::spi::{Mode as SpiMode, Phase, Polarity};
 use hal::blocking::spi::{Transfer, Write, Transactional};
 
 extern crate embedded_spi;
-use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper, PinState};
+use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
 extern crate radio;
 pub use radio::{State as _, Interrupts as _, Channel as _};
@@ -800,6 +800,7 @@ where
     /// Check for transmit completion
     fn check_transmit(&mut self) -> Result<bool, Self::Error> {
         // Poll on DIO and short-circuit if not asserted
+        #[cfg(nope)]
         if self.hal.get_dio()? == PinState::Low {
             return Ok(false)
         }
@@ -897,6 +898,7 @@ where
     fn check_receive(&mut self, restart: bool) -> Result<bool, Self::Error> {
 
         // Poll on DIO and short-circuit if not asserted
+        #[cfg(nope)]
         if self.hal.get_dio()? == PinState::Low {
             return Ok(false)
         }

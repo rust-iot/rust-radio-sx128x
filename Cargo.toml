@@ -66,9 +66,10 @@ path = "src/util/main.rs"
 required-features = ["util"]
 
 [patch.crates-io]
+radio = { git = "https://github.com/ryankurte/rust-radio.git", branch = "master" }
 embedded-hal = { git = "https://github.com/ryankurte/embedded-hal.git", branch = "feature/spi-transactions" }
-driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130", branch = "master" }
-embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "feature/hal" }
+driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130.git", branch = "master" }
+embedded-spi = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "master" }
 linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/spi-transactions" }
 
 #driver-cp2130 = { path = "../rust-driver-cp2130" }

@@ -4,9 +4,6 @@ use std::time::{Duration, SystemTime};
 use std::fs::{File, OpenOptions};
 use std::ffi::CString;
 
-#[cfg(target_family="unix")]
-use std::os::unix::fs::OpenOptionsExt;
-
 use libc::{self};
 
 use embedded_hal::blocking::delay::DelayUs;
@@ -69,11 +66,11 @@ where
                 debug!("Send complete");
                 break;
             }
-            HalDelay{}.delay_us(poll_interval.as_micros() as u32);
+            HalDelay{}.try_delay_us(poll_interval.as_micros() as u32).unwrap();
         }
 
         if !continuous {  break; }
-        HalDelay{}.delay_us(period.as_micros() as u32);
+        HalDelay{}.try_delay_us(period.as_micros() as u32).unwrap();
     }
 
     Ok(())
@@ -157,7 +154,7 @@ where
             radio.start_receive()?;
         }
 
-        HalDelay{}.delay_us(options.poll_interval.as_micros() as u32);
+        HalDelay{}.try_delay_us(options.poll_interval.as_micros() as u32).unwrap();
     }
 }
 
@@ -177,7 +174,7 @@ where
 
         radio.check_receive(true)?;
 
-        HalDelay{}.delay_us(period.as_micros() as u32);
+        HalDelay{}.try_delay_us(period.as_micros() as u32).unwrap();
 
         if !continuous {
             break
@@ -209,7 +206,7 @@ where
                 Err(_) => info!("Received: '{:?}' info: {:?}", &buff[0..n as usize], info),
             }
 
-            HalDelay{}.delay_us(delay.as_micros() as u32);
+            HalDelay{}.try_delay_us(delay.as_micros() as u32).unwrap();
 
             radio.start_transmit(&buff[..n])?;
             loop {
@@ -217,12 +214,12 @@ where
                     debug!("Send complete");
                     break;
                 }
-                HalDelay{}.delay_us(poll_interval.as_micros() as u32);
+                HalDelay{}.try_delay_us(poll_interval.as_micros() as u32).unwrap();
             }
             
             if !continuous { return Ok(n) }
         }
 
-        HalDelay{}.delay_us(poll_interval.as_micros() as u32);
+        HalDelay{}.try_delay_us(poll_interval.as_micros() as u32).unwrap();
     }
 }
