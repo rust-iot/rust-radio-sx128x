@@ -128,17 +128,6 @@ impl Options {
                 if flrc_config.no_syncword {
                     modem.sync_word_match = common::SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_OFF;
                 }
-
-                if let Some(s) = flrc_config.syncword {
-                    let _sw: [u8; 4] = [
-                        (s >> 24) as u8,
-                        (s >> 16) as u8,
-                        (s >> 8) as u8,
-                        s as u8
-                    ];
-
-                    unimplemented!()
-                }
     
                 config.modem = Modem::Flrc(modem);
     

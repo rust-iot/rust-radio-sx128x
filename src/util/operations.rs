@@ -137,8 +137,8 @@ where
             let n = radio.get_received(&mut info, &mut buff)?;
 
             match std::str::from_utf8(&buff[0..n as usize]) {
-                Ok(s) => info!("Received: '{}' info: {:?}", s, info),
-                Err(_) => info!("Received: '{:x?}' info: {:?}", &buff[0..n as usize], info),
+                Ok(s) => info!("Received {} bytes: '{}' info: {:?}", n, s, info),
+                Err(_) => info!("Received {} bytes: '{:x?}' info: {:?}", n, &buff[0..n as usize], info),
             }
 
             if let Some(p) = &mut pcap {

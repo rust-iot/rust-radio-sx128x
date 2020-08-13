@@ -808,7 +808,7 @@ where
         let irq = self.get_interrupts(true)?;
         let state = self.get_state()?;
 
-        debug!("TX poll (irq: {:?}, state: {:?})", irq, state);
+        trace!("TX poll (irq: {:?}, state: {:?})", irq, state);
 
         if irq.contains(Irq::TX_DONE) {
             debug!("TX complete");
@@ -906,7 +906,7 @@ where
         let irq = self.get_interrupts(true)?;
         let mut res = Ok(false);
 
-        debug!("RX poll (irq: {:?})", irq);
+        trace!("RX poll (irq: {:?})", irq);
        
         // Process flags
         if irq.contains(Irq::CRC_ERROR) {
