@@ -284,6 +284,10 @@ pub struct Receive {
     /// Create and write to a unix pipe for connection to wireshark
     #[structopt(long)]
     pub pcap_pipe: Option<String>,
+
+    /// Append FCS to received data
+    #[structopt(long)]
+    pub append_fcs: bool,
 }
 
 #[derive(Clone, StructOpt, PartialEq, Debug)]
