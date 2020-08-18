@@ -58,19 +58,19 @@ jobs:
         path: ./target
 
     - name: Install dependencies for Ubuntu
-      if: ${{ matrix.os == "ubuntu-latest"}}
+      if: ${{ matrix.os == 'ubuntu-latest'}}
       uses: ryankurte/action-apt@v0.1
       with: 
         packages: "libusb-dev"
     
     - name: Install dependencies for Windows
-      if: ${{ matrix.os == "windows-latest"}}
+      if: ${{ matrix.os == 'windows-latest'}}
       uses: lukka/run-vcpkg@v3
       with: 
         vcpkgArguments: "install --triplet x64-windows-static-md libusb"
 
     - name: Install dependencies for MacOS
-      if: ${{ matrix.os == "macos-latest"}}
+      if: ${{ matrix.os == 'macos-latest'}}
       run: "brew install libusb"
         
     - name: Build release
