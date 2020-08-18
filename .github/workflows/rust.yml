@@ -1,0 +1,90 @@
+
+name: Rust CI test / build / deploy
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+    name: Build
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - target: x86_64-unknown-linux-gnu
+          os: ubuntu-latest
+          output: sx128x-util
+          use_cross: false
+          experimental: false
+        - target: armv7-unknown-linux-gnueabihf 
+          os: ubuntu-latest
+          output: sx128x-util
+          use_cross: true
+          experimental: true
+        - target: x86_64-apple-darwin
+          os: macos-latest
+          output: sx128x-util
+          use_cross: false
+          experimental: true
+        - target: x86_64-windows-msvc
+          os: windows-latest
+          output: sx128x-util
+          use_cross: false
+          experimental: true
+
+    steps:
+    - uses: actions/checkout@v2
+        
+    - name: Configure toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        target:  ${{ matrix.target }}
+        override: true
+    
+    - name: Configure cargo cache 
+      uses: actions/cache@v1
+      with:
+        key: cargo-${{ matrix.os }}-${{ matrix.target }}
+        path: ${{ env.HOME }}/.cargo"
+
+    - name: Configure target cache
+      uses: actions/cache@v1
+      with:
+        key: target-${{ matrix.os }}-${{ matrix.target }}
+        path: ./target
+
+    - name: Install dependencies for Ubuntu
+      if: ${{ matrix.os == "ubuntu-latest"}}
+      uses: ryankurte/action-apt@v0.1
+      with: 
+        packages: "libusb-dev"
+    
+    - name: Install dependencies for Windows
+      if: ${{ matrix.os == "windows-latest"}}
+      uses: lukka/run-vcpkg@v3
+      with: 
+        vcpkgArguments: "install --triplet x64-windows-static-md libusb"
+
+    - name: Install dependencies for MacOS
+      if: ${{ matrix.os == "macos-latest"}}
+      run: "brew install libusb"
+        
+    - name: Build release
+      uses: actions-rs/cargo@v1
+      with:
+        use-cross: ${{ matrix.use_cross }}
+        command: build
+        args: --release --target ${{ matrix.target }}
+    
+    - name: Create archive
+      run: tar -cvf target/sx128x-util-${{ matrix.target }}.tgz -C target/${{ matrix.target }}/release/ ${{ matrix.output }}
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v1
+      with:
+        name: sx128x-util-${{ matrix.target }}.tgz
+        path: target/sx128x-util-${{ matrix.target }}.tgz
