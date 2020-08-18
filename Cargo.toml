@@ -5,12 +5,12 @@ repository = "https://github.com/ryankurte/rust-radio-sx128x"
 license = "MPL-2.0"
 name = "radio-sx128x"
 version = "0.14.0-alpha.2"
-
+edition = "2018"
 
 [features]
 default = ["util", "serde"]
 tests = [ "embedded-spi/mock" ]
-util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "embedded-spi/hal", "embedded-spi/hal-cp2130", "failure/std"]
+util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "embedded-spi/hal", "embedded-spi/hal-cp2130", "failure/std"]
 
 [dependencies]
 bitflags = "1.0.4"
@@ -22,6 +22,7 @@ pcap-file = { version = "1.1.1", optional = true }
 
 linux-embedded-hal = { version = "0.3.0", optional = true }
 driver-cp2130 = { version = "1.0.0-alpha", optional = true }
+crc16 = { version = "0.4.0", optional = true }
 
 [dependencies.failure]
 version = "0.1.7"

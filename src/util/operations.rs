@@ -7,7 +7,6 @@ use std::ffi::CString;
 use libc::{self};
 
 use embedded_hal::blocking::delay::DelayUs;
-
 use embedded_spi::hal::{HalDelay};
 use pcap_file::{PcapWriter, DataLink, pcap::PcapHeader};
 
@@ -134,11 +133,19 @@ where
 
     loop {
         if radio.check_receive(true)? {
-            let n = radio.get_received(&mut info, &mut buff)?;
+            let mut n = radio.get_received(&mut info, &mut buff)? as usize;
 
-            match std::str::from_utf8(&buff[0..n as usize]) {
+            // Print received packet
+            match std::str::from_utf8(&buff[0..n]) {
                 Ok(s) => info!("Received {} bytes: '{}' info: {:?}", n, s, info),
-                Err(_) => info!("Received {} bytes: '{:x?}' info: {:?}", n, &buff[0..n as usize], info),
+                Err(_) => info!("Received {} bytes: '{:x?}' info: {:?}", n, &buff[0..n], info),
+            }
+
+            // Append FCS if enabled
+            if options.append_fcs {
+                let crc = crc16::State::<crc16::KERMIT>::calculate(&buff[0..n]);
+                (&mut buff[n..n+2]).copy_from_slice(&crc.to_le_bytes());
+                n += 2;
             }
 
             if let Some(p) = &mut pcap {
