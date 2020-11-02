@@ -2,15 +2,14 @@
 
 extern crate libc;
 
+
 use structopt::StructOpt;
-use log::{debug, info, error};
+use log::{debug, trace, info, error};
 
 use tracing_subscriber::FmtSubscriber;
 use tracing_subscriber::filter::{EnvFilter};
 
 use driver_pal::hal::{HalInst, HalDelay};
-
-
 use radio_sx128x::prelude::*;
 
 
