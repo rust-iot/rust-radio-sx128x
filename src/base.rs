@@ -2,11 +2,13 @@
 
 use core::fmt::Debug;
 
-use hal::blocking::delay::{DelayMs, DelayUs};
-use hal::blocking::spi::Transactional;
+use log::{trace, error};
 
-use embedded_spi::{Reset, Busy, Ready, PinState, PrefixRead, PrefixWrite};
-use embedded_spi::{Error as SpiError};
+use embedded_hal::blocking::delay::{DelayMs, DelayUs};
+use embedded_hal::blocking::spi::Transactional;
+
+use driver_pal::{Reset, Busy, Ready, PinState, PrefixRead, PrefixWrite};
+use driver_pal::{Error as SpiError};
 
 use crate::{Error};
 use crate::device::*;
@@ -138,7 +140,7 @@ where
         trace!("write_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
 
         self.wait_busy()?;
-        let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.try_prefix_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -149,7 +151,7 @@ where
         let out_buf: [u8; 2] = [command as u8, 0x00];
         
         self.wait_busy()?;
-        let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.try_prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
 
         trace!("read_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
@@ -169,7 +171,7 @@ where
         trace!("write_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
 
         self.wait_busy()?;
-        let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.try_prefix_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -185,7 +187,7 @@ where
         ];
 
         self.wait_busy()?;
-        let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.try_prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
 
         trace!("read_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
@@ -204,7 +206,7 @@ where
         trace!("write_buff cmd: {:02x?}", out_buf);
 
         self.wait_busy()?;
-        let r = self.spi_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.try_prefix_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -219,7 +221,7 @@ where
         ];
         trace!(" data: {:02x?}", out_buf);
         self.wait_busy()?;
-        let r = self.spi_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.try_prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
 
         trace!("read_buff cmd: {:02x?} data: {:02x?}", out_buf, data);

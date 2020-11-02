@@ -1,28 +1,18 @@
 
-#[macro_use] extern crate log;
 
 extern crate libc;
 
-extern crate structopt;
 use structopt::StructOpt;
+use log::{debug, info};
 
-extern crate humantime;
-
-extern crate tracing_subscriber;
 use tracing_subscriber::FmtSubscriber;
 use tracing_subscriber::filter::{EnvFilter};
 
-extern crate embedded_spi;
-use embedded_spi::hal::{HalInst, HalDelay};
+use driver_pal::hal::{HalInst, HalDelay};
 
-extern crate embedded_hal;
 
-extern crate radio;
-
-extern crate radio_sx128x;
 use radio_sx128x::prelude::*;
 
-extern crate pcap_file;
 
 mod options;
 use options::*;

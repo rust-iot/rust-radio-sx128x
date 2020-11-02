@@ -10,8 +10,8 @@ extern crate embedded_hal;
 use embedded_hal::digital::v2::OutputPin;
 
 extern crate embedded_spi;
-use embedded_spi::wrapper::Wrapper;
-use embedded_spi::utils::{PinError};
+use driver_pal::wrapper::Wrapper;
+use driver_pal::utils::{PinError};
 
 extern crate linux_embedded_hal;
 use linux_embedded_hal::{spidev, Spidev, Pin as PinDev, Delay};

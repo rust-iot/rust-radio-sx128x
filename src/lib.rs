@@ -7,42 +7,27 @@ use core::marker::PhantomData;
 use core::convert::TryFrom;
 use core::fmt::Debug;
 
-extern crate libc;
 
-#[macro_use]
-extern crate log;
+extern crate libc;
 
 #[cfg(any(test, feature = "util"))]
 #[macro_use]
 extern crate std;
 
-#[cfg(feature = "serde")]
-extern crate serde;
+use failure::Fail;
+use log::{trace, debug, warn, error};
 
-#[cfg(feature = "util")]
-#[macro_use]
-extern crate structopt;
 
-#[macro_use]
-extern crate bitflags;
+use embedded_hal::blocking::{delay};
+use embedded_hal::digital::{InputPin, OutputPin};
+use embedded_hal::spi::{Mode as SpiMode, Phase, Polarity};
+use embedded_hal::blocking::spi::{Transfer, Write, Transactional};
 
-#[cfg(feature = "util")]
-extern crate pcap_file;
+use driver_pal::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
-extern crate failure;
-use failure::{Fail};
-
-extern crate embedded_hal as hal;
-use hal::blocking::{delay};
-use hal::digital::{InputPin, OutputPin};
-use hal::spi::{Mode as SpiMode, Phase, Polarity};
-use hal::blocking::spi::{Transfer, Write, Transactional};
-
-extern crate embedded_spi;
-use embedded_spi::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
-
-extern crate radio;
 pub use radio::{State as _, Interrupts as _, Channel as _};
+
+
 
 pub mod base;
 
@@ -989,7 +974,7 @@ mod tests {
     use crate::device::RampTime;
 
     extern crate embedded_spi;
-    use self::embedded_spi::mock::{Mock, Spi};
+    use self::driver_pal::mock::{Mock, Spi};
 
     use radio::{State as _};
 

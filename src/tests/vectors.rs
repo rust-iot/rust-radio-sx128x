@@ -2,9 +2,9 @@
 
 extern crate embedded_spi;
 
-use self::embedded_spi::{PinState};
-use self::embedded_spi::mock::{Spi, Pin, Delay};
-pub use self::embedded_spi::mock::{Mock, MockTransaction as Mt};
+use self::driver_pal::{PinState};
+use self::driver_pal::mock::{Spi, Pin, Delay};
+pub use self::driver_pal::mock::{Mock, MockTransaction as Mt};
 
 use std::vec::Vec;
 

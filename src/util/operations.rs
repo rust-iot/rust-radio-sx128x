@@ -6,8 +6,10 @@ use std::ffi::CString;
 
 use libc::{self};
 
+use log::{debug, info};
+
 use embedded_hal::blocking::delay::DelayUs;
-use embedded_spi::hal::{HalDelay};
+use driver_pal::hal::{HalDelay};
 use pcap_file::{PcapWriter, DataLink, pcap::PcapHeader};
 
 use super::options::*;

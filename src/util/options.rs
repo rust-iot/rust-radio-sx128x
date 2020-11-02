@@ -2,7 +2,7 @@
 use structopt::StructOpt;
 use humantime::{Duration as HumanDuration};
 use tracing_subscriber::filter::{LevelFilter};
-use embedded_spi::hal::{DeviceConfig};
+use driver_pal::hal::{DeviceConfig};
 
 use radio_sx128x::prelude::*;
 use radio_sx128x::device::{common, flrc, lora};
