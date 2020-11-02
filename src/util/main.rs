@@ -3,7 +3,7 @@
 extern crate libc;
 
 use structopt::StructOpt;
-use log::{debug, info};
+use log::{debug, info, error};
 
 use tracing_subscriber::FmtSubscriber;
 use tracing_subscriber::filter::{EnvFilter};
@@ -28,16 +28,23 @@ fn main() {
     let filter = EnvFilter::from_default_env()
     .add_directive(format!("radio_sx128x={}", opts.log_level).parse().unwrap())
     .add_directive(format!("sx128x_util={}", opts.log_level).parse().unwrap())
-    .add_directive(format!("driver_cp2130=warn").parse().unwrap());
+    .add_directive(format!("driver_cp2130=warn", opts.log_level).parse().unwrap());
 
     let _ = FmtSubscriber::builder()
         .with_env_filter(filter)
         .without_time()
         .try_init();
 
-    debug!("Connecting to SPI device");
+    debug!("Connecting to platform SPI");
+    trace!("with config: {:?}", opts.spi_config);
 
-    let HalInst{base: _, spi, pins} = opts.spi_config.load().unwrap();
+    let HalInst{base: _, spi, pins} = match HalInst::load(&opts.spi_config) {
+        Ok(v) => v,
+        Err(e) => {
+            error!("Error connecting to platform HAL: {:?}", e);
+            return;
+        }
+    };
 
     let rf_config = opts.rf_config();
 
