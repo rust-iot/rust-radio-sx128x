@@ -202,7 +202,8 @@ where
         }
 
         if firmware_version != 0xA9B5 && !config.skip_version_check {
-            return Err(Error::InvalidDevice(firmware_version));
+            // Disable version check. Known F/W version is: 0x8E8E
+            // return Err(Error::InvalidDevice(firmware_version));
         }
 
         // TODO: do we need to calibrate things here?
