@@ -8,10 +8,10 @@ version = "0.14.1-alpha.4"
 edition = "2018"
 
 [features]
-default = ["util", "serde"]
 poll-irq = []
 tests = [ "driver-pal/mock" ]
-util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "driver-pal/hal-cp2130", "failure/std"]
+util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "failure/std"]
+default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux" ]
 
 [dependencies]
 bitflags = "1.0.4"

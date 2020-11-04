@@ -25,21 +25,25 @@ jobs:
             output: sx128x-util
             use_cross: false
             experimental: false
+            args: --features util,driver-pal/hal-cp2130,driver-pal/hal-linux
           - target: armv7-unknown-linux-gnueabihf 
             os: ubuntu-latest
             output: sx128x-util
             use_cross: true
             experimental: true
+            args: --features util,driver-pal/hal-cp2130,driver-pal/hal-linux
           - target: x86_64-apple-darwin
             os: macos-latest
             output: sx128x-util
             use_cross: false
             experimental: false
+            args: --no-default-features --features util,driver-pal/hal-cp2130
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             output: sx128x-util.exe
             use_cross: false
             experimental: true
+            args: --no-default-features --features util,driver-pal/hal-cp2130
 
     steps:
     - uses: actions/checkout@v2
@@ -94,7 +98,7 @@ jobs:
       with:
         use-cross: ${{ matrix.use_cross }}
         command: build
-        args: --target ${{ matrix.target }} --release
+        args: --target ${{ matrix.target }} --release ${{ matrix.args }}
 
     - name: Copy / Rename utility
       run: |
