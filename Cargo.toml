@@ -34,7 +34,7 @@ default-features = false
 version = "=1.0.0-alpha.2"
 
 [dependencies.driver-pal]
-version = "=1.0.0-alpha.0"
+version = "0.7.0"
 default-features = false
 git = "https://github.com/ryankurte/rust-embedded-spi.git"
 branch = "master"
