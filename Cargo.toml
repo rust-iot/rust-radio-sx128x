@@ -31,16 +31,16 @@ features = [ "derive" ]
 default-features = false
 
 [dependencies.embedded-hal]
-version = "=1.0.0-alpha.2"
+version = "=1.0.0-alpha.3"
 
 [dependencies.driver-pal]
 version = "0.7.0"
 default-features = false
-git = "https://github.com/ryankurte/rust-embedded-spi.git"
+git = "https://github.com/ryankurte/rust-driver-pal.git"
 branch = "master"
 
 #[target.'cfg(unix)'.dependencies.driver-pal]
-#version = "00.6.1
+#version = "0.6.1
 #features = [ "hal-linux" ]
 
 [dependencies.humantime]
@@ -72,21 +72,13 @@ name = "sx128x-util"
 path = "src/util/main.rs"
 required-features = ["util"]
 
+
 [patch.crates-io]
 radio = { git = "https://github.com/ryankurte/rust-radio.git", branch = "master" }
 
-# Patch for transactional SPI, remove on e-h@v1.0.0-alpha.3
-embedded-hal = { git = "https://github.com/rust-embedded/embedded-hal.git", branch = "master" }
-# Patches for transactional SPI, blocked on e-h@v1.0.0-alpha.3, remove when upstreamed
-#driver-pal = { git = "https://github.com/ryankurte/rust-embedded-spi.git", branch = "master" }
-driver-cp2130 = { git = "https://github.com/ryankurte/rust-driver-cp2130.git", branch = "master" }
+# Patch for transactional SPI, remove on l-e-h alpha release
 linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/spi-transactions" }
 
 # Fix for libusb-sys package discovery
 libusb-sys = { git = "https://github.com/cmsd2/libusb-sys" } 
-
-#driver-cp2130 = { path = "../rust-driver-cp2130" }
-#embedded-hal = { path = "../embedded-hal" }
-#driver-pal = { path = "../rust-driver-pal" }
-#linux-embedded-hal = { path = "../linux-embedded-hal" }
 
