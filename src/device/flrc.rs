@@ -51,7 +51,7 @@ impl Default for FlrcConfig {
             sync_word_length: FlrcSyncWordLength::Length4,
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_1,
             header_type: GfskFlrcPacketLength::Variable,
-            payload_length: 255,
+            payload_length: 127,
             crc_mode: GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
             whitening: WhiteningModes::RADIO_WHITENING_OFF,
             patch_syncword: true,
