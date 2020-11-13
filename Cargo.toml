@@ -31,7 +31,7 @@ features = [ "derive" ]
 default-features = false
 
 [dependencies.embedded-hal]
-version = "=1.0.0-alpha.3"
+version = "=1.0.0-alpha.4"
 
 [dependencies.driver-pal]
 version = "0.7.0"
