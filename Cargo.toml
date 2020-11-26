@@ -31,7 +31,7 @@ features = [ "derive" ]
 default-features = false
 
 [dependencies.embedded-hal]
-version = "=1.0.0-alpha.3"
+version = "=1.0.0-alpha.4"
 
 [dependencies.driver-pal]
 version = "0.7.0"
@@ -77,7 +77,7 @@ required-features = ["util"]
 radio = { git = "https://github.com/ryankurte/rust-radio.git", branch = "master" }
 
 # Patch for transactional SPI, remove on l-e-h alpha release
-linux-embedded-hal = { git = "https://github.com/ryankurte/linux-embedded-hal.git", branch = "feature/spi-transactions" }
+linux-embedded-hal = { git = "https://github.com/rust-embedded/linux-embedded-hal.git", branch = "master" }
 
 # Fix for libusb-sys package discovery
 libusb-sys = { git = "https://github.com/cmsd2/libusb-sys" } 

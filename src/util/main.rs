@@ -25,9 +25,9 @@ fn main() {
 
     // Initialise logging
     let filter = EnvFilter::from_default_env()
-    .add_directive(format!("radio_sx128x={}", opts.log_level).parse().unwrap())
-    .add_directive(format!("sx128x_util={}", opts.log_level).parse().unwrap())
-    .add_directive(format!("driver_cp2130={}", opts.log_level).parse().unwrap());
+        .add_directive(format!("radio_sx128x={}", opts.log_level).parse().unwrap())
+        .add_directive(format!("sx128x_util={}", opts.log_level).parse().unwrap())
+        .add_directive(format!("driver_cp2130={}", opts.log_level).parse().unwrap());
 
     let _ = FmtSubscriber::builder()
         .with_env_filter(filter)
