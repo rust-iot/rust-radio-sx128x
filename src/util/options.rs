@@ -288,6 +288,10 @@ pub struct Receive {
     /// Append FCS to received data
     #[structopt(long)]
     pub append_fcs: bool,
+
+    /// Add a timeout after which to stop receiving
+    #[structopt(long = "timeout", default_value="0s")]
+    pub timeout: HumanDuration,
 }
 
 #[derive(Clone, StructOpt, PartialEq, Debug)]

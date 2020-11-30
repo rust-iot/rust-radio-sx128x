@@ -1,5 +1,3 @@
-
-
 use std::time::{Duration, SystemTime};
 use std::fs::{File, OpenOptions};
 use std::ffi::CString;
@@ -133,6 +131,10 @@ where
     // Start receive mode
     radio.start_receive()?;
 
+    // Recording the Starting time
+    let start_time = SystemTime::now();
+
+
     loop {
         if radio.check_receive(true)? {
             let mut n = radio.get_received(&mut info, &mut buff)? as usize;
@@ -154,14 +156,28 @@ where
                 let t = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
                 
                 p.write(t.as_secs() as u32, t.as_nanos() as u32 % 1_000_000, &buff[0..n], n as u32).expect("Error writing pcap file");
-            }
+           
+	     }
+
             
             if !options.continuous { 
                 return Ok(n)
             }
 
             radio.start_receive()?;
+
         }
+
+	// Time elapsed since started receiving 
+	let elapsed_time = start_time.elapsed().unwrap();
+
+	// If timeout value given then check for timeout
+       	if options.timeout.as_secs() != 0 && options.timeout.as_secs() < elapsed_time.as_secs() {
+		info!("Receiver Timed Out");
+		return Ok(0);			// No Message Received
+	}
+
+
 
         HalDelay{}.try_delay_us(options.poll_interval.as_micros() as u32).unwrap();
     }
