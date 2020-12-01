@@ -172,11 +172,13 @@ where
 	let elapsed_time = start_time.elapsed().unwrap();
 
 	// If timeout value given then check for timeout
-       	if options.timeout.as_secs() != 0 && options.timeout.as_secs() < elapsed_time.as_secs() {
-		info!("Receiver Timed Out");
-		return Ok(0);			// No Message Received
+       	match options.timeout {
+   		Some(d) if elapsed_time > *d => {
+			info!("Receiver Timed Out");
+			return Ok(0);			// No Message Received
+    		},
+	_ => (),
 	}
-
 
 
         HalDelay{}.try_delay_us(options.poll_interval.as_micros() as u32).unwrap();
