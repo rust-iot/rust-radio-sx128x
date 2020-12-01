@@ -291,7 +291,7 @@ pub struct Receive {
 
     /// Add a timeout after which to stop receiving
     #[structopt(long = "timeout", default_value="0s")]
-    pub timeout: HumanDuration,
+    pub timeout: Option<HumanDuration>,
 }
 
 #[derive(Clone, StructOpt, PartialEq, Debug)]
