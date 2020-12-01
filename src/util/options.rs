@@ -290,7 +290,7 @@ pub struct Receive {
     pub append_fcs: bool,
 
     /// Add a timeout after which to stop receiving
-    #[structopt(long = "timeout", default_value="0s")]
+    #[structopt(long)]
     pub timeout: Option<HumanDuration>,
 }
 
