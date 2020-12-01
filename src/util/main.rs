@@ -62,6 +62,14 @@ fn main() {
             return
         },
         _ => {
+	    match opts.syncword {
+	    Some(mut s) => {
+		radio.set_syncword(1, &mut s.0);
+		debug!("Syncword(in decimal): {:?}", s);
+
+	    },
+	    	_ => (),
+            }
             do_command(&mut radio, operation.unwrap()).expect("error executing command");
         }
     }
