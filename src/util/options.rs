@@ -37,6 +37,11 @@ pub struct Options {
     #[structopt(long, default_value = "info")]
     /// Configure radio log level
     pub log_level: LevelFilter,
+
+    /// Set sync word in hex (base 16), from LSB to MSB without spaces
+    #[structopt(long)]
+    pub syncword: Option<HexData>,
+
 }
 
 #[derive(StructOpt, PartialEq, Debug)]
@@ -58,10 +63,16 @@ pub enum Command {
     Flrc(FlrcCommand),
 }
 
-fn try_from_hex(s: &str) -> Result<u32, std::num::ParseIntError> {
-    u32::from_str_radix(s, 16)
-}
+#[derive(Debug, PartialEq)]
+pub struct HexData(pub Vec<u8>);
 
+impl std::str::FromStr for HexData {
+    type Err = hex::FromHexError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        hex::decode(s).map(HexData)
+    }
+}
 
 impl Command {
     pub fn operation(&self) -> Option<Operation> {
@@ -215,10 +226,6 @@ pub struct FlrcCommand {
     /// Disable Sync word matching
     #[structopt(long)]
     pub no_syncword: bool,
-
-    /// Set sync word
-    #[structopt(long, parse(try_from_str=try_from_hex))]
-    pub syncword: Option<u32>,
 
     #[structopt(subcommand)]
     /// Operation to execute
