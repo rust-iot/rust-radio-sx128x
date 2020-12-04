@@ -62,17 +62,11 @@ fn main() {
             return
         },
         _ => {
-	    match opts.syncword {
-	    Some(mut s) => {
-		let res = radio.set_syncword(1, &mut s.0);
-		debug!("Syncword(in decimal): {:?}", s);
-		match res {
-			Ok(_) => (),
-			Err(e) => error!("Error setting syncword: {:?}", e),
+	    if let Some(mut syncword) = opts.syncword {
+		if let Err(e) = radio.set_syncword(1, &mut syncword.0) {
+			error!("Error setting syncword: {:?}", e);
 		}
-
-	    },
-	    	_ => (),
+		debug!("Syncword(in decimal): {:?}", syncword);
             }
             do_command(&mut radio, operation.unwrap()).expect("error executing command");
         }

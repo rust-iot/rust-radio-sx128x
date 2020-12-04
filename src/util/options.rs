@@ -38,7 +38,7 @@ pub struct Options {
     /// Configure radio log level
     pub log_level: LevelFilter,
 
-    /// Set sync word in base Hex (from LSB to MSB without spaces)
+    /// Set sync word in hex (base 16), from LSB to MSB without spaces
     #[structopt(long)]
     pub syncword: Option<HexData>,
 
@@ -73,11 +73,6 @@ impl std::str::FromStr for HexData {
         hex::decode(s).map(HexData)
     }
 }
-
-//fn try_from_hex(s: &str) -> Result<u32, std::num::ParseIntError> {
-  //  u32::from_str_radix(s, 16)
-//}
-
 
 impl Command {
     pub fn operation(&self) -> Option<Operation> {
