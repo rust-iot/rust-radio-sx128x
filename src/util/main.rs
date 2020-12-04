@@ -64,8 +64,12 @@ fn main() {
         _ => {
 	    match opts.syncword {
 	    Some(mut s) => {
-		radio.set_syncword(1, &mut s.0);
+		let res = radio.set_syncword(1, &mut s.0);
 		debug!("Syncword(in decimal): {:?}", s);
+		match res {
+			Ok(_) => (),
+			Err(e) => error!("Error setting syncword: {:?}", e),
+		}
 
 	    },
 	    	_ => (),
