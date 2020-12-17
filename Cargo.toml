@@ -4,11 +4,11 @@ description = "Driver for the Semtec sx1280 2.4GHz RF IC"
 repository = "https://github.com/rust-iot/rust-radio-sx128x"
 license = "MPL-2.0"
 name = "radio-sx128x"
-version = "0.14.1-alpha.4"
+version = "0.14.1-alpha.5"
 edition = "2018"
 
 [package.metadata]
-pkg-name = "sx128x-util"
+pkg-url = "https://github.com/ryankurte/rust-radio-sx128x/releases/download/v{ version }/sx128x-util-{ target }.tgz"
 
 [features]
 poll-irq = []
