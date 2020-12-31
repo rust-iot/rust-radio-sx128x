@@ -27,7 +27,7 @@ jobs:
             experimental: false
             args: --features util,driver-pal/hal-cp2130,driver-pal/hal-linux
           - target: armv7-unknown-linux-gnueabihf 
-            os: ubuntu-latest
+            os: ubuntu-20.04
             output: sx128x-util
             use_cross: true
             experimental: true
