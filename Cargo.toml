@@ -1,56 +1,71 @@
 [package]
 authors = ["Ryan Kurte <ryankurte@gmail.com>"]
 description = "Driver for the Semtec sx1280 2.4GHz RF IC"
-repository = "https://github.com/rust-iot/rust-radio-sx128x"
+edition = "2018"
 license = "MPL-2.0"
 name = "radio-sx128x"
-version = "0.14.1-alpha.5"
-edition = "2018"
+repository = "https://github.com/rust-iot/rust-radio-sx128x"
+version = "0.15.0"
 
-[package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/sx128x-util-{ target }.tgz"
-pkg-fmt = "tar"
+[metadata]
+[metadata.binstall]
 bin-dir = "{ bin }-{ target }{ format }"
+pkg-fmt = "tar"
+pkg-url = "{ repo }/releases/download/v{ version }/sx128x-util-{ target }.tgz"
 
-
-[features]
-poll-irq = []
-tests = [ "driver-pal/mock" ]
-util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "failure/std", "hex"]
-default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux" ]
+[[bin]]
+name = "sx128x-util"
+path = "src/util/main.rs"
+required-features = ["util"]
 
 [dependencies]
 bitflags = "1.0.4"
+embedded-hal = "1.0.0-alpha.4"
 libc = "0.2.70"
 log = "0.4.6"
 radio = "0.8.1"
 
-pcap-file = { version = "1.1.1", optional = true }
-
-embedded-hal = "1.0.0-alpha.4"
-linux-embedded-hal = { version = "0.4.0-alpha.0", optional = true }
-driver-cp2130 = { version = "1.0.0-alpha.2", optional = true }
-
-crc16 = { version = "0.4.0", optional = true }
-hex = { version = "0.4.2", optional = true }
-
-[dependencies.failure]
-version = "0.1.7"
+[dependencies.serde]
+version = "1.0.118"
+optional = true
 features = [ "derive" ]
-default-features = false
+
+[dependencies.crc16]
+optional = true
+version = "0.4.0"
+
+[dependencies.driver-cp2130]
+optional = true
+version = "1.0.0-alpha.2"
 
 [dependencies.driver-pal]
-version = "0.8.0-alpha.1"
 default-features = false
+version = "0.8.0-alpha.1"
+
+[dependencies.failure]
+default-features = false
+features = ["derive"]
+version = "0.1.7"
+
+[dependencies.hex]
+optional = true
+version = "0.4.2"
 
 [dependencies.humantime]
 optional = true
 version = "2.0.1"
 
-[dependencies.serde]
-features = ["derive"]
+[dependencies.linux-embedded-hal]
 optional = true
-version = "1.0"
+version = "0.4.0-alpha.0"
+
+[dependencies.pcap-file]
+optional = true
+version = "1.1.1"
+
+[dependencies.structopt]
+optional = true
+version = "0.3.21"
 
 [dependencies.tracing]
 optional = true
@@ -60,23 +75,24 @@ version = "0.1.14"
 optional = true
 version = "0.2.5"
 
-[dependencies.structopt]
-optional = true
-version = "0.3.21"
-
 [dev-dependencies]
 color-backtrace = "0.5.0"
 env_logger = "0.8.2"
-toml = "0.5.8"
-serde = { version = "*", features = [ "derive" ] }
 serde_derive = "1.0.118"
+toml = "0.5.8"
 
 [dev-dependencies.driver-pal]
-version = "0.8.0-alpha.0"
-features = [ "mock", "hal" ]
 default-features = false
+features = ["mock", "hal"]
+version = "0.8.0-alpha.0"
 
-[[bin]]
-name = "sx128x-util"
-path = "src/util/main.rs"
-required-features = ["util"]
+[dev-dependencies.serde]
+features = ["derive"]
+version = "1.0.118"
+
+[features]
+default = ["util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux"]
+poll-irq = []
+tests = ["driver-pal/mock"]
+util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "failure/std", "hex"]
+atures = ["util"]
