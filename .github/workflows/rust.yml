@@ -58,6 +58,8 @@ jobs:
     
     - name: Configure caching 
       uses: actions/cache@v2
+      # Caching disabled on macos due to https://github.com/actions/cache/issues/403
+      if: ${{ matrix.os != 'macos-latest' }}
       with:
         key: ${{ matrix.os }}-${{ matrix.target }}
         path: |
@@ -72,13 +74,17 @@ jobs:
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-gnu' }}
       run: sudo apt install -y libusb-1.0 libusb-dev
 
-    - name: Install libusb (apt armv7)
-      if: ${{ matrix.os == 'ubuntu-20.04' && matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+    - name: Install libusb (armv7)
+      if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+      uses: ryankurte/action-apt@v0.3.0
+      with:
+        arch: armhf
+        packages: libusb-dev:armhf
+
+    - name: Enable cross compilation (armv7)
+      if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
       run: |
-        echo "deb [arch=armhf] http://ports.ubuntu.com/ubuntu-ports focal main universe" | sudo tee /etc/apt/sources.list.d/armhf.list
-        sudo apt update
-        sudo apt install libusb-1.0:armhf libusb-dev:armhf
-        echo "PKG_CONFIG_ALLOW_CROSS=1" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf-8 -Append
+        echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
 
     - name: Install libusb (vcpkg)
       if: ${{ matrix.os == 'windows-latest' }}
