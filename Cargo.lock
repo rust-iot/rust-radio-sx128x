@@ -633,6 +633,7 @@ dependencies = [
  "pcap-file",
  "radio",
  "serde",
+ "serde_derive",
  "structopt",
  "toml",
  "tracing",
