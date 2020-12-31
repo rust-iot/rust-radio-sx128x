@@ -81,6 +81,10 @@ jobs:
         arch: armhf
         packages: libusb-dev:armhf
 
+    - name: Install cross toolchain (armv7)
+      if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
+      run: sudo apt install gcc-arm-linux-gnueabihf
+
     - name: Enable cross compilation (armv7)
       if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
       run: |
