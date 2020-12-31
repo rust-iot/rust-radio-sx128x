@@ -2,89 +2,51 @@
 //!
 //! Copyright 2019 Ryan Kurte
 
-use std::io::Error as IoError;
 use std::thread;
 use std::time::Duration;
 
-extern crate embedded_hal;
-use embedded_hal::digital::v2::OutputPin;
-
-extern crate embedded_spi;
 use driver_pal::wrapper::Wrapper;
-use driver_pal::utils::{PinError};
+use driver_pal::hal::*;
 
-extern crate linux_embedded_hal;
-use linux_embedded_hal::{spidev, Spidev, Pin as PinDev, Delay};
-use linux_embedded_hal::sysfs_gpio::Direction;
-
-extern crate radio_sx128x;
+use radio::{Receive, Transmit};
 use radio_sx128x::prelude::*;
 
-extern crate radio;
-use radio::{Receive, Transmit};
-
 #[macro_use] extern crate log;
-extern crate simplelog;
-use simplelog::{SimpleLogger, LevelFilter};
 
-pub type SpiWrapper = Wrapper<Spidev, IoError, PinDev, PinDev, (), PinDev, PinError, Delay>;
+pub type SpiWrapper = Wrapper<HalSpi, HalError, HalOutputPin, HalInputPin, HalInputPin, HalOutputPin, HalError, HalDelay, HalError>;
 
-pub type Radio = Sx128x<SpiWrapper, IoError, PinError>;
+pub type Radio = Sx128x<SpiWrapper, HalError, HalError, HalError>;
 
-pub struct HwConfig<'a> {
-    spi: &'a str, 
-    baud: u32, 
-    cs: u64, 
-    rst: u64, 
-    busy: u64, 
-    ant: u64,
+
+#[derive(Debug, serde::Deserialize)]
+pub struct TestConfig {
+    radio1: DeviceConfig,
+    radio2: DeviceConfig,
 }
 
-const RADIO1_CONFIG: HwConfig = HwConfig {
-    spi: "/dev/spidev0.0", baud: 1_000_000, cs: 16, rst: 17, busy: 5, ant: 23
-};
 
-const RADIO2_CONFIG: HwConfig = HwConfig {
-    spi: "/dev/spidev0.1", baud: 1_000_000, cs: 13, rst: 18, busy: 8, ant: 22
-};
-
-fn load_radio(config: &Config, hw: &HwConfig) -> Radio
- {
+fn load_radio(rf_config: &Config, device_config: &DeviceConfig) -> Radio {
     debug!("Connecting to radio");
 
-    // Connect to hardware
-    let mut spi = Spidev::open(hw.spi).expect("error opening spi device");
-    let mut spi_config = spidev::SpidevOptions::new();
-    spi_config.mode(spidev::SpiModeFlags::SPI_MODE_0 | spidev::SpiModeFlags::SPI_NO_CS);
-    spi_config.max_speed_hz(hw.baud);
-    spi.configure(&spi_config).expect("error configuring spi device");
+    let HalInst{base: _, spi, pins} = HalInst::load(&device_config).expect("error connecting to HAL");
 
-    let cs = PinDev::new(hw.cs);
-    cs.export().expect("error exporting cs pin");
-    cs.set_direction(Direction::Out).expect("error setting cs pin direction");
-
-    let rst = PinDev::new(hw.rst);
-    rst.export().expect("error exporting rst pin");
-    rst.set_direction(Direction::Out).expect("error setting rst pin direction");
-
-    // Configure (optional) antenna control output pin
-    let mut ant = PinDev::new(hw.ant);
-    ant.export().expect("error exporting rst ant");
-    ant.set_direction(Direction::Out).expect("error setting ant pin direction");
-    ant.set_high().expect("error setting ANT pin state");
-
-    // Configure busy input pin
-    let busy = PinDev::new(hw.busy);
-    busy.export().expect("error exporting busy pin");
-    busy.set_direction(Direction::Out).expect("error setting busy pin direction");
-
-    let hal: SpiWrapper = Wrapper::new(spi, cs, busy, (), rst, Delay{});
-
-    let radio = Sx128x::new(hal, config).expect("error creating radio");
+    let radio = Sx128x::spi(spi, pins.cs, pins.busy, pins.ready, pins.reset, HalDelay{}, rf_config).expect("error creating device");
 
     debug!("Radio initialised");
 
     radio
+}
+
+fn load_radios(rf_config: &Config) -> (Radio, Radio) {
+
+    let config_file = std::env::var("TEST_CONFIG").unwrap_or("config.toml".to_string());
+    let config_data = std::fs::read_to_string(config_file).expect("Error reading test config");
+    let hw_config: TestConfig = toml::from_str(&config_data).expect("Error parsing test config");
+
+    let r1 = load_radio(rf_config, &hw_config.radio1);
+    let r2 = load_radio(rf_config, &hw_config.radio2);
+
+    (r1, r2)
 }
 
 
@@ -137,11 +99,14 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
     assert_eq!(data, &buff[..n]);
 }
 
+fn log_init() {
+    let _ = env_logger::builder().is_test(true).try_init();
+}
+
 #[test]
 #[ignore]
 fn lora_tx_rx() {
-    // Setup logging
-    let _ = SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default());
+    log_init();
 
     let mut config = Config::default();
     config.modem = Modem::LoRa(LoRaConfig::default());
@@ -150,8 +115,8 @@ fn lora_tx_rx() {
     config.channel = Channel::LoRa(channel);
 
     info!("Loading radios");
-    let mut radio1 = load_radio(&config, &RADIO1_CONFIG);
-    let mut radio2 = load_radio(&config, &RADIO2_CONFIG);
+    
+    let (mut radio1, mut radio2) = load_radios(&config);
 
     info!("Running test");
     test_tx_rx(&mut radio1, &mut radio2);
@@ -161,8 +126,7 @@ fn lora_tx_rx() {
 #[test]
 #[ignore]
 fn flrc_tx_rx() {
-    // Setup logging
-    let _ = SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default());
+    log_init();
 
     let mut config = Config::default();
     config.modem = Modem::Flrc(FlrcConfig::default());
@@ -171,8 +135,7 @@ fn flrc_tx_rx() {
     config.channel = Channel::Flrc(channel);
 
     info!("Loading radios");
-    let mut radio1 = load_radio(&config, &RADIO1_CONFIG);
-    let mut radio2 = load_radio(&config, &RADIO2_CONFIG);
+    let (mut radio1, mut radio2) = load_radios(&config);
 
     info!("Running test");
     test_tx_rx(&mut radio1, &mut radio2);
@@ -181,8 +144,7 @@ fn flrc_tx_rx() {
 #[test]
 #[ignore]
 fn gfsk_tx_rx() {
-    // Setup logging
-    let _ = SimpleLogger::init(LevelFilter::Debug, simplelog::Config::default());
+    log_init();
 
     let mut config = Config::default();
     config.modem = Modem::Gfsk(GfskConfig::default());
@@ -191,8 +153,7 @@ fn gfsk_tx_rx() {
     config.channel = Channel::Gfsk(channel);
 
     info!("Loading radios");
-    let mut radio1 = load_radio(&config, &RADIO1_CONFIG);
-    let mut radio2 = load_radio(&config, &RADIO2_CONFIG);
+    let (mut radio1, mut radio2) = load_radios(&config);
 
     info!("Running test");
     test_tx_rx(&mut radio1, &mut radio2);

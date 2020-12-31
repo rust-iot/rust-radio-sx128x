@@ -1,10 +1,8 @@
 //! Vectors contains functions to generate test vectors for driver testing
 
-extern crate embedded_spi;
-
-use self::driver_pal::{PinState};
-use self::driver_pal::mock::{Spi, Pin, Delay};
-pub use self::driver_pal::mock::{Mock, MockTransaction as Mt};
+use driver_pal::{PinState};
+use driver_pal::mock::{Spi, Pin, Delay};
+pub use driver_pal::mock::{Mock, MockTransaction as Mt};
 
 use std::vec::Vec;
 
