@@ -69,6 +69,7 @@ color-backtrace = "0.5.0"
 env_logger = "0.8.2"
 toml = "0.5.8"
 serde = { version = "*", features = [ "derive" ] }
+serde_derive = "1.0.118"
 
 [dev-dependencies.driver-pal]
 version = "0.8.0-alpha.0"
