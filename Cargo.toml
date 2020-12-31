@@ -71,7 +71,8 @@ toml = "0.5.8"
 
 [dev-dependencies.driver-pal]
 version = "0.8.0-alpha.0"
-features = [ "mock" ]
+features = [ "mock", "hal" ]
+default-features = false
 
 [[bin]]
 name = "sx128x-util"

@@ -7,25 +7,24 @@ A rust driver (and command line utility) for the [Semtech SX128x](https://www.se
 
 WIP. Basic LoRa functionality working.
 
-[![GitHub tag](https://img.shields.io/github/tag/ryankurte/rust-radio-sx128x.svg)](https://github.com/ryankurte/rust-radio-sx128x)
-[![Travis Build Status](https://travis-ci.com/ryankurte/rust-radio-sx128x.svg?branch=master)](https://travis-ci.com/ryankurte/rust-radio-sx128x)
-[![BuildKite Build Status](https://badge.buildkite.com/a8caa71f875a6ec62091a5dda4dbf7dc0e35eb4e02c8d0933b.svg)](https://buildkite.com/ryankurte/rust-radio-sx128x)
+[![GitHub tag](https://img.shields.io/github/tag/rust-iot/rust-radio-sx128x.svg)](https://github.com/rust-iot/rust-radio-sx128x)
+![Build Status](https://github.com/rust-iot/rust-radio-sx128x/workflows/Rust/badge.svg)
+[![Integration Test Status](https://badge.buildkite.com/a8caa71f875a6ec62091a5dda4dbf7dc0e35eb4e02c8d0933b.svg)](https://buildkite.com/rust-iot/rust-radio-sx128x)
 [![Crates.io](https://img.shields.io/crates/v/radio-sx128x.svg)](https://crates.io/crates/radio-sx128x)
 [![Docs.rs](https://docs.rs/radio-sx128x/badge.svg)](https://docs.rs/radio-sx128x)
-[![Snap Status](https://build.snapcraft.io/badge/ryankurte/rust-radio-sx128x.svg)](https://build.snapcraft.io/user/ryankurte/rust-radio-sx128x)
+[![Snap Status](https://build.snapcraft.io/badge/rust-iot/rust-radio-sx128x.svg)](https://build.snapcraft.io/user/rust-iot/rust-radio-sx128x)
 
-[Open Issues](https://github.com/ryankurte/rust-radio-sx127x/issues)
+[Open Issues](https://github.com/rust-iot/rust-radio-sx128x/issues)
 
 ## Usage
 
 Add to your project with `cargo add radio-sx128x`
 
-Install the utility with one of the following methods:
+Install the utility via one of the following methods:
 
-- using a pre-packaged snap with `snap install sx128x-util`
-- using a precompiled binary from the [releases](https://github.com/ryankurte/rust-radio-sx128x/releases/) page
-- from source using cargo with `cargo install radio-sx128x`
-
+- `cargo install radio-sx128x` to install from source
+- `cargo binstall radio-sx128x` to install a pre-compiled binary via [cargo-binstall](https://github.com/ryankurte/cargo-binstall)
+- Manually fetch the latest [release](https://github.com/rust-iot/rust-radio-sx128x/releases/)
 
 ## Useful Resources
 - [Datasheet](https://www.semtech.com/uploads/documents/DS_SX1280-1_V2.2.pdf)
