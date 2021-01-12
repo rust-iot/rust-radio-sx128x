@@ -40,7 +40,7 @@ features = [ "derive" ]
 default-features = false
 
 [dependencies.driver-pal]
-version = "0.8.0-alpha.1"
+version = "0.8.0-alpha.2"
 default-features = false
 
 [dependencies.humantime]
