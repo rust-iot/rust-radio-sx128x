@@ -45,7 +45,7 @@ default-features = false
 
 [dependencies.humantime]
 optional = true
-version = "2.0.1"
+version = "2.1.0"
 
 [dependencies.serde]
 features = ["derive"]
