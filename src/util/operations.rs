@@ -141,8 +141,8 @@ where
 
             // Print received packet
             match std::str::from_utf8(&buff[0..n]) {
-                Ok(s) => info!("Received {} bytes: '{}' info: {:?}", n, s, info),
-                Err(_) => info!("Received {} bytes: '{:x?}' info: {:?}", n, &buff[0..n], info),
+                Ok(s) => println!("Received {} bytes: '{}' info: {:?}", n, s, info),
+                Err(_) => println!("Received {} bytes: '{:x?}' info: {:?}", n, &buff[0..n], info),
             }
 
             // Append FCS if enabled
