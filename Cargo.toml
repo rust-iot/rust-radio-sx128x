@@ -21,7 +21,7 @@ default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux" ]
 
 [dependencies]
 bitflags = "1.0.4"
-libc = "0.2.82"
+libc = "0.2.86"
 log = "0.4.13"
 radio = "0.8.1"
 
