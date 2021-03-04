@@ -32,7 +32,7 @@ linux-embedded-hal = { version = "0.4.0-alpha.0", optional = true }
 driver-cp2130 = { version = "1.0.0-alpha.2", optional = true }
 
 crc16 = { version = "0.4.0", optional = true }
-hex = { version = "0.4.2", optional = true }
+hex = { version = "0.4.3", optional = true }
 
 [dependencies.failure]
 version = "0.1.7"
