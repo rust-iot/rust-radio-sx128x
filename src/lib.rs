@@ -14,7 +14,6 @@ extern crate libc;
 #[macro_use]
 extern crate std;
 
-use common::GfskFlrcCrcModes;
 use failure::Fail;
 use log::{trace, debug, warn, error};
 
