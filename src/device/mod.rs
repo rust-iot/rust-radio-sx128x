@@ -226,7 +226,7 @@ impl core::convert::TryFrom<u8> for State {
             0x05 => Ok(State::Rx),
             0x06 => Ok(State::Tx),
             _ => {
-                error!("Unrecognised state {:x}", v);
+                error!("Unrecognised state 0x{:x}", v);
                 Err(())
             }
         }

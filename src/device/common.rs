@@ -124,7 +124,7 @@ pub enum GfskFlrcPacketLength {
 pub enum GfskFlrcCrcModes {
     /// CRC disabled
     RADIO_CRC_OFF                           = 0x00, 
-    RADIO_CRC_1_BYTES                       = 0x10,
-    RADIO_CRC_2_BYTES                       = 0x20,
-    RADIO_CRC_3_BYTES                       = 0x30,
+    RADIO_CRC_2_BYTES                       = 0x10,
+    RADIO_CRC_3_BYTES                       = 0x20,
+    RADIO_CRC_4_BYTES                       = 0x30,
 }

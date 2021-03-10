@@ -118,9 +118,9 @@ impl Options {
 
                 modem.crc_mode = match self.crc_mode {
                     0 => RADIO_CRC_OFF,
-                    1 => RADIO_CRC_1_BYTES,
                     2 => RADIO_CRC_2_BYTES,
                     3 => RADIO_CRC_3_BYTES,
+                    4 => RADIO_CRC_4_BYTES,
                     _ => unimplemented!(),
                 };
 
@@ -156,9 +156,9 @@ impl Options {
 
                 match self.crc_mode {
                     0 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_OFF,
-                    1 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_1_BYTES,
                     2 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_2_BYTES,
                     3 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_3_BYTES,
+                    4 => modem.crc_mode = common::GfskFlrcCrcModes::RADIO_CRC_4_BYTES,
                     _ => unimplemented!(),
                 }
     

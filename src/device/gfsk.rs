@@ -55,7 +55,7 @@ impl Default for GfskConfig {
     fn default() -> Self {
         Self {
             preamble_length: PreambleLength::PreambleLength32,
-            sync_word_length: GfskSyncWordLength::GFSK_SYNCWORD_LENGTH_4_BYTE,
+            sync_word_length: GfskSyncWordLength::GFSK_SYNCWORD_LENGTH_5_BYTE,
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_1,
             header_type: GfskFlrcPacketLength::Variable,
             payload_length: 255,

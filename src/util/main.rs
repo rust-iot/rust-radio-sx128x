@@ -27,7 +27,7 @@ fn main() {
     let filter = EnvFilter::from_default_env()
         .add_directive(format!("radio_sx128x={}", opts.log_level).parse().unwrap())
         .add_directive(format!("sx128x_util={}", opts.log_level).parse().unwrap())
-        .add_directive(format!("driver_cp2130={}", opts.log_level).parse().unwrap());
+        .add_directive(format!("driver_cp2130=info").parse().unwrap());
 
     let _ = FmtSubscriber::builder()
         .with_env_filter(filter)
@@ -66,7 +66,7 @@ fn main() {
 		if let Err(e) = radio.set_syncword(1, &mut syncword.0) {
 			error!("Error setting syncword: {:?}", e);
 		}
-		debug!("Syncword(in decimal): {:?}", syncword);
+		debug!("Syncword: 0x{:x?}", syncword.0);
             }
             do_command(&mut radio, operation.unwrap()).expect("error executing command");
         }
