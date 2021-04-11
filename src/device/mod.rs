@@ -214,6 +214,16 @@ pub enum State {
     Tx          = 0x06,
 }
 
+impl radio::RadioState for State {
+    fn idle() -> Self {
+        Self::StandbyXosc
+    }
+
+    fn sleep() -> Self {
+        Self::Sleep
+    }
+}
+
 impl core::convert::TryFrom<u8> for State {
     type Error = ();
 
