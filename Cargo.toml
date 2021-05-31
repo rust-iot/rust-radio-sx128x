@@ -54,7 +54,7 @@ version = "1.0.126"
 
 [dependencies.tracing]
 optional = true
-version = "0.1.25"
+version = "0.1.26"
 
 [dependencies.tracing-subscriber]
 optional = true
