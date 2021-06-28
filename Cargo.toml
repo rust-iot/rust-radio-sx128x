@@ -58,7 +58,7 @@ version = "0.1.25"
 
 [dependencies.tracing-subscriber]
 optional = true
-version = "0.2.16"
+version = "0.2.19"
 
 [dependencies.structopt]
 optional = true
