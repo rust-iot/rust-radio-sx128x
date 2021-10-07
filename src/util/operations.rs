@@ -6,7 +6,7 @@ use libc::{self};
 
 use log::{debug, info};
 
-use embedded_hal::blocking::delay::DelayUs;
+use embedded_hal::delay::blocking::DelayUs;
 use driver_pal::hal::{HalDelay};
 use pcap_file::{PcapWriter, DataLink, pcap::PcapHeader};
 
@@ -65,11 +65,11 @@ where
                 debug!("Send complete");
                 break;
             }
-            HalDelay{}.try_delay_us(poll_interval.as_micros() as u32).unwrap();
+            HalDelay{}.delay_us(poll_interval.as_micros() as u32).unwrap();
         }
 
         if !continuous {  break; }
-        HalDelay{}.try_delay_us(period.as_micros() as u32).unwrap();
+        HalDelay{}.delay_us(period.as_micros() as u32).unwrap();
     }
 
     Ok(())
@@ -181,7 +181,7 @@ where
 	}
 
 
-        HalDelay{}.try_delay_us(options.poll_interval.as_micros() as u32).unwrap();
+        HalDelay{}.delay_us(options.poll_interval.as_micros() as u32).unwrap();
     }
 }
 
@@ -201,7 +201,7 @@ where
 
         radio.check_receive(true)?;
 
-        HalDelay{}.try_delay_us(period.as_micros() as u32).unwrap();
+        HalDelay{}.delay_us(period.as_micros() as u32).unwrap();
 
         if !continuous {
             break
@@ -233,7 +233,7 @@ where
                 Err(_) => info!("Received: '{:?}' info: {:?}", &buff[0..n as usize], info),
             }
 
-            HalDelay{}.try_delay_us(delay.as_micros() as u32).unwrap();
+            HalDelay{}.delay_us(delay.as_micros() as u32).unwrap();
 
             radio.start_transmit(&buff[..n])?;
             loop {
@@ -241,12 +241,12 @@ where
                     debug!("Send complete");
                     break;
                 }
-                HalDelay{}.try_delay_us(poll_interval.as_micros() as u32).unwrap();
+                HalDelay{}.delay_us(poll_interval.as_micros() as u32).unwrap();
             }
             
             if !continuous { return Ok(n) }
         }
 
-        HalDelay{}.try_delay_us(poll_interval.as_micros() as u32).unwrap();
+        HalDelay{}.delay_us(poll_interval.as_micros() as u32).unwrap();
     }
 }

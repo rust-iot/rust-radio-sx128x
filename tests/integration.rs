@@ -5,15 +5,15 @@
 use std::thread;
 use std::time::Duration;
 
+use log::{debug, info};
+
 use driver_pal::wrapper::Wrapper;
 use driver_pal::hal::*;
 
 use radio::{Receive, Transmit};
 use radio_sx128x::prelude::*;
 
-#[macro_use] extern crate log;
-
-pub type SpiWrapper = Wrapper<HalSpi, HalError, HalOutputPin, HalInputPin, HalInputPin, HalOutputPin, HalError, HalDelay, HalError>;
+pub type SpiWrapper = Wrapper<HalSpi, HalOutputPin, HalInputPin, HalInputPin, HalOutputPin, HalDelay>;
 
 pub type Radio = Sx128x<SpiWrapper, HalError, HalError, HalError>;
 

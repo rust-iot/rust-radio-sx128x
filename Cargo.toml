@@ -16,31 +16,30 @@ bin-dir = "{ bin }-{ target }{ format }"
 [features]
 poll-irq = []
 tests = [ "driver-pal/mock" ]
-util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "failure/std", "hex"]
+util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "failure/std", "hex", "thiserror"]
 default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux" ]
 
 [dependencies]
+radio = "0.9.1"
+embedded-hal = "1.0.0-alpha.5"
+
+driver-pal = { version = "0.8.0-alpha.5", default_features = false }
+driver-cp2130 = { version = "1.0.0-alpha.3", optional = true }
+linux-embedded-hal = { version = "0.4.0-alpha.1", optional = true }
+
 bitflags = "1.0.4"
 libc = "0.2.93"
 log = "0.4.14"
-radio = "0.9.0"
 
 pcap-file = { version = "1.1.1", optional = true }
 
-embedded-hal = "1.0.0-alpha.4"
-linux-embedded-hal = { version = "0.4.0-alpha.0", optional = true }
-driver-cp2130 = { version = "1.0.0-alpha.2", optional = true }
-
 crc16 = { version = "0.4.0", optional = true }
 hex = { version = "0.4.2", optional = true }
+thiserror = { version = "1.0.29", optional = true }
 
 [dependencies.failure]
 version = "0.1.7"
 features = [ "derive" ]
-default-features = false
-
-[dependencies.driver-pal]
-version = "0.8.0-alpha.2"
 default-features = false
 
 [dependencies.humantime]
@@ -72,7 +71,7 @@ serde = { version = "1.0.0", features = [ "derive" ] }
 serde_derive = "1.0.0"
 
 [dev-dependencies.driver-pal]
-version = "0.8.0-alpha.0"
+version = "0.8.0-alpha.4"
 features = [ "mock", "hal" ]
 default-features = false
 
@@ -80,3 +79,4 @@ default-features = false
 name = "sx128x-util"
 path = "src/util/main.rs"
 required-features = ["util"]
+

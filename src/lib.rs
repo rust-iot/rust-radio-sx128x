@@ -14,14 +14,12 @@ extern crate libc;
 #[macro_use]
 extern crate std;
 
-use failure::Fail;
 use log::{trace, debug, warn, error};
 
-
-use embedded_hal::blocking::{delay};
-use embedded_hal::digital::{InputPin, OutputPin};
 use embedded_hal::spi::{Mode as SpiMode, Phase, Polarity};
-use embedded_hal::blocking::spi::{Transfer, Write, Transactional};
+use embedded_hal::spi::blocking::{Transfer, Write, Transactional};
+use embedded_hal::delay::blocking::{DelayMs, DelayUs};
+use embedded_hal::digital::blocking::{InputPin, OutputPin};
 
 use driver_pal::{Error as WrapError, wrapper::Wrapper as SpiWrapper};
 
@@ -60,82 +58,83 @@ pub const FREQ_MAX: u32 = 2_500_000_000;
 pub const NUM_RETRIES: usize = 3;
 
 /// Sx128x error type
-#[derive(Debug, Clone, PartialEq, Fail)]
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "thiserror", derive(thiserror::Error))]
 pub enum Error<
-    CommsError: Debug + Sync + Send + 'static, 
-    PinError:  Debug + Sync + Send + 'static,
-    DelayError:  Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static, 
+    PinError:  Debug + 'static,
+    DelayError:  Debug + 'static,
     > {
 
-    #[fail(display="communication error: {:?}", 0)]
+    #[cfg_attr(feature = "thiserror", error("communication error: {:?}", 0))]
     /// Communications (SPI or UART) error
     Comms(CommsError),
 
-    #[fail(display="pin error: {:?}", 0)]
+    #[cfg_attr(feature = "thiserror", error("pin error: {:?}", 0))]
     /// Pin control error
     Pin(PinError),
 
-    #[fail(display="delay error: {:?}", 0)]
+    #[cfg_attr(feature = "thiserror", error("delay error: {:?}", 0))]
     /// Delay error
     Delay(DelayError),
 
-    #[fail(display="transaction aborted")]
+    #[cfg_attr(feature = "thiserror", error("transaction aborted"))]
     /// Transaction aborted
     Aborted,
 
-    #[fail(display="transaction timeout")]
+    #[cfg_attr(feature = "thiserror", error("transaction timeout"))]
     /// Timeout by device
     Timeout,
 
-    #[fail(display="busy timeout")]
+    #[cfg_attr(feature = "thiserror", error("busy timeout"))]
     /// Timeout awaiting busy pin de-assert
     BusyTimeout,
 
-    #[fail(display="invalid message CRC")]
+    #[cfg_attr(feature = "thiserror", error("invalid message CRC"))]
     /// CRC error on received message
     InvalidCrc,
 
-    #[fail(display="invalid message length")]
+    #[cfg_attr(feature = "thiserror", error("invalid message length"))]
     /// Invalid message length
     InvalidLength,
     
-    #[fail(display="invalid sync word")]
+    #[cfg_attr(feature = "thiserror", error("invalid sync word"))]
     /// TODO
     InvalidSync,
 
-    #[fail(display="transaction aborted")]
+    #[cfg_attr(feature = "thiserror", error("transaction aborted"))]
     /// TODO
     Abort,
 
-    #[fail(display="invalid state (expected {:?} actual {:?})", 0, 1)]
+    #[cfg_attr(feature = "thiserror", error("invalid state (expected {:?} actual {:?})", 0, 1))]
     /// TODO
     InvalidState(State, State),
 
-    #[fail(display="invalid device version (received {:?})", 0)]
+    #[cfg_attr(feature = "thiserror", error("invalid device version (received {:?})", 0))]
     /// Radio returned an invalid device firmware version
     InvalidDevice(u16),
 
-    #[fail(display="invalid response (received {:?})", 0)]
+    #[cfg_attr(feature = "thiserror", error("invalid response (received {:?})", 0))]
     /// Radio returned an invalid response
     InvalidResponse(u8),
 
-    #[fail(display="invalid configuration")]
+    #[cfg_attr(feature = "thiserror", error("invalid configuration"))]
     /// Invalid configuration option provided
     InvalidConfiguration,
     
-    #[fail(display="invalid frequency or frequency out of range")]
+    #[cfg_attr(feature = "thiserror", error("invalid frequency or frequency out of range"))]
     /// Frequency out of range
     InvalidFrequency,
 
-    #[fail(display="device communication failed")]
+    #[cfg_attr(feature = "thiserror", error("device communication failed"))]
     /// No SPI communication detected
     NoComms,
 }
 
 impl <CommsError, PinError, DelayError> From<WrapError<CommsError, PinError, DelayError>> for Error<CommsError, PinError, DelayError> where
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     fn from(e: WrapError<CommsError, PinError, DelayError>) -> Self {
         match e {
@@ -147,26 +146,28 @@ impl <CommsError, PinError, DelayError> From<WrapError<CommsError, PinError, Del
     }
 }
 
-pub type Sx128xSpi<Spi, SpiError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError> = Sx128x<SpiWrapper<Spi, SpiError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError>, SpiError, PinError, DelayError>;
+pub type Sx128xSpi<Spi, SpiError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError> = Sx128x<SpiWrapper<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>, SpiError, PinError, DelayError>;
 
 
 
-impl<Spi, CommsError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError> Sx128x<SpiWrapper<Spi, CommsError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError>, CommsError, PinError, DelayError>
+impl<Spi, CommsError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError> Sx128x<SpiWrapper<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>, CommsError, PinError, DelayError>
 where
-    Spi: Transfer<u8, Error = CommsError> + Write<u8, Error = CommsError> + Transactional<u8, Error = CommsError>,
+    Spi: Transfer<u8, Error = CommsError> 
+            + Write<u8, Error = CommsError> 
+            + Transactional<u8, Error = CommsError>,
     CsPin: OutputPin<Error = PinError>,
     BusyPin: InputPin<Error = PinError>,
     ReadyPin: InputPin<Error = PinError>,
     SdnPin: OutputPin<Error = PinError>,
-    Delay: delay::DelayMs<u32, Error=DelayError> + delay::DelayUs<u32, Error=DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    Delay: DelayMs<u32, Error=DelayError> + DelayUs<u32, Error=DelayError>,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     /// Create an Sx128x with the provided `Spi` implementation and pins
-    pub fn spi(spi: Spi, cs: CsPin, busy: BusyPin, ready: ReadyPin, sdn: SdnPin, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError, DelayError>> {
+    pub fn spi(spi: Spi, cs: CsPin, busy: BusyPin, ready: ReadyPin, reset: SdnPin, delay: Delay, config: &Config) -> Result<Self, Error<CommsError, PinError, DelayError>> {
         // Create SpiWrapper over spi/cs/busy
-        let hal = SpiWrapper::new(spi, cs, sdn, busy, ready, delay);
+        let hal = SpiWrapper::new(spi, cs, reset, busy, ready, delay);
         // Create instance with new hal
         Self::new(hal, config)
     }
@@ -176,9 +177,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     /// Create a new Sx128x instance over a generic Hal implementation
     pub fn new(hal: Hal, config: &Config) -> Result<Self, Error<CommsError, PinError, DelayError>> {
@@ -524,31 +525,31 @@ where
 }
 
 
-impl<Hal, CommsError, PinError, DelayError> delay::DelayMs<u32> for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal, CommsError, PinError, DelayError> DelayMs<u32> for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type Error = DelayError;
 
-    fn try_delay_ms(&mut self, t: u32) -> Result<(), DelayError> {
-        self.hal.try_delay_ms(t)
+    fn delay_ms(&mut self, t: u32) -> Result<(), DelayError> {
+        self.hal.delay_ms(t)
     }
 }
 
-impl<Hal, CommsError, PinError, DelayError> delay::DelayUs<u32> for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal, CommsError, PinError, DelayError> DelayUs<u32> for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type Error = DelayError;
 
-    fn try_delay_us(&mut self, t: u32) -> Result<(), DelayError> {
-        self.hal.try_delay_us(t)
+    fn delay_us(&mut self, t: u32) -> Result<(), DelayError> {
+        self.hal.delay_us(t)
     }
 }
 
@@ -556,9 +557,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::State for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type State = State;
     type Error = Error<CommsError, PinError, DelayError>;
@@ -602,9 +603,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::Busy for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type Error = Error<CommsError, PinError, DelayError>;
 
@@ -626,9 +627,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::Channel for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     /// Channel consists of an operating frequency and packet mode
     type Channel = Channel;
@@ -672,9 +673,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::Power for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type Error = Error<CommsError, PinError, DelayError>;
 
@@ -689,9 +690,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::Interrupts for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type Irq = Irq;
     type Error = Error<CommsError, PinError, DelayError>;
@@ -719,9 +720,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::Transmit for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type Error = Error<CommsError, PinError, DelayError>;
 
@@ -812,9 +813,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::Receive for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     /// Receive info structure
     type Info = PacketInfo;
@@ -953,9 +954,9 @@ where
 impl<Hal, CommsError, PinError, DelayError> radio::Rssi for Sx128x<Hal, CommsError, PinError, DelayError>
 where
     Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + Sync + Send + 'static,
-    PinError: Debug + Sync + Send + 'static,
-    DelayError: Debug + Sync + Send + 'static,
+    CommsError: Debug + 'static,
+    PinError: Debug + 'static,
+    DelayError: Debug + 'static,
 {
     type Error = Error<CommsError, PinError, DelayError>;
 

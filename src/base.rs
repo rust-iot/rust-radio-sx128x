@@ -4,8 +4,8 @@ use core::fmt::Debug;
 
 use log::{trace, error};
 
-use embedded_hal::blocking::delay::{DelayMs, DelayUs};
-use embedded_hal::blocking::spi::Transactional;
+use embedded_hal::delay::blocking::{DelayMs, DelayUs};
+use embedded_hal::spi::blocking::Transactional;
 
 use driver_pal::{Reset, Busy, Ready, PinState, PrefixRead, PrefixWrite};
 use driver_pal::{Error as SpiError};
@@ -15,9 +15,9 @@ use crate::device::*;
 
 /// Hal implementation can be generic over SPI or UART connections
 pub trait Hal<
-    CommsError: Debug + Sync + Send, 
-    PinError: Debug + Sync + Send,
-    DelayError: Debug + Sync + Send,
+    CommsError: Debug, 
+    PinError: Debug,
+    DelayError: Debug,
     > {
 
     /// Reset the device
@@ -30,10 +30,10 @@ pub trait Hal<
     fn get_dio(&mut self) -> Result<PinState, Error<CommsError, PinError, DelayError>>;
 
     /// Delay for the specified time
-    fn try_delay_ms(&mut self, ms: u32)-> Result<(), DelayError>;
+    fn delay_ms(&mut self, ms: u32)-> Result<(), DelayError>;
 
     /// Delay for the specified time
-    fn try_delay_us(&mut self, us: u32)-> Result<(), DelayError>;
+    fn delay_us(&mut self, us: u32)-> Result<(), DelayError>;
 
     /// Write the specified command and data
     fn write_cmd(&mut self, command: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
@@ -55,7 +55,7 @@ pub trait Hal<
         // TODO: timeouts here
         let mut timeout = 0;
         while self.get_busy()? == PinState::High {
-            self.try_delay_ms(1).map_err(Error::Delay)?;
+            self.delay_ms(1).map_err(Error::Delay)?;
             timeout += 1;
 
             if timeout > BUSY_TIMEOUT_MS {
@@ -91,45 +91,47 @@ pub trait Hal<
 
 impl<T, CommsError, PinError, DelayError> Hal<CommsError, PinError, DelayError> for T
 where
-    T: Transactional<u8, Error=SpiError<CommsError, PinError, DelayError>> + PrefixRead<Error=SpiError<CommsError, PinError, DelayError>> + PrefixWrite<Error=SpiError<CommsError, PinError, DelayError>>,
-    T: Reset<Error=SpiError<CommsError, PinError, DelayError>>,
-    T: Busy<Error=SpiError<CommsError, PinError, DelayError>>,
-    T: Ready<Error=SpiError<CommsError, PinError, DelayError>>,
+    T: Transactional<u8, Error=SpiError<CommsError, PinError, DelayError>> 
+            + PrefixRead<Error=SpiError<CommsError, PinError, DelayError>>
+            + PrefixWrite<Error=SpiError<CommsError, PinError, DelayError>>,
+    T: Reset<Error=PinError>,
+    T: Busy<Error=PinError>,
+    T: Ready<Error=PinError>,
     T: DelayMs<u32, Error=DelayError> + DelayUs<u32, Error=DelayError>,
-    CommsError: Debug + Sync + Send,
-    PinError: Debug + Sync + Send,
-    DelayError: Debug + Sync + Send,
+    CommsError: Debug,
+    PinError: Debug,
+    DelayError: Debug,
 {    
     /// Reset the radio
     fn reset(&mut self) -> Result<(), Error<CommsError, PinError, DelayError>> {
-        self.try_delay_ms(20).map_err(Error::Delay)?;
-        self.set_reset(PinState::Low).map_err(|e| Error::from(e) )?;
-        self.try_delay_ms(50).map_err(Error::Delay)?;
-        self.set_reset(PinState::High).map_err(|e| Error::from(e) )?;
-        self.try_delay_ms(20).map_err(Error::Delay)?;
+        self.delay_ms(20).map_err(Error::Delay)?;
+        self.set_reset(PinState::Low).map_err(Error::Pin)?;
+        self.delay_ms(50).map_err(Error::Delay)?;
+        self.set_reset(PinState::High).map_err(Error::Pin)?;
+        self.delay_ms(20).map_err(Error::Delay)?;
 
         Ok(())
     }
 
     fn get_busy(&mut self) -> Result<PinState, Error<CommsError, PinError, DelayError>> {
-        let busy = self.get_busy()?;
+        let busy = self.get_busy().map_err(Error::Pin)?;
         Ok(busy)
     }
 
     fn get_dio(&mut self) -> Result<PinState, Error<CommsError, PinError, DelayError>> {
-        let dio = self.get_ready()?;
+        let dio = self.get_ready().map_err(Error::Pin)?;
         Ok(dio)
     }
 
 
     /// Delay for the specified time
-    fn try_delay_ms(&mut self, ms: u32) -> Result<(), DelayError> {
-        DelayMs::try_delay_ms(self, ms)
+    fn delay_ms(&mut self, ms: u32) -> Result<(), DelayError> {
+        DelayMs::delay_ms(self, ms)
     }
 
     /// Delay for the specified time
-    fn try_delay_us(&mut self, ms: u32) -> Result<(), DelayError> {
-        DelayUs::try_delay_us(self, ms)
+    fn delay_us(&mut self, ms: u32) -> Result<(), DelayError> {
+        DelayUs::delay_us(self, ms)
     }
 
     /// Write the specified command and data
@@ -140,7 +142,7 @@ where
         trace!("write_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
 
         self.wait_busy()?;
-        let r = self.try_prefix_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -151,7 +153,7 @@ where
         let out_buf: [u8; 2] = [command as u8, 0x00];
         
         self.wait_busy()?;
-        let r = self.try_prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
 
         trace!("read_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
@@ -171,7 +173,7 @@ where
         trace!("write_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
 
         self.wait_busy()?;
-        let r = self.try_prefix_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -187,7 +189,7 @@ where
         ];
 
         self.wait_busy()?;
-        let r = self.try_prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
 
         trace!("read_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
@@ -206,7 +208,7 @@ where
         trace!("write_buff cmd: {:02x?}", out_buf);
 
         self.wait_busy()?;
-        let r = self.try_prefix_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into() );
         self.wait_busy()?;
         r
     }
@@ -221,7 +223,7 @@ where
         ];
         trace!(" data: {:02x?}", out_buf);
         self.wait_busy()?;
-        let r = self.try_prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self.prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
         self.wait_busy()?;
 
         trace!("read_buff cmd: {:02x?} data: {:02x?}", out_buf, data);
