@@ -72,14 +72,14 @@ jobs:
     
     - name: Install libusb (apt native)
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.target == 'x86_64-unknown-linux-gnu' }}
-      run: sudo apt install -y libusb-1.0 libusb-dev
+      run: sudo apt install -y libusb-1.0-0 libusb-1.0-0-dev
 
     - name: Install libusb (armv7)
       if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
       uses: ryankurte/action-apt@v0.3.0
       with:
         arch: armhf
-        packages: libusb-dev:armhf
+        packages: libusb-1.0-0-dev:armhf
 
     - name: Install cross toolchain (armv7)
       if: ${{ matrix.target == 'armv7-unknown-linux-gnueabihf' }}
