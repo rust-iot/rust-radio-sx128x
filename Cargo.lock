@@ -554,7 +554,7 @@ dependencies = [
 
 [[package]]
 name = "radio-sx128x"
-version = "0.17.0"
+version = "0.17.1"
 dependencies = [
  "bitflags",
  "color-backtrace",
