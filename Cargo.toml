@@ -7,9 +7,9 @@ name = "radio-sx128x"
 version = "0.17.0"
 edition = "2018"
 
+
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/sx128x-util-{ target }.tgz"
-pkg-fmt = "tar"
 bin-dir = "{ bin }-{ target }{ format }"
 
 
