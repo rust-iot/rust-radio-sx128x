@@ -114,13 +114,21 @@ pub enum Error<
     /// Radio returned an invalid device firmware version
     InvalidDevice(u16),
 
-    #[cfg_attr(feature = "thiserror", error("invalid response (received {:?})", 0))]
+    #[cfg_attr(feature = "thiserror", error("invalid circuit state (received {:?})", 0))]
     /// Radio returned an invalid response
-    InvalidResponse(u8),
+    InvalidCircuitState(u8),
+
+    #[cfg_attr(feature = "thiserror", error("invalid command state (received {:?})", 0))]
+    /// Radio returned an invalid response
+    InvalidCommandStatus(u8),
 
     #[cfg_attr(feature = "thiserror", error("invalid configuration"))]
     /// Invalid configuration option provided
     InvalidConfiguration,
+
+    #[cfg_attr(feature = "thiserror", error("invalid state command"))]
+    /// Invalid state command
+    InvalidStateCommand,
     
     #[cfg_attr(feature = "thiserror", error("invalid frequency or frequency out of range"))]
     /// Frequency out of range
@@ -572,10 +580,10 @@ where
         trace!("raw state: 0x{:.2x}", d[0]);
 
         let mode = (d[0] & 0b1110_0000) >> 5;
-        let m = State::try_from(mode).map_err(|_| Error::InvalidResponse(d[0]) )?;
+        let m = State::try_from(mode).map_err(|_| Error::InvalidCircuitState(d[0]) )?;
 
         let status = (d[0] & 0b0001_1100) >> 2;
-        let s = CommandStatus::try_from(status).map_err(|_| Error::InvalidResponse(d[0]) )?;
+        let s = CommandStatus::try_from(status).map_err(|_| Error::InvalidCommandStatus(d[0]) )?;
 
         trace!("get state: {:?} status: {:?}", m, s);
 
@@ -591,6 +599,8 @@ where
             State::Fs => Commands::SetFs,
             State::StandbyRc | State::StandbyXosc => Commands::SetStandby,
             State::Sleep => Commands::SetSleep,
+            #[cfg(feature="patch-unknown-state")]
+            State::Unknown => return Err(Error::InvalidStateCommand)
         };
 
         trace!("Setting state {:?} ({:x?})", state, command);

@@ -37,13 +37,13 @@ jobs:
             output: sx128x-util
             use_cross: false
             experimental: false
-            args: --no-default-features --features util,driver-pal/hal-cp2130
+            args: --no-default-features --features util,driver-pal/hal-cp2130,patch-unknown-state
           - target: x86_64-pc-windows-msvc
             os: windows-latest
             output: sx128x-util.exe
             use_cross: false
             experimental: true
-            args: --no-default-features --features util,driver-pal/hal-cp2130
+            args: --no-default-features --features util,driver-pal/hal-cp2130,patch-unknown-state
 
     steps:
     - uses: actions/checkout@v2

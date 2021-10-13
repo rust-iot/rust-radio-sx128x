@@ -15,9 +15,10 @@ bin-dir = "{ bin }-{ target }{ format }"
 
 [features]
 poll-irq = []
+patch-unknown-state = []
 tests = [ "driver-pal/mock" ]
 util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "failure/std", "hex", "thiserror"]
-default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux" ]
+default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
 [dependencies]
 radio = "0.9.1"

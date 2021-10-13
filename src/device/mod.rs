@@ -212,6 +212,10 @@ pub enum State {
     Fs          = 0x04,
     Rx          = 0x05,
     Tx          = 0x06,
+    #[cfg(feature="patch-unknown-state")]
+    /// Unknown state not specified in datasheet but occurs in some conditions..?
+    /// See: https://github.com/rust-iot/rust-radio-sx128x/pull/76
+    Unknown     = 0x07,
 }
 
 impl radio::RadioState for State {
@@ -235,6 +239,8 @@ impl core::convert::TryFrom<u8> for State {
             0x04 => Ok(State::Fs),
             0x05 => Ok(State::Rx),
             0x06 => Ok(State::Tx),
+            #[cfg(feature="patch-unknown-state")]
+            0x07 => Ok(State::Unknown),
             _ => {
                 error!("Unrecognised state 0x{:x}", v);
                 Err(())
