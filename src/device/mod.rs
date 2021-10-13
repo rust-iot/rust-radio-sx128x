@@ -212,6 +212,9 @@ pub enum State {
     Fs          = 0x04,
     Rx          = 0x05,
     Tx          = 0x06,
+    #[cfg(feature="patch-unknown-state")]
+    /// Unknown state not specified in datasheet but occurs in some conditions..?
+    Unknown     = 0x07,
 }
 
 impl radio::RadioState for State {
