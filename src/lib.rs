@@ -599,6 +599,7 @@ where
             State::Fs => Commands::SetFs,
             State::StandbyRc | State::StandbyXosc => Commands::SetStandby,
             State::Sleep => Commands::SetSleep,
+            #[cfg(feature="patch-unknown-state")]
             State::Unknown => return Err(Error::InvalidStateCommand)
         };
 
