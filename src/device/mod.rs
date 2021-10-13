@@ -214,6 +214,7 @@ pub enum State {
     Tx          = 0x06,
     #[cfg(feature="patch-unknown-state")]
     /// Unknown state not specified in datasheet but occurs in some conditions..?
+    /// See: https://github.com/rust-iot/rust-radio-sx128x/pull/76
     Unknown     = 0x07,
 }
 
