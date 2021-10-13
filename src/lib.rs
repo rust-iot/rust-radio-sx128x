@@ -125,6 +125,10 @@ pub enum Error<
     #[cfg_attr(feature = "thiserror", error("invalid configuration"))]
     /// Invalid configuration option provided
     InvalidConfiguration,
+
+    #[cfg_attr(feature = "thiserror", error("invalid state command"))]
+    /// Invalid state command
+    InvalidStateCommand,
     
     #[cfg_attr(feature = "thiserror", error("invalid frequency or frequency out of range"))]
     /// Frequency out of range
@@ -595,6 +599,7 @@ where
             State::Fs => Commands::SetFs,
             State::StandbyRc | State::StandbyXosc => Commands::SetStandby,
             State::Sleep => Commands::SetSleep,
+            State::Unknown => return Err(Error::InvalidStateCommand)
         };
 
         trace!("Setting state {:?} ({:x?})", state, command);

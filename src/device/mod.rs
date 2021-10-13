@@ -239,6 +239,8 @@ impl core::convert::TryFrom<u8> for State {
             0x04 => Ok(State::Fs),
             0x05 => Ok(State::Rx),
             0x06 => Ok(State::Tx),
+            #[cfg(feature="patch-unknown-state")]
+            0x07 => Ok(State::Unknown),
             _ => {
                 error!("Unrecognised state 0x{:x}", v);
                 Err(())
