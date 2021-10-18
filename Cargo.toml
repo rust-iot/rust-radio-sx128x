@@ -62,7 +62,7 @@ version = "0.2.16"
 
 [dependencies.structopt]
 optional = true
-version = "0.3.21"
+version = "0.3.25"
 
 [dev-dependencies]
 color-backtrace = "0.5.0"
