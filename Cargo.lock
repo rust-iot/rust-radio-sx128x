@@ -542,9 +542,9 @@ dependencies = [
 
 [[package]]
 name = "radio"
-version = "0.9.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2daa60788f83f8fa18976bca4712abd321056efbf26b4336b979c709dcae5e89"
+checksum = "d1fa6d8840988be3dd914cbc947906d9035768fe2faee7751350b03051163d53"
 dependencies = [
  "chrono",
  "embedded-hal",

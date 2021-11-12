@@ -21,7 +21,7 @@ util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", 
 default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
 [dependencies]
-radio = "0.9.1"
+radio = "0.10.0"
 embedded-hal = "1.0.0-alpha.5"
 
 driver-pal = { version = "0.8.0-alpha.5", default_features = false }
