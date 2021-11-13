@@ -4,7 +4,7 @@
 #![no_std]
 
 use core::marker::PhantomData;
-use core::convert::TryFrom;
+use core::convert::{TryFrom, TryInto};
 use core::fmt::Debug;
 
 
@@ -540,10 +540,10 @@ where
     PinError: Debug + 'static,
     DelayError: Debug + 'static,
 {
-    type Error = DelayError;
+    type Error = Error<CommsError, PinError, DelayError>;
 
-    fn delay_ms(&mut self, t: u32) -> Result<(), DelayError> {
-        self.hal.delay_ms(t)
+    fn delay_ms(&mut self, t: u32) -> Result<(), Self::Error> {
+        self.hal.delay_ms(t).map_err(|e| Error::Delay(e))
     }
 }
 
@@ -554,10 +554,10 @@ where
     PinError: Debug + 'static,
     DelayError: Debug + 'static,
 {
-    type Error = DelayError;
+    type Error = Error<CommsError, PinError, DelayError>;
 
-    fn delay_us(&mut self, t: u32) -> Result<(), DelayError> {
-        self.hal.delay_us(t)
+    fn delay_us(&mut self, t: u32) -> Result<(), Self::Error> {
+        self.hal.delay_us(t).map_err(|e| Error::Delay(e))
     }
 }
 
@@ -932,7 +932,7 @@ where
     }
 
     /// Fetch a received packet
-    fn get_received<'a>(&mut self, info: &mut Self::Info, data: &'a mut [u8]) -> Result<usize, Self::Error> {
+    fn get_received<'a>(&mut self, data: &'a mut [u8]) -> Result<(usize, Self::Info), Self::Error> {
         // Fetch RX buffer information
         let (ptr, len) = self.get_rx_buffer_status()?;
 
@@ -950,12 +950,13 @@ where
         self.hal.read_buff(ptr, &mut data[..len as usize])?;
 
         // Fetch related information
-        self.get_packet_info(info)?;
+        let mut info = Self::Info::default();
+        self.get_packet_info(&mut info)?;
 
         trace!("RX data: {:?} info: {:?}", &data[..len as usize], info);
 
         // Return read length
-        Ok(len as usize)
+        Ok((len as usize, info))
     }
 
 }
@@ -979,7 +980,8 @@ where
     }
 }
 
-#[cfg(test)]
+
+#[cfg(all(feature="std",test))]
 mod tests {
     use crate::{Sx128x};
     use crate::base::Hal;
