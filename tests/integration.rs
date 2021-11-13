@@ -60,8 +60,6 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
     let mut received = false;
     let mut buff = [0u8; 1024];
     let mut n = 0;
-    let mut info = PacketInfo::default();
-
 
     // Configure receive
     radio1.start_receive().unwrap();
@@ -81,7 +79,7 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
 
         // Check RX state
         if !received && radio1.check_receive(false).unwrap() {
-            n = radio1.get_received(&mut info, &mut buff).unwrap();
+            let (n, info) = radio1.get_received(&mut buff).unwrap();
             received = true;
             println!("RX complete ({:?} {:?}, {})", info, &buff[..n], i);
         }
@@ -100,7 +98,8 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
 }
 
 fn log_init() {
-    let _ = env_logger::builder().is_test(true).try_init();
+    // TODO: re-enable env logging
+    //let _ = env_logger::builder().is_test(true).try_init();
 }
 
 #[test]

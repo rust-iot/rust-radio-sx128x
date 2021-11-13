@@ -1,8 +1,9 @@
 
 use structopt::StructOpt;
-use humantime::{Duration as HumanDuration};
 use tracing_subscriber::filter::{LevelFilter};
 use driver_pal::hal::{DeviceConfig};
+
+use radio::helpers::Operation;
 
 use radio_sx128x::prelude::*;
 use radio_sx128x::device::{common, flrc, lora};
@@ -230,107 +231,4 @@ pub struct FlrcCommand {
     #[structopt(subcommand)]
     /// Operation to execute
     pub operation: Operation,
-}
-
-#[derive(Clone, StructOpt, PartialEq, Debug)]
-pub enum Operation {
-    #[structopt(name="tx")]
-    /// Transmit a (string) packet
-    Transmit(Transmit),
-
-    #[structopt(name="rx")]
-    /// Receive a (string) packet
-    Receive(Receive),
-
-    #[structopt(name="rssi")]
-    /// Poll for RSSI on the specified channel
-    Rssi(Rssi),
-
-    #[structopt(name="repeat")]
-    /// Repeat received messages
-    Repeat(Repeat),
-}
-
-#[derive(Clone, StructOpt, PartialEq, Debug)]
-pub struct Transmit {
-    /// Data to be transmitted
-    #[structopt(long = "data")]
-    pub data: String,
-
-    /// Run continuously
-    #[structopt(long = "continuous")]
-    pub continuous: bool,
-
-    /// Power in dBm (range -18dBm to 13dBm)
-    #[structopt(long = "power")]
-    pub power: Option<i8>,
-
-    /// Specify period for transmission
-    #[structopt(long = "period", default_value="1s")]
-    pub period: HumanDuration,
-
-    /// Specify period for polling for device status
-    #[structopt(long = "poll-interval", default_value="200ns")]
-    pub poll_interval: HumanDuration,
-}
-
-#[derive(Clone, StructOpt, PartialEq, Debug)]
-pub struct Receive {
-    /// Run continuously
-    #[structopt(long = "continuous")]
-    pub continuous: bool,
-
-    /// Specify period for polling for device status
-    #[structopt(long = "poll-interval", default_value="200ns")]
-    pub poll_interval: HumanDuration,
-
-    /// Create and write capture output to a PCAP file
-    #[structopt(long)]
-    pub pcap_file: Option<String>,
-
-    /// Create and write to a unix pipe for connection to wireshark
-    #[structopt(long)]
-    pub pcap_pipe: Option<String>,
-
-    /// Append FCS to received data
-    #[structopt(long)]
-    pub append_fcs: bool,
-
-    /// Add a timeout after which to stop receiving
-    #[structopt(long)]
-    pub timeout: Option<HumanDuration>,
-}
-
-#[derive(Clone, StructOpt, PartialEq, Debug)]
-pub struct Rssi {
-    /// Specify period for RSSI polling
-    #[structopt(long = "period", default_value="1s")]
-    pub period: HumanDuration,
-
-    /// Run continuously
-    #[structopt(long = "continuous")]
-    pub continuous: bool,
-}
-
-#[derive(Clone, StructOpt, PartialEq, Debug)]
-pub struct Repeat {
-    /// Run continuously
-    #[structopt(long = "continuous")]
-    pub continuous: bool,
-    
-    /// Power in dBm (range -18dBm to 13dBm)
-    #[structopt(long = "power")]
-    pub power: Option<i8>,
-
-    /// Specify period for polling for device status
-    #[structopt(long = "poll-interval", default_value="1ms")]
-    pub poll_interval: HumanDuration,
-
-    /// Specify delay for response message
-    #[structopt(long = "delay", default_value="100ms")]
-    pub delay: HumanDuration,
-
-    /// Append RSSI and LQI to repeated message
-    #[structopt(long = "append-info")]
-    pub append_info: bool,
 }

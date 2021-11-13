@@ -14,14 +14,16 @@ bin-dir = "{ bin }-{ target }{ format }"
 
 
 [features]
+std = [ "radio/std", "driver-pal/mock", "failure/std", "hex", "thiserror" ]
 poll-irq = []
 patch-unknown-state = []
 tests = [ "driver-pal/mock" ]
-util = ["structopt", "tracing", "tracing-subscriber", "humantime", "pcap-file", "crc16", "driver-pal/hal", "failure/std", "hex", "thiserror"]
-default = [ "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
+util = ["structopt", "tracing", "tracing-subscriber", "humantime", "crc16", "driver-pal/hal", "radio/helpers"]
+
+default = [ "std", "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
 [dependencies]
-radio = "0.9.1"
+radio = { version = "0.10.0", default_features = false }
 embedded-hal = "1.0.0-alpha.5"
 
 driver-pal = { version = "0.8.0-alpha.5", default_features = false }
@@ -30,22 +32,19 @@ linux-embedded-hal = { version = "0.4.0-alpha.1", optional = true }
 
 bitflags = "1.0.4"
 libc = "0.2.95"
-log = "0.4.14"
-
-pcap-file = { version = "1.1.1", optional = true }
+log = { version = "0.4.14", default_features = false }
 
 crc16 = { version = "0.4.0", optional = true }
 hex = { version = "0.4.2", optional = true }
-thiserror = { version = "1.0.29", optional = true }
+
+humantime = { version = "2.0.1", optional = true }
+structopt = { version = "0.3.14", optional = true }
+thiserror = { version = "1.0.30", optional = true }
 
 [dependencies.failure]
 version = "0.1.7"
 features = [ "derive" ]
 default-features = false
-
-[dependencies.humantime]
-optional = true
-version = "2.1.0"
 
 [dependencies.serde]
 features = ["derive"]
@@ -60,24 +59,18 @@ version = "0.1.25"
 optional = true
 version = "0.2.16"
 
-[dependencies.structopt]
-optional = true
-version = "0.3.21"
 
 [dev-dependencies]
 color-backtrace = "0.5.0"
-env_logger = "0.8.3"
 toml = "0.5.8"
 serde = { version = "1.0.126", features = [ "derive" ] }
 serde_derive = "1.0.0"
-
-[dev-dependencies.driver-pal]
-version = "0.8.0-alpha.4"
-features = [ "mock", "hal" ]
-default-features = false
 
 [[bin]]
 name = "sx128x-util"
 path = "src/util/main.rs"
 required-features = ["util"]
 
+
+[patch.crates-io]
+radio = { path = "../radio" }

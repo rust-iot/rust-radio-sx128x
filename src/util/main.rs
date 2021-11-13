@@ -11,13 +11,11 @@ use tracing_subscriber::filter::{EnvFilter};
 
 use driver_pal::hal::{HalInst, HalDelay};
 use radio_sx128x::prelude::*;
-
+use radio::helpers::do_operation;
 
 mod options;
 use options::*;
 
-mod operations;
-use operations::*;
 
 fn main() {
     // Load options
@@ -68,7 +66,7 @@ fn main() {
 		}
 		debug!("Syncword: 0x{:x?}", syncword.0);
             }
-            do_command(&mut radio, operation.unwrap()).expect("error executing command");
+            do_operation(&mut radio, operation.unwrap()).expect("error executing command");
         }
     }
 

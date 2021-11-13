@@ -202,6 +202,61 @@ impl From<&Channel> for PacketType {
     }
 }
 
+
+/// Conversion function from shared lora channel type
+impl core::convert::TryFrom<radio::modulation::lora::LoRaChannel> for Channel {
+    type Error = ();
+
+    fn try_from(c: radio::modulation::lora::LoRaChannel) -> Result<Self, Self::Error> {
+        use radio::modulation::lora::{SpreadingFactor, CodingRate};
+        use crate::device::lora::{LoRaSpreadingFactor, LoRaBandwidth, LoRaCodingRate};
+
+        // Check frequency is valid
+        if c.freq_hz > crate::FREQ_MAX || c.freq_hz < crate::FREQ_MIN {
+            return Err(())
+        }
+
+        // Attempt to convert spreading factors
+        let sf = match c.sf {
+            SpreadingFactor::Sf5 => LoRaSpreadingFactor::Sf5,
+            SpreadingFactor::Sf6 => LoRaSpreadingFactor::Sf6,
+            SpreadingFactor::Sf7 => LoRaSpreadingFactor::Sf7,
+            SpreadingFactor::Sf8 => LoRaSpreadingFactor::Sf8,
+            SpreadingFactor::Sf9 => LoRaSpreadingFactor::Sf9,
+            SpreadingFactor::Sf10 => LoRaSpreadingFactor::Sf10,
+            SpreadingFactor::Sf11 => LoRaSpreadingFactor::Sf11,
+            SpreadingFactor::Sf12 => LoRaSpreadingFactor::Sf12,
+            _ => return Err(())
+        };
+
+        // Attempt to convert bandwidth
+        let bw = match c.bw_khz {
+            200 => LoRaBandwidth::Bw200kHz,
+            400 => LoRaBandwidth::Bw400kHz,
+            800 => LoRaBandwidth::Bw800kHz,
+            1600 => LoRaBandwidth::Bw1600kHz,
+            _ => return Err(())
+        };
+
+        // Attempt to convert coding rates
+        let cr = match c.cr {
+            CodingRate::Cr4_5 => LoRaCodingRate::Cr4_5,
+            CodingRate::Cr4_6 => LoRaCodingRate::Cr4_6,
+            CodingRate::Cr4_7 => LoRaCodingRate::Cr4_7,
+            CodingRate::Cr4_8 => LoRaCodingRate::Cr4_8,
+            _ => return Err(())
+        };
+
+        Ok(Channel::LoRa(LoRaChannel{
+            freq: c.freq_hz,
+            sf,
+            bw,
+            cr,
+        }))
+    }
+}
+
+
 /// Radio state
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 

@@ -27,7 +27,7 @@ Install the utility via one of the following methods:
 - Manually fetch the latest [release](https://github.com/rust-iot/rust-radio-sx128x/releases/)
 
 ## Useful Resources
-- [Datasheet](https://www.semtech.com/uploads/documents/DS_SX1280-1_V2.2.pdf)
+- [Sx128x Datasheet](https://www.semtech.com/uploads/documents/DS_SX1280-1_V2.2.pdf)
 - [libsx128x](https://github.com/ryankurte/libsx128x) semtech c driver port
 
 
