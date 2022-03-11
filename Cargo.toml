@@ -23,12 +23,10 @@ util = ["structopt", "tracing", "tracing-subscriber", "humantime", "crc16", "dri
 default = [ "std", "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
 [dependencies]
-radio = { version = "0.10.0", default_features = false }
-embedded-hal = "1.0.0-alpha.5"
+radio = { version = "0.11.0", default_features = false }
+embedded-hal = "1.0.0-alpha.7"
 
-driver-pal = { version = "0.8.0-alpha.5", default_features = false }
-driver-cp2130 = { version = "1.0.0-alpha.4", optional = true }
-linux-embedded-hal = { version = "0.4.0-alpha.1", optional = true }
+driver-pal = { version = "0.8.0-alpha.6", default_features = false }
 
 bitflags = "1.0.4"
 libc = "0.2.95"

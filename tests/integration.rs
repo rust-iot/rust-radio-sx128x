@@ -7,16 +7,16 @@ use std::time::Duration;
 
 use log::{debug, info};
 
-use driver_pal::wrapper::Wrapper;
 use driver_pal::hal::*;
+use driver_pal::wrapper::Wrapper;
 
 use radio::{Receive, Transmit};
 use radio_sx128x::prelude::*;
 
-pub type SpiWrapper = Wrapper<HalSpi, HalOutputPin, HalInputPin, HalInputPin, HalOutputPin, HalDelay>;
+pub type SpiWrapper =
+    Wrapper<HalSpi, HalOutputPin, HalInputPin, HalInputPin, HalOutputPin, HalDelay>;
 
 pub type Radio = Sx128x<SpiWrapper, HalError, HalError, HalError>;
-
 
 #[derive(Debug, serde::Deserialize)]
 pub struct TestConfig {
@@ -24,13 +24,22 @@ pub struct TestConfig {
     radio2: DeviceConfig,
 }
 
-
 fn load_radio(rf_config: &Config, device_config: &DeviceConfig) -> Radio {
     debug!("Connecting to radio");
 
-    let HalInst{base: _, spi, pins} = HalInst::load(&device_config).expect("error connecting to HAL");
+    let HalInst { base: _, spi, pins } =
+        HalInst::load(&device_config).expect("error connecting to HAL");
 
-    let radio = Sx128x::spi(spi, pins.cs, pins.busy, pins.ready, pins.reset, HalDelay{}, rf_config).expect("error creating device");
+    let radio = Sx128x::spi(
+        spi,
+        pins.cs,
+        pins.busy,
+        pins.ready,
+        pins.reset,
+        HalDelay {},
+        rf_config,
+    )
+    .expect("error creating device");
 
     debug!("Radio initialised");
 
@@ -38,7 +47,6 @@ fn load_radio(rf_config: &Config, device_config: &DeviceConfig) -> Radio {
 }
 
 fn load_radios(rf_config: &Config) -> (Radio, Radio) {
-
     let config_file = std::env::var("TEST_CONFIG").unwrap_or("config.toml".to_string());
     let config_data = std::fs::read_to_string(config_file).expect("Error reading test config");
     let hw_config: TestConfig = toml::from_str(&config_data).expect("Error parsing test config");
@@ -48,7 +56,6 @@ fn load_radios(rf_config: &Config) -> (Radio, Radio) {
 
     (r1, r2)
 }
-
 
 fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
     info!("Testing send/receive");
@@ -69,7 +76,6 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
     // Start transmit
     radio2.start_transmit(data).unwrap();
 
-
     for i in 0..10 {
         // Check TX state
         if !sent && radio2.check_transmit().unwrap() {
@@ -86,7 +92,7 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
 
         if sent && received {
             println!("Success!");
-            break
+            break;
         }
 
         thread::sleep(Duration::from_millis(50));
@@ -114,13 +120,12 @@ fn lora_tx_rx() {
     config.channel = Channel::LoRa(channel);
 
     info!("Loading radios");
-    
+
     let (mut radio1, mut radio2) = load_radios(&config);
 
     info!("Running test");
     test_tx_rx(&mut radio1, &mut radio2);
 }
-
 
 #[test]
 #[ignore]
