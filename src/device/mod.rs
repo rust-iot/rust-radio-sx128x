@@ -1,8 +1,7 @@
 #![allow(non_snake_case, non_camel_case_types, non_upper_case_globals)]
 
-use log::{error};
 use bitflags::bitflags;
-
+use log::error;
 
 pub mod ble;
 use ble::{BleChannel, BleConfig};
@@ -15,12 +14,11 @@ use lora::{LoRaChannel, LoRaConfig};
 
 pub mod common;
 
-
 pub const BUSY_TIMEOUT_MS: u32 = 500;
 
 /// Sx128x general configuration object
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct Config {
     /// Regulator mode configuration
     pub regulator_mode: RegulatorMode,
@@ -30,17 +28,17 @@ pub struct Config {
 
     /// Internal packet type field to track configurations
     pub(crate) packet_type: PacketType,
-        
+
     /// RF Modem configuration
-    /// 
+    ///
     /// (note this must match the modulation configuration)
     pub modem: Modem,
 
     /// RF Modulation / Channel configuration
-    /// 
+    ///
     /// (note this must match the packet configuration)
     pub channel: Channel,
-    
+
     /// RF timeout configuration
     ///
     /// Note that in high-traffic conditions Timeout::Single must be used
@@ -60,9 +58,12 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Config{
+        Config {
             regulator_mode: RegulatorMode::Ldo,
-            pa_config: PaConfig{ power: 10, ramp_time: RampTime::Ramp20Us },
+            pa_config: PaConfig {
+                power: 10,
+                ramp_time: RampTime::Ramp20Us,
+            },
             packet_type: PacketType::None,
             modem: Modem::LoRa(LoRaConfig::default()),
             channel: Channel::LoRa(LoRaChannel::default()),
@@ -78,7 +79,7 @@ impl Default for Config {
 impl Config {
     /// Create a default FLRC configuration
     pub fn flrc() -> Self {
-        Config{
+        Config {
             packet_type: PacketType::Flrc,
             modem: Modem::Flrc(FlrcConfig::default()),
             channel: Channel::Flrc(FlrcChannel::default()),
@@ -88,7 +89,7 @@ impl Config {
 
     /// Create a default GFSK configuration
     pub fn gfsk() -> Self {
-        Config{
+        Config {
             packet_type: PacketType::Gfsk,
             modem: Modem::Gfsk(GfskConfig::default()),
             channel: Channel::Gfsk(GfskChannel::default()),
@@ -98,7 +99,7 @@ impl Config {
 
     /// Create a default LoRa configuration
     pub fn lora() -> Self {
-        Config{
+        Config {
             packet_type: PacketType::LoRa,
             modem: Modem::LoRa(LoRaConfig::default()),
             channel: Channel::LoRa(LoRaChannel::default()),
@@ -119,10 +120,9 @@ impl Config {
     }
 }
 
-
 /// Radio modem configuration contains fields for each modem mode
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Modem {
     Gfsk(GfskConfig),
     LoRa(LoRaConfig),
@@ -145,7 +145,7 @@ impl Modem {
 
 impl From<&Modem> for PacketType {
     fn from(m: &Modem) -> Self {
-         match m {
+        match m {
             Modem::Gfsk(_) => PacketType::Gfsk,
             Modem::LoRa(_) => PacketType::LoRa,
             Modem::Ranging(_) => PacketType::LoRa,
@@ -158,7 +158,7 @@ impl From<&Modem> for PacketType {
 
 /// Radio channel configuration contains channel options for each mode
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Channel {
     Gfsk(GfskChannel),
     LoRa(LoRaChannel),
@@ -204,18 +204,18 @@ impl From<&Channel> for PacketType {
 
 /// Radio state
 #[derive(Clone, Copy, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum State {
-    Sleep       = 0x00,
-    StandbyRc   = 0x02,
+    Sleep = 0x00,
+    StandbyRc = 0x02,
     StandbyXosc = 0x03,
-    Fs          = 0x04,
-    Rx          = 0x05,
-    Tx          = 0x06,
-    #[cfg(feature="patch-unknown-state")]
+    Fs = 0x04,
+    Rx = 0x05,
+    Tx = 0x06,
+    #[cfg(feature = "patch-unknown-state")]
     /// Unknown state not specified in datasheet but occurs in some conditions..?
     /// See: https://github.com/rust-iot/rust-radio-sx128x/pull/76
-    Unknown     = 0x07,
+    Unknown = 0x07,
 }
 
 impl radio::RadioState for State {
@@ -239,7 +239,7 @@ impl core::convert::TryFrom<u8> for State {
             0x04 => Ok(State::Fs),
             0x05 => Ok(State::Rx),
             0x06 => Ok(State::Tx),
-            #[cfg(feature="patch-unknown-state")]
+            #[cfg(feature = "patch-unknown-state")]
             0x07 => Ok(State::Unknown),
             _ => {
                 error!("Unrecognised state 0x{:x}", v);
@@ -249,19 +249,17 @@ impl core::convert::TryFrom<u8> for State {
     }
 }
 
-
 #[derive(Clone, Copy, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum CommandStatus {
-    Reserved          = 0x0,
-    Success           = 0x1,
-    DataAvailable     = 0x2,
-    Timeout           = 0x3,
-    ProcessingError   = 0x4,
-    ExecutionFailure  = 0x5,
-    TxDone            = 0x6,
+    Reserved = 0x0,
+    Success = 0x1,
+    DataAvailable = 0x2,
+    Timeout = 0x3,
+    ProcessingError = 0x4,
+    ExecutionFailure = 0x5,
+    TxDone = 0x6,
 }
-
 
 impl core::convert::TryFrom<u8> for CommandStatus {
     type Error = ();
@@ -283,10 +281,9 @@ impl core::convert::TryFrom<u8> for CommandStatus {
     }
 }
 
-
 /// Power Amplifier configuration
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct PaConfig {
     /// Power in dBm
     pub power: i8,
@@ -327,17 +324,17 @@ impl Default for PacketInfo {
 
 /// Regulator operating mode
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum RegulatorMode {
     /// Internal LDO
-    Ldo  = 0x00,
+    Ldo = 0x00,
     /// Internal DC/DC converter
     Dcdc = 0x01,
 }
 
 /// Power amplifier ramp time
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum RampTime {
     /// Ramp over 2us
     Ramp02Us = 0x00,
@@ -359,103 +356,103 @@ pub enum RampTime {
 
 /// Packet type enumeration
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum PacketType {
-    Gfsk     = 0x00,
-    LoRa     = 0x01,
-    Ranging  = 0x02,
-    Flrc     = 0x03,
-    Ble      = 0x04,
-    None     = 0x0F,
+    Gfsk = 0x00,
+    LoRa = 0x01,
+    Ranging = 0x02,
+    Flrc = 0x03,
+    Ble = 0x04,
+    None = 0x0F,
 }
 
 /// Radio commands
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Commands {
-    GetStatus                = 0xC0,
-    WiteRegister             = 0x18,
-    ReadRegister             = 0x19,
-    WriteBuffer              = 0x1A,
-    ReadBuffer               = 0x1B,
-    SetSleep                 = 0x84,
-    SetStandby               = 0x80,
-    SetFs                    = 0xC1,
-    SetTx                    = 0x83,
-    SetRx                    = 0x82,
-    SetRxDutyCycle           = 0x94,
-    SetCad                   = 0xC5,
-    SetTxContinuousWave      = 0xD1,
-    SetTxContinuousPreamble  = 0xD2,
-    SetPacketType            = 0x8A,
-    GetPacketType            = 0x03,
-    SetRfFrequency           = 0x86,
-    SetTxParams              = 0x8E,
-    SetCadParams             = 0x88,
-    SetBufferBaseAddress     = 0x8F,
-    SetModulationParams      = 0x8B,
-    SetPacketParams          = 0x8C,
-    GetRxBufferStatus        = 0x17,
-    GetPacketStatus          = 0x1D,
-    GetRssiInst              = 0x1F,
-    SetDioIrqParams          = 0x8D,
-    GetIrqStatus             = 0x15,
-    ClearIrqStatus           = 0x97,
-    Calibrate                = 0x89,
-    SetRegulatorMode         = 0x96,
-    SetSaveContext           = 0xD5,
-    SetAutoTx                = 0x98,
-    SetAutoFs                = 0x9E,
-    SetLongPreamble          = 0x9B,
-    SetUartSpeed             = 0x9D,
-    SetRangingRole           = 0xA3,
+    GetStatus = 0xC0,
+    WiteRegister = 0x18,
+    ReadRegister = 0x19,
+    WriteBuffer = 0x1A,
+    ReadBuffer = 0x1B,
+    SetSleep = 0x84,
+    SetStandby = 0x80,
+    SetFs = 0xC1,
+    SetTx = 0x83,
+    SetRx = 0x82,
+    SetRxDutyCycle = 0x94,
+    SetCad = 0xC5,
+    SetTxContinuousWave = 0xD1,
+    SetTxContinuousPreamble = 0xD2,
+    SetPacketType = 0x8A,
+    GetPacketType = 0x03,
+    SetRfFrequency = 0x86,
+    SetTxParams = 0x8E,
+    SetCadParams = 0x88,
+    SetBufferBaseAddress = 0x8F,
+    SetModulationParams = 0x8B,
+    SetPacketParams = 0x8C,
+    GetRxBufferStatus = 0x17,
+    GetPacketStatus = 0x1D,
+    GetRssiInst = 0x1F,
+    SetDioIrqParams = 0x8D,
+    GetIrqStatus = 0x15,
+    ClearIrqStatus = 0x97,
+    Calibrate = 0x89,
+    SetRegulatorMode = 0x96,
+    SetSaveContext = 0xD5,
+    SetAutoTx = 0x98,
+    SetAutoFs = 0x9E,
+    SetLongPreamble = 0x9B,
+    SetUartSpeed = 0x9D,
+    SetRangingRole = 0xA3,
 }
 
 /// Radio registers
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Registers {
-    LrFirmwareVersionMsb               = 0x0153,
-    LrCrcSeedBaseAddr                  = 0x09C8,
-    LrCrcPolyBaseAddr                  = 0x09C6,
-    LrWhitSeedBaseAddr                 = 0x09C5,
-    LrRangingIdCheckLength             = 0x0931,
-    LrDeviceRangingAddr                = 0x0916,
-    LrRequestRangingAddr               = 0x0912,
-    LrRangingResultConfig              = 0x0924,
-    LrRangingResultBaseAddr            = 0x0961,
-    LrRangingResultsFreeze             = 0x097F,
-    LrRangingReRxTxDelayCal            = 0x092C,
-    LrRangingFilterWindowSize          = 0x091E,
-    LrRangingResultClearReg            = 0x0923,
-    RangingRssi                        = 0x0964,
-    LrPacketParams                     = 0x903,
-    LrPayloadLength                    = 0x901,
-    LrSyncWordBaseAddress1             = 0x09CE,
-    LrSyncWordBaseAddress2             = 0x09D3,
-    LrSyncWordBaseAddress3             = 0x09D8,
-    LrEstimatedFrequencyErrorMsb       = 0x0954,
-    GfskBlePreambleLength              = 0x09C1,
-    LrSyncWordTolerance                = 0x09CD,
-    LrBleAccessAddress                 = 0x09CF,
-    LnaRegime                          = 0x0891,
-    EnableManuaLGainControl            = 0x089F,
-    DemodDetection                     = 0x0895,
-    ManualGainValue                    = 0x089E,
+    LrFirmwareVersionMsb = 0x0153,
+    LrCrcSeedBaseAddr = 0x09C8,
+    LrCrcPolyBaseAddr = 0x09C6,
+    LrWhitSeedBaseAddr = 0x09C5,
+    LrRangingIdCheckLength = 0x0931,
+    LrDeviceRangingAddr = 0x0916,
+    LrRequestRangingAddr = 0x0912,
+    LrRangingResultConfig = 0x0924,
+    LrRangingResultBaseAddr = 0x0961,
+    LrRangingResultsFreeze = 0x097F,
+    LrRangingReRxTxDelayCal = 0x092C,
+    LrRangingFilterWindowSize = 0x091E,
+    LrRangingResultClearReg = 0x0923,
+    RangingRssi = 0x0964,
+    LrPacketParams = 0x903,
+    LrPayloadLength = 0x901,
+    LrSyncWordBaseAddress1 = 0x09CE,
+    LrSyncWordBaseAddress2 = 0x09D3,
+    LrSyncWordBaseAddress3 = 0x09D8,
+    LrEstimatedFrequencyErrorMsb = 0x0954,
+    GfskBlePreambleLength = 0x09C1,
+    LrSyncWordTolerance = 0x09CD,
+    LrBleAccessAddress = 0x09CF,
+    LnaRegime = 0x0891,
+    EnableManuaLGainControl = 0x089F,
+    DemodDetection = 0x0895,
+    ManualGainValue = 0x089E,
 }
 
-pub const MASK_RANGINGMUXSEL: u8       = 0xCF;
-pub const MASK_LNA_REGIME: u8          = 0xC0;
+pub const MASK_RANGINGMUXSEL: u8 = 0xCF;
+pub const MASK_LNA_REGIME: u8 = 0xC0;
 pub const MASK_MANUAL_GAIN_CONTROL: u8 = 0x80;
-pub const MASK_DEMOD_DETECTION: u8     = 0xFE;
-pub const MASK_MANUAL_GAIN_VALUE: u8   = 0xF0;
+pub const MASK_DEMOD_DETECTION: u8 = 0xFE;
+pub const MASK_MANUAL_GAIN_VALUE: u8 = 0xF0;
 
 pub const MASK_LR_ESTIMATED_FREQUENCY_ERROR: u32 = 0x0FFFFF;
 
 pub const AUTO_RX_TX_OFFSET: u16 = 33;
 
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum AutoTx {
     /// Enable AutoTX with the provided timeout in microseconds (uS)
     Enabled(u16),
@@ -464,7 +461,7 @@ pub enum AutoTx {
 }
 
 bitflags! {
-    /// Interrupt flags register 
+    /// Interrupt flags register
     pub struct Irq: u16 {
         const TX_DONE                             = 0x0001;
         const RX_DONE                             = 0x0002;
@@ -503,7 +500,6 @@ bitflags! {
     }
 }
 
-
 bitflags! {
     /// TxRx status packet status byte
     pub struct TxRxStatus: u8 {
@@ -520,7 +516,6 @@ bitflags! {
     }
 }
 
-
 bitflags! {
     /// Radio calibration parameters
     pub struct CalibrationParams: u8 {
@@ -535,7 +530,7 @@ bitflags! {
 
 /// Ranging mode role
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum RangingRole {
     /// Responder listens for ranging requests and responds
     Responder = 0x00,
@@ -545,21 +540,21 @@ pub enum RangingRole {
 
 /// TickSize for timeout calculations
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum TickSize {
     // 15us tick size
-    TickSize0015us   = 0x00,
+    TickSize0015us = 0x00,
     // 62us tick size
-    TickSize0062us   = 0x01,
+    TickSize0062us = 0x01,
     // 1000us tick size
-    TickSize1000us   = 0x02,
+    TickSize1000us = 0x02,
     // 4000us tick size
-    TickSize4000us   = 0x03,
+    TickSize4000us = 0x03,
 }
 
 /// Timeout confguration for autonomous radio operations
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum Timeout {
     /// Single tx/rx mode
     Single,
@@ -576,20 +571,20 @@ pub enum Timeout {
 
 impl Timeout {
     /// Fetch the TickSize from a timeout configuration
-    pub fn step(&self) -> TickSize  {
+    pub fn step(&self) -> TickSize {
         match self {
-            Timeout::Single          => TickSize::TickSize0015us,
-            Timeout::Configurable{step, count: _} => *step,
-            Timeout::Continuous      => TickSize::TickSize0015us,
+            Timeout::Single => TickSize::TickSize0015us,
+            Timeout::Configurable { step, count: _ } => *step,
+            Timeout::Continuous => TickSize::TickSize0015us,
         }
     }
 
     /// Fetch the step count for a timeout configuration
     pub fn count(&self) -> u16 {
         match self {
-            Timeout::Single          => 0x0000,
-            Timeout::Configurable{step: _, count} => *count,
-            Timeout::Continuous      => 0xFFFF,
+            Timeout::Single => 0x0000,
+            Timeout::Configurable { step: _, count } => *count,
+            Timeout::Continuous => 0xFFFF,
         }
     }
 }

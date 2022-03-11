@@ -2,24 +2,19 @@
 
 use core::fmt::Debug;
 
-use log::{trace, error};
+use log::{error, trace};
 
-use embedded_hal::delay::blocking::{DelayMs, DelayUs};
+use embedded_hal::delay::blocking::DelayUs;
 use embedded_hal::spi::blocking::Transactional;
 
-use driver_pal::{Reset, Busy, Ready, PinState, PrefixRead, PrefixWrite};
-use driver_pal::{Error as SpiError};
+use driver_pal::Error as SpiError;
+use driver_pal::{Busy, PinState, PrefixRead, PrefixWrite, Ready, Reset};
 
-use crate::{Error};
 use crate::device::*;
+use crate::Error;
 
 /// Hal implementation can be generic over SPI or UART connections
-pub trait Hal<
-    CommsError: Debug, 
-    PinError: Debug,
-    DelayError: Debug,
-    > {
-
+pub trait Hal<CommsError: Debug, PinError: Debug, DelayError: Debug> {
     /// Reset the device
     fn reset(&mut self) -> Result<(), Error<CommsError, PinError, DelayError>>;
 
@@ -30,25 +25,49 @@ pub trait Hal<
     fn get_dio(&mut self) -> Result<PinState, Error<CommsError, PinError, DelayError>>;
 
     /// Delay for the specified time
-    fn delay_ms(&mut self, ms: u32)-> Result<(), DelayError>;
+    fn delay_ms(&mut self, ms: u32) -> Result<(), DelayError>;
 
     /// Delay for the specified time
-    fn delay_us(&mut self, us: u32)-> Result<(), DelayError>;
+    fn delay_us(&mut self, us: u32) -> Result<(), DelayError>;
 
     /// Write the specified command and data
-    fn write_cmd(&mut self, command: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
+    fn write_cmd(
+        &mut self,
+        command: u8,
+        data: &[u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>>;
     /// Read the specified command and data
-    fn read_cmd(&mut self, command: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
-    
+    fn read_cmd(
+        &mut self,
+        command: u8,
+        data: &mut [u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>>;
+
     /// Write to the specified register
-    fn write_regs(&mut self, reg: u16, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
+    fn write_regs(
+        &mut self,
+        reg: u16,
+        data: &[u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>>;
     /// Read from the specified register
-    fn read_regs(&mut self, reg: u16, data: &mut [u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
-    
+    fn read_regs(
+        &mut self,
+        reg: u16,
+        data: &mut [u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>>;
+
     /// Write to the specified buffer
-    fn write_buff(&mut self, offset: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
+    fn write_buff(
+        &mut self,
+        offset: u8,
+        data: &[u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>>;
     /// Read from the specified buffer
-    fn read_buff(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError, DelayError>>;
+    fn read_buff(
+        &mut self,
+        offset: u8,
+        data: &mut [u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>>;
 
     /// Wait on radio device busy
     fn wait_busy(&mut self) -> Result<(), Error<CommsError, PinError, DelayError>> {
@@ -60,7 +79,7 @@ pub trait Hal<
 
             if timeout > BUSY_TIMEOUT_MS {
                 error!("Busy timeout after {} ms", BUSY_TIMEOUT_MS);
-                return Err(Error::BusyTimeout)
+                return Err(Error::BusyTimeout);
             }
         }
 
@@ -75,13 +94,22 @@ pub trait Hal<
     }
 
     /// Write a single u8 value to the specified register
-    fn write_reg(&mut self, reg: u16, value: u8) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn write_reg(
+        &mut self,
+        reg: u16,
+        value: u8,
+    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
         self.write_regs(reg.into(), &[value])?;
         Ok(())
     }
 
     /// Update the specified register with the provided value & mask
-    fn update_reg(&mut self, reg: u16, mask: u8, value: u8) -> Result<u8, Error<CommsError, PinError, DelayError>> {
+    fn update_reg(
+        &mut self,
+        reg: u16,
+        mask: u8,
+        value: u8,
+    ) -> Result<u8, Error<CommsError, PinError, DelayError>> {
         let existing = self.read_reg(reg)?;
         let updated = (existing & !mask) | (value & mask);
         self.write_reg(reg, updated)?;
@@ -91,17 +119,17 @@ pub trait Hal<
 
 impl<T, CommsError, PinError, DelayError> Hal<CommsError, PinError, DelayError> for T
 where
-    T: Transactional<u8, Error=SpiError<CommsError, PinError, DelayError>> 
-            + PrefixRead<Error=SpiError<CommsError, PinError, DelayError>>
-            + PrefixWrite<Error=SpiError<CommsError, PinError, DelayError>>,
-    T: Reset<Error=PinError>,
-    T: Busy<Error=PinError>,
-    T: Ready<Error=PinError>,
-    T: DelayMs<u32, Error=DelayError> + DelayUs<u32, Error=DelayError>,
+    T: Transactional<u8, Error = SpiError<CommsError, PinError, DelayError>>
+        + PrefixRead<Error = SpiError<CommsError, PinError, DelayError>>
+        + PrefixWrite<Error = SpiError<CommsError, PinError, DelayError>>,
+    T: Reset<Error = PinError>,
+    T: Busy<Error = PinError>,
+    T: Ready<Error = PinError>,
+    T: DelayUs<Error = DelayError>,
     CommsError: Debug,
     PinError: Debug,
     DelayError: Debug,
-{    
+{
     /// Reset the radio
     fn reset(&mut self) -> Result<(), Error<CommsError, PinError, DelayError>> {
         self.delay_ms(20).map_err(Error::Delay)?;
@@ -123,10 +151,9 @@ where
         Ok(dio)
     }
 
-
     /// Delay for the specified time
     fn delay_ms(&mut self, ms: u32) -> Result<(), DelayError> {
-        DelayMs::delay_ms(self, ms)
+        DelayUs::delay_ms(self, ms)
     }
 
     /// Delay for the specified time
@@ -135,25 +162,36 @@ where
     }
 
     /// Write the specified command and data
-    fn write_cmd(&mut self, command: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn write_cmd(
+        &mut self,
+        command: u8,
+        data: &[u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
         // Setup register write command
         let out_buf: [u8; 1] = [command as u8];
-        
+
         trace!("write_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
 
         self.wait_busy()?;
-        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into());
         self.wait_busy()?;
         r
     }
 
     /// Read the specified command and data
-    fn read_cmd<'a>(&mut self, command: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn read_cmd<'a>(
+        &mut self,
+        command: u8,
+        data: &mut [u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
         // Setup register read command
         let out_buf: [u8; 2] = [command as u8, 0x00];
-        
+
         self.wait_busy()?;
-        let r = self.prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self
+            .prefix_read(&out_buf, data)
+            .map(|_| ())
+            .map_err(|e| e.into());
         self.wait_busy()?;
 
         trace!("read_cmd cmd: {:02x?} data: {:02x?}", out_buf, data);
@@ -162,7 +200,11 @@ where
     }
 
     /// Write to the specified register
-    fn write_regs(&mut self, reg: u16, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn write_regs(
+        &mut self,
+        reg: u16,
+        data: &[u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
         // Setup register write command
         let out_buf: [u8; 3] = [
             Commands::WiteRegister as u8,
@@ -173,13 +215,17 @@ where
         trace!("write_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
 
         self.wait_busy()?;
-        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into());
         self.wait_busy()?;
         r
     }
 
     /// Read from the specified register
-    fn read_regs<'a>(&mut self, reg: u16, data: &mut [u8]) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn read_regs<'a>(
+        &mut self,
+        reg: u16,
+        data: &mut [u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
         // Setup register read command
         let out_buf: [u8; 4] = [
             Commands::ReadRegister as u8,
@@ -189,41 +235,48 @@ where
         ];
 
         self.wait_busy()?;
-        let r = self.prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self
+            .prefix_read(&out_buf, data)
+            .map(|_| ())
+            .map_err(|e| e.into());
         self.wait_busy()?;
 
         trace!("read_regs cmd: {:02x?} data: {:02x?}", out_buf, data);
-        
+
         r
     }
 
     /// Write to the specified buffer
-    fn write_buff(&mut self, offset: u8, data: &[u8]) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn write_buff(
+        &mut self,
+        offset: u8,
+        data: &[u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
         // Setup register write command
-        let out_buf: [u8; 2] = [
-            Commands::WriteBuffer as u8,
-            offset,
-        ];
-        
+        let out_buf: [u8; 2] = [Commands::WriteBuffer as u8, offset];
+
         trace!("write_buff cmd: {:02x?}", out_buf);
 
         self.wait_busy()?;
-        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into() );
+        let r = self.prefix_write(&out_buf, data).map_err(|e| e.into());
         self.wait_busy()?;
         r
     }
 
     /// Read from the specified buffer
-    fn read_buff<'a>(&mut self, offset: u8, data: &mut [u8]) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn read_buff<'a>(
+        &mut self,
+        offset: u8,
+        data: &mut [u8],
+    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
         // Setup register read command
-        let out_buf: [u8; 3] = [
-            Commands::ReadBuffer as u8,
-            offset,
-            0
-        ];
+        let out_buf: [u8; 3] = [Commands::ReadBuffer as u8, offset, 0];
         trace!(" data: {:02x?}", out_buf);
         self.wait_busy()?;
-        let r = self.prefix_read(&out_buf, data).map(|_| () ).map_err(|e| e.into() );
+        let r = self
+            .prefix_read(&out_buf, data)
+            .map(|_| ())
+            .map_err(|e| e.into());
         self.wait_busy()?;
 
         trace!("read_buff cmd: {:02x?} data: {:02x?}", out_buf, data);
@@ -231,4 +284,3 @@ where
         r
     }
 }
-

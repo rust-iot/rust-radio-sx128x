@@ -4,7 +4,7 @@ use super::common::*;
 
 /// GFSK operating mode configuration
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct GfskChannel {
     /// Operating frequency
     pub freq: u32,
@@ -23,13 +23,13 @@ impl Default for GfskChannel {
             br_bw: GfskBleBitrateBandwidth::BR_0_250_BW_0_3,
             mi: GfskBleModIndex::MOD_IND_0_35,
             ms: ModShaping::Off,
-        }   
+        }
     }
 }
 
-/// GFSK packet configuration 
+/// GFSK packet configuration
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct GfskConfig {
     /// Preamble length
     pub preamble_length: PreambleLength,
@@ -68,16 +68,16 @@ impl Default for GfskConfig {
 
 /// GFSK sync word length configuration
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum GfskSyncWordLength {
     /// Sync word length: 1 byte
-    GFSK_SYNCWORD_LENGTH_1_BYTE              = 0x00,
+    GFSK_SYNCWORD_LENGTH_1_BYTE = 0x00,
     /// Sync word length: 2 bytes
-    GFSK_SYNCWORD_LENGTH_2_BYTE              = 0x02,
+    GFSK_SYNCWORD_LENGTH_2_BYTE = 0x02,
     /// Sync word length: 3 bytes
-    GFSK_SYNCWORD_LENGTH_3_BYTE              = 0x04,
+    GFSK_SYNCWORD_LENGTH_3_BYTE = 0x04,
     /// Sync word length: 4 bytes
-    GFSK_SYNCWORD_LENGTH_4_BYTE              = 0x06,
+    GFSK_SYNCWORD_LENGTH_4_BYTE = 0x06,
     /// Sync word length: 5 bytes
-    GFSK_SYNCWORD_LENGTH_5_BYTE              = 0x08,
+    GFSK_SYNCWORD_LENGTH_5_BYTE = 0x08,
 }

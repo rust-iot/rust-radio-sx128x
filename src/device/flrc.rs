@@ -4,7 +4,7 @@ use super::common::*;
 
 /// FLRC configuration structure
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct FlrcChannel {
     /// Operating frequency
     pub freq: u32,
@@ -23,13 +23,13 @@ impl Default for FlrcChannel {
             br_bw: FlrcBitrate::BR_2_080_BW_2_4,
             cr: FlrcCodingRate::Cr3_4,
             ms: ModShaping::Off,
-        }   
+        }
     }
 }
 
 /// FLRC packet configuration structure
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct FlrcConfig {
     pub preamble_length: PreambleLength,
     pub sync_word_length: FlrcSyncWordLength,
@@ -46,7 +46,7 @@ pub struct FlrcConfig {
 
 impl Default for FlrcConfig {
     fn default() -> Self {
-        Self{
+        Self {
             preamble_length: PreambleLength::PreambleLength16,
             sync_word_length: FlrcSyncWordLength::Length4,
             sync_word_match: SyncWordRxMatch::RADIO_RX_MATCH_SYNCWORD_1,
@@ -64,21 +64,21 @@ impl Default for FlrcConfig {
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum FlrcBitrate {
     /// Baud: 2600 kbps Bandwidth: 2.4 MHz
-    BR_2_600_BW_2_4                    = 0x04,
+    BR_2_600_BW_2_4 = 0x04,
     /// Baud: 2080 kbps Bandwidth: 2.4 MHz
-    BR_2_080_BW_2_4                    = 0x28,
+    BR_2_080_BW_2_4 = 0x28,
     /// Baud: 1300 kbps Bandwidth: 1.2 MHz
-    BR_1_300_BW_1_2                    = 0x45,
+    BR_1_300_BW_1_2 = 0x45,
     /// Baud: 1040 kbps Bandwidth: 1.2 MHz
-    BR_1_040_BW_1_2                    = 0x69,
+    BR_1_040_BW_1_2 = 0x69,
     /// Baud: 650 kbps Bandwidth: 0.6 MHz
-    BR_0_650_BW_0_6                    = 0x86,
+    BR_0_650_BW_0_6 = 0x86,
     /// Baud: 520 kbps Bandwidth: 0.6 MHz
-    BR_0_520_BW_0_6                    = 0xAA,
+    BR_0_520_BW_0_6 = 0xAA,
     /// Baud: 325 kbps Bandwidth: 0.3 MHz
-    BR_0_325_BW_0_3                    = 0xC7,
+    BR_0_325_BW_0_3 = 0xC7,
     /// Baud: 260 kbps Bandwidth: 0.3 MHz
-    BR_0_260_BW_0_3                    = 0xEB,
+    BR_0_260_BW_0_3 = 0xEB,
 }
 
 #[cfg(feature = "util")]
@@ -96,11 +96,11 @@ impl std::str::FromStr for FlrcBitrate {
             "2080_2400" => BR_2_080_BW_2_4,
             "1300_1200" => BR_1_300_BW_1_2,
             "1040_1200" => BR_1_040_BW_1_2,
-            "650_600"   => BR_0_650_BW_0_6,
-            "520_600"   => BR_0_520_BW_0_6,
-            "325_300"   => BR_0_325_BW_0_3,
-            "260_300"   => BR_0_260_BW_0_3,
-            _ => return Err(FLRC_BIT_RATE_PARSE_ERR)
+            "650_600" => BR_0_650_BW_0_6,
+            "520_600" => BR_0_520_BW_0_6,
+            "325_300" => BR_0_325_BW_0_3,
+            "260_300" => BR_0_260_BW_0_3,
+            _ => return Err(FLRC_BIT_RATE_PARSE_ERR),
         };
 
         Ok(v)
@@ -109,7 +109,7 @@ impl std::str::FromStr for FlrcBitrate {
 
 /// Coding rates for FLRC mode
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum FlrcCodingRate {
     /// 1/2 coding rate
     Cr1_2 = 0x00,
@@ -127,12 +127,11 @@ impl std::str::FromStr for FlrcCodingRate {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-
         let v = match s {
             "1/2" => FlrcCodingRate::Cr1_2,
             "3/4" => FlrcCodingRate::Cr3_4,
             "1/0" => FlrcCodingRate::Cr1_0,
-            _ => return Err(FLRC_CODE_RATE_PARSE_ERR)
+            _ => return Err(FLRC_CODE_RATE_PARSE_ERR),
         };
 
         Ok(v)
@@ -141,12 +140,10 @@ impl std::str::FromStr for FlrcCodingRate {
 
 /// FLRC sync word length
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum FlrcSyncWordLength {
     /// No sync word
     None = 0x00,
     /// 4-byte sync word
     Length4 = 0x04,
 }
-
-

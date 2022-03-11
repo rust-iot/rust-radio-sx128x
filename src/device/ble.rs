@@ -18,7 +18,7 @@ pub struct BleChannel {
 
 /// BLE operating mode packet configuration
 #[derive(Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct BleConfig {
     /// BLE connection state
     pub connection_state: BleConnectionStates,
@@ -31,26 +31,26 @@ pub struct BleConfig {
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum BleConnectionStates {
     // TODO
-    BLE_PAYLOAD_LENGTH_MAX_31_BYTES         = 0x00,
+    BLE_PAYLOAD_LENGTH_MAX_31_BYTES = 0x00,
     // TODO
-    BLE_PAYLOAD_LENGTH_MAX_37_BYTES         = 0x20,
+    BLE_PAYLOAD_LENGTH_MAX_37_BYTES = 0x20,
     /// Transmit test mode
-    BLE_TX_TEST_MODE                        = 0x40,
+    BLE_TX_TEST_MODE = 0x40,
     /// TODO
-    BLE_PAYLOAD_LENGTH_MAX_255_BYTES        = 0x80,
+    BLE_PAYLOAD_LENGTH_MAX_255_BYTES = 0x80,
 }
 
 /// BLE CRC field configuration
 #[derive(Copy, Clone, PartialEq, Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))] 
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum BleCrcFields {
     /// CRC disabled
-    BLE_CRC_OFF                             = 0x00,
+    BLE_CRC_OFF = 0x00,
     /// CRC 3B
-    BLE_CRC_3B                              = 0x10,
+    BLE_CRC_3B = 0x10,
 }
 
 /// BLE mode packet types
@@ -58,19 +58,19 @@ pub enum BleCrcFields {
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum BlePacketTypes {
     /// Pseudo Random Binary Sequence based on 9th degree polynomial
-    BLE_PRBS_9                              = 0x00,
+    BLE_PRBS_9 = 0x00,
     /// Pseudo Random Binary Sequence based on 15th degree polynomial
-    BLE_PRBS_15                             = 0x0C,
+    BLE_PRBS_15 = 0x0C,
     /// Repeated '11110000' sequence
-    BLE_EYELONG_1_0                         = 0x04,
+    BLE_EYELONG_1_0 = 0x04,
     /// Repeated '00001111' sequence
-    BLE_EYELONG_0_1                         = 0x18,
+    BLE_EYELONG_0_1 = 0x18,
     /// Repeated '10101010' sequence
-    BLE_EYESHORT_1_0                        = 0x08,
+    BLE_EYESHORT_1_0 = 0x08,
     /// Repeated '01010101' sequence
-    BLE_EYESHORT_0_1                        = 0x1C,
+    BLE_EYESHORT_0_1 = 0x1C,
     /// Repeated '11111111' sequence
-    BLE_ALL_1                               = 0x10,
+    BLE_ALL_1 = 0x10,
     /// Repeated '00000000' sequence
-    BLE_ALL_0                               = 0x14,
+    BLE_ALL_0 = 0x14,
 }
