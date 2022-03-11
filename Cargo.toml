@@ -71,4 +71,4 @@ required-features = ["util"]
 
 
 [patch.crates-io]
-radio = { git = "https://github.com/rust-iot/radio-hal", branch = "fix/std" }
+#radio = { git = "https://github.com/rust-iot/radio-hal" }
