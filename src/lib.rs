@@ -2,10 +2,10 @@
 // Copyright 2018 Ryan Kurte
 
 #![no_std]
+#![feature(associated_type_defaults)]
 
 use core::convert::TryFrom;
 use core::fmt::Debug;
-use core::marker::PhantomData;
 
 extern crate libc;
 
@@ -13,6 +13,7 @@ extern crate libc;
 #[macro_use]
 extern crate std;
 
+use base::Base;
 use log::{debug, error, trace, warn};
 
 use embedded_hal::delay::blocking::DelayUs;
@@ -20,7 +21,6 @@ use embedded_hal::digital::blocking::{InputPin, OutputPin};
 use embedded_hal::spi::blocking::{Transactional, Transfer, Write};
 use embedded_hal::spi::{Mode as SpiMode, Phase, Polarity};
 
-use driver_pal::{wrapper::Wrapper as SpiWrapper, Error as WrapError};
 
 pub use radio::{Channel as _, Interrupts as _, State as _};
 
@@ -39,14 +39,10 @@ pub const SPI_MODE: SpiMode = SpiMode {
 };
 
 /// Sx128x device object
-pub struct Sx128x<Base, CommsError, PinError, DelayError> {
+pub struct Sx128x<Base> {
     config: Config,
     packet_type: PacketType,
     hal: Base,
-
-    _ce: PhantomData<CommsError>,
-    _pe: PhantomData<PinError>,
-    _de: PhantomData<DelayError>,
 }
 
 pub const FREQ_MIN: u32 = 2_400_000_000;
@@ -147,50 +143,33 @@ pub enum Error<CommsError: Debug + 'static, PinError: Debug + 'static, DelayErro
     NoComms,
 }
 
-impl<CommsError, PinError, DelayError> From<WrapError<CommsError, PinError, DelayError>>
-    for Error<CommsError, PinError, DelayError>
-where
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
-{
-    fn from(e: WrapError<CommsError, PinError, DelayError>) -> Self {
-        match e {
-            WrapError::Spi(e) => Error::Comms(e),
-            WrapError::Pin(e) => Error::Pin(e),
-            WrapError::Delay(e) => Error::Delay(e),
-            WrapError::Aborted => Error::Aborted,
-        }
-    }
+pub type Sx128xSpi<Spi, CsPin, BusyPin, ReadyPin, SdnPin, DelayPin> = Sx128x<Base<Spi, CsPin, BusyPin, ReadyPin, SdnPin, DelayPin>>;
+
+/// Helper to group SPI functions by error, not needed when e-h@1.0.0-alpha.8 lands
+pub trait SpiBase: Transfer<u8, Error = <Self as SpiBase>::Error> + Write<u8, Error = <Self as SpiBase>::Error> + Transactional<u8, Error = <Self as SpiBase>::Error> {
+    type Error;
 }
 
-pub type Sx128xSpi<Spi, SpiError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError> =
-    Sx128x<
-        SpiWrapper<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>,
-        SpiError,
-        PinError,
-        DelayError,
-    >;
+impl <T: Transfer<u8, Error = E> + Write<u8, Error = E> + Transactional<u8, Error = E>, E> SpiBase for T {
+    type Error = E;
+}
 
-impl<Spi, CommsError, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay, DelayError>
+impl<Spi, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay>
     Sx128x<
-        SpiWrapper<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>,
-        CommsError,
-        PinError,
-        DelayError,
+        Base<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>,
     >
 where
-    Spi: Transfer<u8, Error = CommsError>
-        + Write<u8, Error = CommsError>
-        + Transactional<u8, Error = CommsError>,
+    Spi: SpiBase,
+    <Spi as SpiBase>::Error: Debug,
+
     CsPin: OutputPin<Error = PinError>,
     BusyPin: InputPin<Error = PinError>,
     ReadyPin: InputPin<Error = PinError>,
     SdnPin: OutputPin<Error = PinError>,
-    Delay: DelayUs<Error = DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    PinError: Debug,
+
+    Delay: DelayUs,
+    <Delay as DelayUs>::Error: Debug,
 {
     /// Create an Sx128x with the provided `Spi` implementation and pins
     pub fn spi(
@@ -198,26 +177,26 @@ where
         cs: CsPin,
         busy: BusyPin,
         ready: ReadyPin,
-        reset: SdnPin,
+        sdn: SdnPin,
         delay: Delay,
         config: &Config,
-    ) -> Result<Self, Error<CommsError, PinError, DelayError>> {
+    ) -> Result<Self, Error<<Spi as SpiBase>::Error, PinError, <Delay as DelayUs>::Error>> {
         // Create SpiWrapper over spi/cs/busy
-        let hal = SpiWrapper::new(spi, cs, reset, busy, ready, delay);
+        let hal = Base{spi, cs, sdn, busy, ready, delay};
         // Create instance with new hal
         Self::new(hal, config)
     }
 }
 
-impl<Hal, CommsError, PinError, DelayError> Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
+    <Hal as base::Hal>::CommsError: Debug + 'static,
+    <Hal as base::Hal>::PinError: Debug + 'static,
+    <Hal as base::Hal>::DelayError: Debug + 'static,
 {
     /// Create a new Sx128x instance over a generic Hal implementation
-    pub fn new(hal: Hal, config: &Config) -> Result<Self, Error<CommsError, PinError, DelayError>> {
+    pub fn new(hal: Hal, config: &Config) -> Result<Self, Error<<Hal as base::Hal>::CommsError, <Hal as base::Hal>::PinError, <Hal as base::Hal>::DelayError>> {
         let mut sx128x = Self::build(hal);
 
         debug!("Resetting device");
@@ -258,7 +237,7 @@ where
         Ok(sx128x)
     }
 
-    pub fn reset(&mut self) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    pub fn reset(&mut self) -> Result<(), <Hal as base::HalError>::E> {
         debug!("Resetting device");
 
         self.hal.reset()?;
@@ -271,16 +250,13 @@ where
             config: Config::default(),
             packet_type: PacketType::None,
             hal,
-            _ce: PhantomData,
-            _pe: PhantomData,
-            _de: PhantomData,
         }
     }
 
     pub fn configure(
         &mut self,
         config: &Config,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         // Switch to standby mode
         self.set_state(State::StandbyRc)?;
 
@@ -310,7 +286,7 @@ where
         Ok(())
     }
 
-    pub fn firmware_version(&mut self) -> Result<u16, Error<CommsError, PinError, DelayError>> {
+    pub fn firmware_version(&mut self) -> Result<u16, <Hal as base::HalError>::E> {
         let mut d = [0u8; 2];
 
         self.hal
@@ -319,7 +295,7 @@ where
         Ok((d[0] as u16) << 8 | (d[1] as u16))
     }
 
-    pub fn set_frequency(&mut self, f: u32) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    pub fn set_frequency(&mut self, f: u32) -> Result<(), <Hal as base::HalError>::E> {
         let c = self.config.freq_to_steps(f as f32) as u32;
 
         trace!("Setting frequency ({:?} MHz, {} index)", f / 1000 / 1000, c);
@@ -333,7 +309,7 @@ where
         &mut self,
         power: i8,
         ramp: RampTime,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         if power > 13 || power < -18 {
             warn!("TX power out of range (-18 < p < 13)");
         }
@@ -361,7 +337,7 @@ where
     pub fn set_irq_mask(
         &mut self,
         irq: Irq,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         trace!("Setting IRQ mask: {:?}", irq);
 
         let raw = irq.bits();
@@ -378,7 +354,7 @@ where
         dio1: DioMask,
         dio2: DioMask,
         dio3: DioMask,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         trace!(
             "Setting IRQ mask: {:?} DIOs: {:?}, {:?}, {:?}",
             irq,
@@ -409,7 +385,7 @@ where
     pub(crate) fn configure_modem(
         &mut self,
         config: &Modem,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         use Modem::*;
 
         debug!("Setting modem config: {:?}", config);
@@ -486,7 +462,7 @@ where
 
     pub(crate) fn get_rx_buffer_status(
         &mut self,
-    ) -> Result<(u8, u8), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(u8, u8), <Hal as base::HalError>::E> {
         use device::lora::LoRaHeader;
 
         let mut status = [0u8; 2];
@@ -514,7 +490,7 @@ where
     pub(crate) fn get_packet_info(
         &mut self,
         info: &mut PacketInfo,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         let mut data = [0u8; 5];
         self.hal
             .read_cmd(Commands::GetPacketStatus as u8, &mut data)?;
@@ -548,7 +524,7 @@ where
     pub fn calibrate(
         &mut self,
         c: CalibrationParams,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         trace!("Calibrate {:?}", c);
         self.hal.write_cmd(Commands::Calibrate as u8, &[c.bits()])
     }
@@ -556,7 +532,7 @@ where
     pub(crate) fn set_regulator_mode(
         &mut self,
         r: RegulatorMode,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         trace!("Set regulator mode {:?}", r);
         self.hal
             .write_cmd(Commands::SetRegulatorMode as u8, &[r as u8])
@@ -567,7 +543,7 @@ where
     pub(crate) fn set_auto_tx(
         &mut self,
         a: AutoTx,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         let data = match a {
             AutoTx::Enabled(timeout_us) => {
                 let compensated = timeout_us - AUTO_RX_TX_OFFSET;
@@ -582,7 +558,7 @@ where
         &mut self,
         tx: u8,
         rx: u8,
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         trace!("Set buff base address (tx: {}, rx: {})", tx, rx);
         self.hal
             .write_cmd(Commands::SetBufferBaseAddress as u8, &[tx, rx])
@@ -594,7 +570,7 @@ where
         &mut self,
         index: u8,
         value: &[u8],
-    ) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    ) -> Result<(), <Hal as base::HalError>::E> {
         trace!(
             "Attempting to set sync word index: {} to: {:?}",
             index,
@@ -648,7 +624,7 @@ where
     }
 
     /// Apply patch for sync-word match errata in FLRC mode
-    fn patch_flrc_syncword(&mut self) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn patch_flrc_syncword(&mut self) -> Result<(), <Hal as base::HalError>::E> {
         // If we're in FLRC mode, patch to force 100% match on syncwords
         // because otherwise the 4 bit threshold is too low
         if let PacketType::Flrc = &self.packet_type {
@@ -661,15 +637,11 @@ where
     }
 }
 
-impl<Hal, CommsError, PinError, DelayError> DelayUs
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> DelayUs for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     fn delay_us(&mut self, t: u32) -> Result<(), Self::Error> {
         self.hal.delay_us(t).map_err(|e| Error::Delay(e))
@@ -677,16 +649,13 @@ where
 }
 
 /// `radio::State` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::State
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::State
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
     type State = State;
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Fetch device state
     fn get_state(&mut self) -> Result<Self::State, Self::Error> {
@@ -726,15 +695,12 @@ where
 }
 
 /// `radio::Busy` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::Busy
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::Busy
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Fetch device state
     fn is_busy(&mut self) -> Result<bool, Self::Error> {
@@ -751,18 +717,15 @@ where
 }
 
 /// `radio::Channel` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::Channel
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::Channel
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
     /// Channel consists of an operating frequency and packet mode
     type Channel = Channel;
 
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Set operating channel
     fn set_channel(&mut self, ch: &Self::Channel) -> Result<(), Self::Error> {
@@ -800,34 +763,28 @@ where
 }
 
 /// `radio::Power` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::Power
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::Power
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Set TX power in dBm
-    fn set_power(&mut self, power: i8) -> Result<(), Error<CommsError, PinError, DelayError>> {
+    fn set_power(&mut self, power: i8) -> Result<(), <Hal as base::HalError>::E> {
         let ramp_time = self.config.pa_config.ramp_time;
         self.set_power_ramp(power, ramp_time)
     }
 }
 
 /// `radio::Interrupts` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::Interrupts
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::Interrupts
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
     type Irq = Irq;
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Fetch (and optionally clear) current interrupts
     fn get_interrupts(&mut self, clear: bool) -> Result<Self::Irq, Self::Error> {
@@ -849,15 +806,12 @@ where
 }
 
 /// `radio::Transmit` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::Transmit
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::Transmit
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Start transmitting a packet
     fn start_transmit(&mut self, data: &[u8]) -> Result<(), Self::Error> {
@@ -949,19 +903,16 @@ where
 }
 
 /// `radio::Receive` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::Receive
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::Receive
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
     /// Receive info structure
     type Info = PacketInfo;
 
     /// RF Error object
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Start radio in receive mode
     fn start_receive(&mut self) -> Result<(), Self::Error> {
@@ -1102,19 +1053,16 @@ where
 }
 
 /// `radio::Rssi` implementation for the SX128x
-impl<Hal, CommsError, PinError, DelayError> radio::Rssi
-    for Sx128x<Hal, CommsError, PinError, DelayError>
+impl<Hal> radio::Rssi
+    for Sx128x<Hal>
 where
-    Hal: base::Hal<CommsError, PinError, DelayError>,
-    CommsError: Debug + 'static,
-    PinError: Debug + 'static,
-    DelayError: Debug + 'static,
+    Hal: base::Hal,
 {
-    type Error = Error<CommsError, PinError, DelayError>;
+    type Error = <Hal as base::HalError>::E;
 
     /// Poll for the current channel RSSI
     /// This should only be called when in receive mode
-    fn poll_rssi(&mut self) -> Result<i16, Error<CommsError, PinError, DelayError>> {
+    fn poll_rssi(&mut self) -> Result<i16, <Hal as base::HalError>::E> {
         let mut raw = [0u8; 1];
         self.hal.read_cmd(Commands::GetRssiInst as u8, &mut raw)?;
         Ok(-(raw[0] as i16) / 2)
