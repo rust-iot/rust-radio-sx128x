@@ -205,6 +205,7 @@ impl From<&Channel> for PacketType {
 /// Radio state
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum State {
     Sleep = 0x00,
     StandbyRc = 0x02,
@@ -251,6 +252,8 @@ impl core::convert::TryFrom<u8> for State {
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
+
 pub enum CommandStatus {
     Reserved = 0x0,
     Success = 0x1,

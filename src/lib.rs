@@ -53,6 +53,7 @@ pub const NUM_RETRIES: usize = 3;
 /// Sx128x error type
 #[derive(Debug, Clone, PartialEq)]
 #[cfg_attr(feature = "thiserror", derive(thiserror::Error))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum Error<CommsError: Debug + 'static, PinError: Debug + 'static, DelayError: Debug + 'static>
 {
     #[cfg_attr(feature = "thiserror", error("communication error: {:?}", 0))]
