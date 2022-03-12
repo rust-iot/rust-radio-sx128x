@@ -5,6 +5,7 @@ use super::common::*;
 /// BLE operating mode channel configuration
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct BleChannel {
     /// Operating frequency
     pub freq: u32,
@@ -19,6 +20,7 @@ pub struct BleChannel {
 /// BLE operating mode packet configuration
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct BleConfig {
     /// BLE connection state
     pub connection_state: BleConnectionStates,
@@ -32,6 +34,7 @@ pub struct BleConfig {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BleConnectionStates {
     // TODO
     BLE_PAYLOAD_LENGTH_MAX_31_BYTES = 0x00,
@@ -46,6 +49,7 @@ pub enum BleConnectionStates {
 /// BLE CRC field configuration
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BleCrcFields {
     /// CRC disabled
     BLE_CRC_OFF = 0x00,
@@ -56,6 +60,7 @@ pub enum BleCrcFields {
 /// BLE mode packet types
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum BlePacketTypes {
     /// Pseudo Random Binary Sequence based on 9th degree polynomial
     BLE_PRBS_9 = 0x00,

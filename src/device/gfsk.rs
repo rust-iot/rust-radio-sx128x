@@ -5,6 +5,7 @@ use super::common::*;
 /// GFSK operating mode configuration
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GfskChannel {
     /// Operating frequency
     pub freq: u32,
@@ -30,6 +31,7 @@ impl Default for GfskChannel {
 /// GFSK packet configuration
 #[derive(Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub struct GfskConfig {
     /// Preamble length
     pub preamble_length: PreambleLength,
@@ -69,6 +71,7 @@ impl Default for GfskConfig {
 /// GFSK sync word length configuration
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GfskSyncWordLength {
     /// Sync word length: 1 byte
     GFSK_SYNCWORD_LENGTH_1_BYTE = 0x00,

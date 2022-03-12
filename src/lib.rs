@@ -14,7 +14,12 @@ extern crate libc;
 extern crate std;
 
 use base::Base;
+
+#[cfg(not(feature = "defmt"))]
 use log::{debug, error, trace, warn};
+
+#[cfg(feature = "defmt")]
+use defmt::{trace, debug, error, warn};
 
 use embedded_hal::delay::blocking::DelayUs;
 use embedded_hal::digital::blocking::{InputPin, OutputPin};
@@ -663,7 +668,7 @@ where
         let mut d = [0u8; 1];
         self.hal.read_cmd(Commands::GetStatus as u8, &mut d)?;
 
-        trace!("raw state: 0x{:.2x}", d[0]);
+        trace!("raw state: {}", d[0]);
 
         let mode = (d[0] & 0b1110_0000) >> 5;
         let m = State::try_from(mode).map_err(|_| Error::InvalidCircuitState(d[0]))?;
@@ -689,7 +694,7 @@ where
             State::Unknown => return Err(Error::InvalidStateCommand),
         };
 
-        trace!("Setting state {:?} ({:x?})", state, command);
+        trace!("Setting state {:?} ({})", state, command);
 
         self.hal.write_cmd(command as u8, &[0u8])
     }
@@ -829,18 +834,32 @@ where
         modem_config.set_payload_len(data.len() as u8);
 
         if let Err(e) = self.configure_modem(&modem_config) {
-            let s = self.get_state();
-            error!("TX error setting modem (error: {:?}, state: {:?})", e, s);
+            if let Ok(s) = self.get_state() {
+                error!(
+                    "TX error setting modem (state: {:?})",
+                    s
+                );
+            } else {
+                error!(
+                    "TX error setting modem",
+                );
+            }
             return Err(e);
         }
 
         // Reset buffer addr
         if let Err(e) = self.set_buff_base_addr(0, 0) {
-            let s = self.get_state();
-            error!(
-                "TX error setting buffer base addr (error: {:?}, state: {:?})",
-                e, s
-            );
+            if let Ok(s) = self.get_state() {
+                error!(
+                    "TX error setting buffer base addr (state: {:?})",
+                    s
+                );
+            } else {
+                error!(
+                    "TX error setting buffer base addr",
+                );
+            }
+
             return Err(e);
         }
 
@@ -927,11 +946,16 @@ where
 
         // Reset buffer addr
         if let Err(e) = self.set_buff_base_addr(0, 0) {
-            let s = self.get_state();
-            error!(
-                "RX error setting buffer base addr (error: {:?}, state: {:?})",
-                e, s
-            );
+            if let Ok(s) = self.get_state() {
+                error!(
+                    "RX error setting buffer base addr (state: {:?})",
+                    s
+                );
+            } else {
+                error!(
+                    "RX error setting buffer base addr",
+                );
+            }
             return Err(e);
         }
 
@@ -940,11 +964,16 @@ where
         let modem_config = self.config.modem.clone();
 
         if let Err(e) = self.configure_modem(&modem_config) {
-            let s = self.get_state();
-            error!(
-                "RX error setting configuration (error: {:?}, state: {:?})",
-                e, s
-            );
+            if let Ok(s) = self.get_state() {
+                error!(
+                    "RX error setting configuration (state: {:?})",
+                    s
+                );
+            } else {
+                error!(
+                    "RX error setting configuration",
+                );
+            }
             return Err(e);
         }
 
