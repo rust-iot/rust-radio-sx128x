@@ -26,7 +26,7 @@ std = [ "radio/std", "driver-pal/mock", "failure/std", "hex", "thiserror" ]
 poll-irq = []
 patch-unknown-state = []
 tests = [ "driver-pal/mock" ]
-util = ["structopt", "tracing", "tracing-subscriber", "humantime", "crc16", "driver-pal", "driver-pal/hal", "radio/helpers"]
+util = [ "std", "structopt", "tracing", "tracing-subscriber", "humantime", "crc16", "driver-pal", "driver-pal/hal", "radio/helpers" ]
 
 default = [ "std", "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
