@@ -14,23 +14,33 @@ bin-dir = "{ bin }-{ target }{ format }"
 
 
 [features]
+
+defmt-default = []
+defmt-trace = []
+defmt-debug = []
+defmt-info = []
+defmt-warn = []
+defmt-error = []
+
 std = [ "radio/std", "driver-pal/mock", "failure/std", "hex", "thiserror" ]
 poll-irq = []
 patch-unknown-state = []
 tests = [ "driver-pal/mock" ]
-util = ["structopt", "tracing", "tracing-subscriber", "humantime", "crc16", "driver-pal/hal", "radio/helpers"]
+util = [ "std", "structopt", "tracing", "tracing-subscriber", "humantime", "crc16", "driver-pal", "driver-pal/hal", "radio/helpers" ]
 
 default = [ "std", "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
 [dependencies]
 radio = { version = "0.11.0", default_features = false }
 embedded-hal = "1.0.0-alpha.7"
+defmt = {version = "0.3.0", optional = true }
 
-driver-pal = { version = "0.8.0-alpha.6", default_features = false }
+driver-pal = { version = "0.8.0-alpha.6", default_features = false, optional=true }
 
 bitflags = "1.0.4"
 libc = "0.2.95"
 log = { version = "0.4.14", default_features = false }
+strum = { version = "0.24.0", default_features = false, features = [ "derive" ] }
 
 crc16 = { version = "0.4.0", optional = true }
 hex = { version = "0.4.2", optional = true }
