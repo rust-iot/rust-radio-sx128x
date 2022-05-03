@@ -39,7 +39,7 @@ driver-pal = { version = "0.8.0-alpha.6", default_features = false, optional=tru
 
 bitflags = "1.0.4"
 libc = "0.2.123"
-log = { version = "0.4.14", default_features = false }
+log = { version = "0.4.17", default_features = false }
 strum = { version = "0.24.0", default_features = false, features = [ "derive" ] }
 
 crc16 = { version = "0.4.0", optional = true }
