@@ -26,14 +26,14 @@ std = [ "radio/std", "driver-pal/mock", "failure/std", "hex", "thiserror" ]
 poll-irq = []
 patch-unknown-state = []
 tests = [ "driver-pal/mock" ]
-util = [ "std", "structopt", "tracing", "tracing-subscriber", "humantime", "crc16", "driver-pal", "driver-pal/hal", "radio/helpers" ]
+util = [ "std", "clap", "tracing", "tracing-subscriber", "humantime", "crc16", "driver-pal", "driver-pal/hal", "radio/helpers" ]
 
 default = [ "std", "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
 [dependencies]
 radio = { version = "0.11.0", default_features = false }
-embedded-hal = "1.0.0-alpha.7"
-defmt = {version = "0.3.0", optional = true }
+embedded-hal = "1.0.0-alpha.10"
+defmt = {version = "0.3.5", optional = true }
 
 driver-pal = { version = "0.8.0-alpha.6", default_features = false, optional=true }
 
@@ -46,26 +46,13 @@ crc16 = { version = "0.4.0", optional = true }
 hex = { version = "0.4.2", optional = true }
 
 humantime = { version = "2.0.1", optional = true }
-structopt = { version = "0.3.26", optional = true }
+clap = { version = "4.4.7", optional = true, features = [ "derive", "env" ] }
 thiserror = { version = "1.0.30", optional = true }
+failure = { version = "0.1.7", features = [ "derive" ], default-features = false }
+serde = { version = "1.0.144", optional = true , features = ["derive"]}
 
-[dependencies.failure]
-version = "0.1.7"
-features = [ "derive" ]
-default-features = false
-
-[dependencies.serde]
-features = ["derive"]
-optional = true
-version = "1.0.144"
-
-[dependencies.tracing]
-optional = true
-version = "0.1.34"
-
-[dependencies.tracing-subscriber]
-optional = true
-version = "0.2.16"
+tracing = { version = "0.1.34", optional = true }
+tracing-subscriber = { version = "0.2.16", optional = true }
 
 
 [dev-dependencies]
@@ -81,4 +68,7 @@ required-features = ["util"]
 
 
 [patch.crates-io]
-#radio = { git = "https://github.com/rust-iot/radio-hal" }
+linux-embedded-hal = { git = "https://github.com/rust-embedded/linux-embedded-hal" }
+radio = { git = "https://github.com/rust-iot/radio" }
+driver-pal = { git = "https://github.com/rust-iot/driver-pal" }
+driver-cp2130 = { git = "https://github.com/rust-iot/rust-driver-cp2130" }

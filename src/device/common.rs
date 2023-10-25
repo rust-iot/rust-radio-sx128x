@@ -1,7 +1,7 @@
 /// Modulation shaping parameter for GFSK, FLRC and BLE modes
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "util", derive(structopt::StructOpt))]
+#[cfg_attr(feature = "util", derive(clap::Parser))]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum ModShaping {
     /// No filtering
@@ -36,7 +36,7 @@ pub enum PreambleLength {
 /// Bitrate-Bandwidth for GFSK and BLE modes
 #[derive(Copy, Clone, PartialEq, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "util", derive(structopt::StructOpt))]
+#[cfg_attr(feature = "util", derive(clap::Parser))]
 #[cfg_attr(feature = "defmt", derive(defmt::Format))]
 pub enum GfskBleBitrateBandwidth {
     /// Raw baudrate: 2000 kbps Bandwidth: 2.4 MHz

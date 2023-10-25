@@ -117,7 +117,7 @@ impl Config {
 
     /// Convert a provided frequency into configuration steps
     pub fn freq_to_steps(&self, f: f32) -> f32 {
-        f / self.freq_step() as f32
+        f / self.freq_step()
     }
 }
 
