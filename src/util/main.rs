@@ -1,7 +1,7 @@
 extern crate libc;
 
+use clap::Parser;
 use log::{debug, error, info, trace};
-use structopt::StructOpt;
 
 use tracing_subscriber::filter::EnvFilter;
 use tracing_subscriber::FmtSubscriber;
@@ -15,13 +15,13 @@ use options::*;
 
 fn main() {
     // Load options
-    let opts = Options::from_args();
+    let opts = Options::parse();
 
     // Initialise logging
     let filter = EnvFilter::from_default_env()
         .add_directive(format!("radio_sx128x={}", opts.log_level).parse().unwrap())
         .add_directive(format!("sx128x_util={}", opts.log_level).parse().unwrap())
-        .add_directive(format!("driver_cp2130=info").parse().unwrap());
+        .add_directive("driver_cp2130=info".to_string().parse().unwrap());
 
     let _ = FmtSubscriber::builder()
         .with_env_filter(filter)
@@ -64,7 +64,6 @@ fn main() {
                 .firmware_version()
                 .expect("error fetching chip version");
             info!("Silicon version: 0x{:X}", version);
-            return;
         }
         _ => {
             if let Some(mut syncword) = opts.syncword {
