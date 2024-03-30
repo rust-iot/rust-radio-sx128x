@@ -32,7 +32,7 @@ default = [ "std", "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-lin
 
 [dependencies]
 radio = { version = "0.11.0", default_features = false }
-embedded-hal = "1.0.0-alpha.10"
+embedded-hal = "1.0"
 defmt = {version = "0.3.5", optional = true }
 
 driver-pal = { version = "0.8.0-alpha.6", default_features = false, optional=true }
@@ -68,7 +68,6 @@ required-features = ["util"]
 
 
 [patch.crates-io]
-linux-embedded-hal = { git = "https://github.com/rust-embedded/linux-embedded-hal" }
-radio = { git = "https://github.com/rust-iot/radio" }
-driver-pal = { git = "https://github.com/rust-iot/driver-pal" }
-driver-cp2130 = { git = "https://github.com/rust-iot/rust-driver-cp2130" }
+radio = { git = "https://github.com/rust-iot/radio-hal" }
+driver-pal = { git = "https://github.com/ryankurte/rust-driver-pal", rev = "8d7d63c8f097d9413966769fbc77d5ee68eca0ef" }
+driver-cp2130 = { git = "https://github.com/rust-iot/rust-driver-cp2130", rev = "0a00fa0369c2ef34b9e09c8c0af2e9903184ba98" }

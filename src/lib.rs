@@ -22,7 +22,7 @@ use log::{debug, error, trace, warn};
 use defmt::{debug, error, trace, warn};
 
 use embedded_hal::{
-    delay::DelayUs,
+    delay::DelayNs,
     digital::{InputPin, OutputPin},
     spi::{ErrorType, Mode as SpiMode, Phase, Polarity, SpiDevice},
 };
@@ -159,7 +159,7 @@ where
     SdnPin: OutputPin<Error = PinError>,
     PinError: Debug,
 
-    Delay: DelayUs,
+    Delay: DelayNs,
 {
     /// Create an Sx128x with the provided `Spi` implementation and pins
     pub fn spi(
@@ -622,12 +622,12 @@ where
     }
 }
 
-impl<Hal> DelayUs for Sx128x<Hal>
+impl<Hal> DelayNs for Sx128x<Hal>
 where
     Hal: base::Hal,
 {
-    fn delay_us(&mut self, t: u32) {
-        self.hal.delay_us(t);
+    fn delay_ns(&mut self, t: u32) {
+        self.hal.delay_ns(t);
     }
 }
 

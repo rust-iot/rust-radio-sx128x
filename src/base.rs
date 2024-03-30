@@ -5,7 +5,7 @@ use core::fmt::Debug;
 use log::{error, trace};
 
 use embedded_hal::{
-    delay::DelayUs,
+    delay::DelayNs,
     digital::{InputPin, OutputPin, PinState},
     spi::{ErrorType, Operation, SpiDevice},
 };
@@ -31,6 +31,9 @@ pub trait Hal {
 
     /// Delay for the specified time
     fn delay_us(&mut self, us: u32);
+    
+    /// Delay for the specified time
+    fn delay_ns(&mut self, us: u32);
 
     /// Write the specified command and data
     fn write_cmd(
@@ -152,7 +155,7 @@ pub struct Base<
     Busy: InputPin,
     Ready: InputPin,
     Sdn: OutputPin,
-    Delay: DelayUs,
+    Delay: DelayNs,
 > {
     pub spi: Spi,
     pub cs: Cs,
@@ -173,7 +176,7 @@ where
     Sdn: OutputPin<Error = PinError>,
     PinError: Debug + 'static,
 
-    Delay: DelayUs,
+    Delay: DelayNs,
 {
     type CommsError = <Spi as ErrorType>::Error;
     type PinError = PinError;
@@ -215,6 +218,11 @@ where
     /// Delay for the specified time
     fn delay_us(&mut self, ms: u32) {
         self.delay.delay_us(ms);
+    }
+
+    /// Delay for the specified time
+    fn delay_ns(&mut self, ns: u32) {
+        self.delay.delay_ns(ns);
     }
 
     /// Write data with prefix, asserting CS as required
