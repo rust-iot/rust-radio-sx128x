@@ -476,6 +476,7 @@ pub enum AutoTx {
 
 bitflags! {
     /// Interrupt flags register
+    #[derive(Copy, Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct Irq: u16 {
         const TX_DONE                             = 0x0001;
@@ -502,6 +503,7 @@ pub type DioMask = Irq;
 
 bitflags! {
     /// Packet status register
+    #[derive(Copy, Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct PacketStatus: u8 {
         /// Top flag value unknown due to lack of complete datasheet
@@ -518,6 +520,7 @@ bitflags! {
 
 bitflags! {
     /// TxRx status packet status byte
+    #[derive(Copy, Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct TxRxStatus: u8 {
         /// Top flag value unknown due to lack of complete datasheet
@@ -528,6 +531,7 @@ bitflags! {
 
 bitflags! {
     /// TxRx status register
+    #[derive(Copy, Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct SyncAddrStatus: u8 {
         const SYNC_ERROR            = (1 << 6);
@@ -536,6 +540,7 @@ bitflags! {
 
 bitflags! {
     /// Radio calibration parameters
+    #[derive(Copy, Clone, PartialEq, Debug)]
     #[cfg_attr(feature = "defmt", derive(defmt::Format))]
     pub struct CalibrationParams: u8 {
         const ADCBulkPEnable    = (1 << 5);
