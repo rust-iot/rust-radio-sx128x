@@ -31,7 +31,7 @@ util = [ "std", "clap", "tracing", "tracing-subscriber", "humantime", "crc16", "
 default = [ "std", "util", "serde", "driver-pal/hal-cp2130", "driver-pal/hal-linux", "patch-unknown-state" ]
 
 [dependencies]
-radio = { version = "0.11.0", default_features = false }
+radio = { version = "0.12.1", default_features = false }
 embedded-hal = "1.0.0"
 embedded-hal-bus = "0.1.0"
 driver-pal = { version = "0.9.0", default_features = false, optional=true }
