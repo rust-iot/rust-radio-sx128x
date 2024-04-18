@@ -8,15 +8,14 @@ use std::time::Duration;
 use log::{debug, info};
 
 use driver_pal::hal::*;
-use driver_pal::wrapper::Wrapper;
+
 
 use radio::{Receive, Transmit};
-use radio_sx128x::prelude::*;
+use radio_sx128x::{base::Base, prelude::*};
 
-pub type SpiWrapper =
-    Wrapper<HalSpi, HalOutputPin, HalInputPin, HalInputPin, HalOutputPin, HalDelay>;
+pub type SpiWrapper = Base<HalSpi, HalInputPin, HalInputPin, HalOutputPin, HalDelay>;
 
-pub type Radio = Sx128x<SpiWrapper, HalError, HalError, HalError>;
+pub type Radio = Sx128x<SpiWrapper>;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct TestConfig {
@@ -28,11 +27,10 @@ fn load_radio(rf_config: &Config, device_config: &DeviceConfig) -> Radio {
     debug!("Connecting to radio");
 
     let HalInst { base: _, spi, pins } =
-        HalInst::load(&device_config).expect("error connecting to HAL");
+        HalInst::load(device_config).expect("error connecting to HAL");
 
     let radio = Sx128x::spi(
         spi,
-        pins.cs,
         pins.busy,
         pins.ready,
         pins.reset,
@@ -66,7 +64,7 @@ fn test_tx_rx(radio1: &mut Radio, radio2: &mut Radio) {
     let mut sent = false;
     let mut received = false;
     let mut buff = [0u8; 1024];
-    let mut n = 0;
+    let n = 0;
 
     // Configure receive
     radio1.start_receive().unwrap();
