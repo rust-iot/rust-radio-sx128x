@@ -46,7 +46,6 @@ fn main() {
     info!("Initialising Radio");
     let mut radio = Sx128x::spi(
         spi,
-        pins.cs,
         pins.busy,
         pins.ready,
         pins.reset,

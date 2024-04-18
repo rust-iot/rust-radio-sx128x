@@ -13,7 +13,7 @@ use driver_pal::hal::*;
 use radio::{Receive, Transmit};
 use radio_sx128x::{base::Base, prelude::*};
 
-pub type SpiWrapper = Base<HalSpi, HalOutputPin, HalInputPin, HalInputPin, HalOutputPin, HalDelay>;
+pub type SpiWrapper = Base<HalSpi, HalInputPin, HalInputPin, HalOutputPin, HalDelay>;
 
 pub type Radio = Sx128x<SpiWrapper>;
 
@@ -31,7 +31,6 @@ fn load_radio(rf_config: &Config, device_config: &DeviceConfig) -> Radio {
 
     let radio = Sx128x::spi(
         spi,
-        pins.cs,
         pins.busy,
         pins.ready,
         pins.reset,

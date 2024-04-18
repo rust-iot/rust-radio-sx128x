@@ -151,26 +151,23 @@ where
 /// Base interface for radio device
 pub struct Base<
     Spi: SpiDevice<u8>,
-    Cs: OutputPin,
     Busy: InputPin,
     Ready: InputPin,
     Sdn: OutputPin,
     Delay: DelayNs,
 > {
     pub spi: Spi,
-    pub cs: Cs,
     pub busy: Busy,
     pub ready: Ready,
     pub sdn: Sdn,
     pub delay: Delay,
 }
 
-impl<Spi, Cs, Busy, Ready, Sdn, PinError, Delay> Hal for Base<Spi, Cs, Busy, Ready, Sdn, Delay>
+impl<Spi, Busy, Ready, Sdn, PinError, Delay> Hal for Base<Spi, Busy, Ready, Sdn, Delay>
 where
     Spi: SpiDevice<u8>,
     <Spi as ErrorType>::Error: Debug + 'static,
 
-    Cs: OutputPin<Error = PinError>,
     Busy: InputPin<Error = PinError>,
     Ready: InputPin<Error = PinError>,
     Sdn: OutputPin<Error = PinError>,
@@ -212,12 +209,12 @@ where
 
     /// Delay for the specified time
     fn delay_ms(&mut self, ms: u32) {
-        self.delay_us(ms * 1000);
+        self.delay.delay_ms(ms);
     }
 
     /// Delay for the specified time
     fn delay_us(&mut self, us: u32) {
-        self.delay_ns(us * 1000);
+        self.delay.delay_us(us);
     }
 
     fn delay_ns(&mut self, ns: u32) {
@@ -230,16 +227,10 @@ where
         prefix: &[u8],
         data: &[u8],
     ) -> Result<(), Error<Self::CommsError, Self::PinError>> {
-        self.cs.set_low().map_err(Error::Pin)?;
-
-        let r = self
+        self
             .spi
             .transaction(&mut [Operation::Write(prefix), Operation::Write(data)])
-            .map_err(Error::Comms);
-
-        self.cs.set_high().map_err(Error::Pin)?;
-
-        r
+            .map_err(Error::Comms)
     }
 
     /// Read data with prefix, asserting CS as required
@@ -248,16 +239,10 @@ where
         prefix: &[u8],
         data: &mut [u8],
     ) -> Result<(), Error<Self::CommsError, Self::PinError>> {
-        self.cs.set_low().map_err(Error::Pin)?;
-
-        let r = self
+        self
             .spi
             .transaction(&mut [Operation::Write(prefix), Operation::Read(data)])
-            .map_err(Error::Comms);
-
-        self.cs.set_high().map_err(Error::Pin)?;
-
-        r
+            .map_err(Error::Comms)
     }
 
     /// Write the specified command and data

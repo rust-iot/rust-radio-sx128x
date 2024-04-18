@@ -144,16 +144,15 @@ pub enum Error<CommsError: Debug + 'static, PinError: Debug + 'static> {
     NoComms,
 }
 
-pub type Sx128xSpi<Spi, CsPin, BusyPin, ReadyPin, SdnPin, DelayPin> =
-    Sx128x<Base<Spi, CsPin, BusyPin, ReadyPin, SdnPin, DelayPin>>;
+pub type Sx128xSpi<Spi, BusyPin, ReadyPin, SdnPin, DelayPin> =
+    Sx128x<Base<Spi, BusyPin, ReadyPin, SdnPin, DelayPin>>;
 
-impl<Spi, CsPin, BusyPin, ReadyPin, SdnPin, PinError, Delay>
-    Sx128x<Base<Spi, CsPin, BusyPin, ReadyPin, SdnPin, Delay>>
+impl<Spi, BusyPin, ReadyPin, SdnPin, PinError, Delay>
+    Sx128x<Base<Spi, BusyPin, ReadyPin, SdnPin, Delay>>
 where
     Spi: SpiDevice,
     <Spi as ErrorType>::Error: Debug,
 
-    CsPin: OutputPin<Error = PinError>,
     BusyPin: InputPin<Error = PinError>,
     ReadyPin: InputPin<Error = PinError>,
     SdnPin: OutputPin<Error = PinError>,
@@ -164,7 +163,6 @@ where
     /// Create an Sx128x with the provided `Spi` implementation and pins
     pub fn spi(
         spi: Spi,
-        cs: CsPin,
         busy: BusyPin,
         ready: ReadyPin,
         sdn: SdnPin,
@@ -174,7 +172,6 @@ where
         // Create SpiWrapper over spi/cs/busy
         let hal = Base {
             spi,
-            cs,
             sdn,
             busy,
             ready,
